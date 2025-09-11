@@ -209,3 +209,4 @@ __marimo__/
 # API documentation file
 neon_crm_api_docs.html
 /.idea/
+/expanded_api_docs.html
