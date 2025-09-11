@@ -175,6 +175,56 @@ class AccountsResource(SearchableResource):
                 for item in response["data"]:
                     yield item
 
+    def get_orders(self, account_id: int, **kwargs: Any) -> Iterator[Dict[str, Any]]:
+        """Get order history for an account.
+
+        Args:
+            account_id: The account ID
+            **kwargs: Additional query parameters
+
+        Yields:
+            Individual order dictionaries
+        """
+        url = self._build_url(f"{account_id}/orders")
+        response = self._client.get(url, params=kwargs)
+
+        # Handle different response structures
+        if isinstance(response, list):
+            for item in response:
+                yield item
+        elif "orders" in response:
+            for item in response["orders"]:
+                yield item
+        elif "data" in response:
+            if isinstance(response["data"], list):
+                for item in response["data"]:
+                    yield item
+
+    def get_pledges(self, account_id: int, **kwargs: Any) -> Iterator[Dict[str, Any]]:
+        """Get pledges for an account.
+
+        Args:
+            account_id: The account ID
+            **kwargs: Additional query parameters
+
+        Yields:
+            Individual pledge dictionaries
+        """
+        url = self._build_url(f"{account_id}/pledges")
+        response = self._client.get(url, params=kwargs)
+
+        # Handle different response structures
+        if isinstance(response, list):
+            for item in response:
+                yield item
+        elif "pledges" in response:
+            for item in response["pledges"]:
+                yield item
+        elif "data" in response:
+            if isinstance(response["data"], list):
+                for item in response["data"]:
+                    yield item
+
 
 class AccountContactsResource(RelationshipResource):
     """Resource for managing contacts within a company account."""

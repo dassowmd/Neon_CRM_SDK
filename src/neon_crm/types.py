@@ -38,30 +38,99 @@ class PaginatedResponse(TypedDict):
 class IndividualAccount(TypedDict, total=False):
     """Individual account data structure."""
 
-    accountType: str
-    firstName: str
-    lastName: str
-    email: str
+    accountType: str  # Required: "INDIVIDUAL"
+    firstName: str  # Required
+    lastName: str  # Required
+    middleName: str
+    prefix: str
+    suffix: str
+    salutation: str
+    preferredName: str
+    email: str  # Highly recommended
     phone: str
     website: str
     jobTitle: str
-    suffix: str
-    prefix: str
-    middleName: str
-    preferredName: str
     gender: str
-    dateOfBirth: str
+    dateOfBirth: str  # ISO format: "YYYY-MM-DD"
+    deceased: bool
+    # Primary contact information
+    primaryContact: Dict[str, Any]
+    # Multiple email/phone support
+    email1: str
+    email2: str
+    email3: str
+    phone1: str
+    phone2: str
+    phone3: str
+    phone1Type: str
+    phone2Type: str
+    phone3Type: str
+    fax: str
 
 
 class CompanyAccount(TypedDict, total=False):
     """Company account data structure."""
 
-    accountType: str
-    name: str
-    email: str
+    accountType: str  # Required: "COMPANY"
+    name: str  # Required (company name)
+    companyName: str  # Alias for name
+    organizationType: str
+    email: str  # Highly recommended
     phone: str
     website: str
     fax: str
+    # Multiple contact support
+    email1: str
+    email2: str
+    email3: str
+    phone1: str
+    phone2: str
+    phone3: str
+    phone1Type: str
+    phone2Type: str
+    phone3Type: str
+
+
+class AccountResponse(TypedDict, total=False):
+    """Account response structure from API."""
+
+    accountId: str
+    firstName: str
+    lastName: str
+    companyName: str
+    email: str
+    userType: str  # "INDIVIDUAL" or "COMPANY"
+
+
+class AccountListResponse(TypedDict):
+    """Response structure for GET /accounts."""
+
+    accounts: List[AccountResponse]
+    pagination: "PaginationInfo"
+
+
+class PaginationInfo(TypedDict):
+    """Pagination information structure."""
+
+    currentPage: int
+    pageSize: int
+    sortColumn: str
+    sortDirection: str  # "ASC" or "DESC"
+    totalPages: int
+    totalResults: int
+
+
+class Source(TypedDict, total=False):
+    """Source tracking information."""
+
+    sourceId: int
+    sourceName: str
+
+
+class Timestamps(TypedDict, total=False):
+    """Custom timestamp information."""
+
+    createdDateTime: str  # ISO format: "2024-01-01T00:00:00Z"
 
 
 class AccountData(TypedDict, total=False):
@@ -69,9 +138,43 @@ class AccountData(TypedDict, total=False):
 
     individualAccount: IndividualAccount
     companyAccount: CompanyAccount
-    loginName: str
-    source: Dict[str, Any]
-    timestamps: Dict[str, str]
+    loginName: str  # For portal access
+    source: Source
+    timestamps: Timestamps
+    addresses: List["Address"]
+    consent: Dict[str, Any]  # Consent preferences
+    customFields: List[Dict[str, Any]]  # Custom field values
+
+
+class Address(TypedDict, total=False):
+    """Address data structure."""
+
+    addressId: str
+    addressType: str  # "Home", "Work", "Billing", "Mailing", etc.
+    streetAddress1: str
+    streetAddress2: str
+    addressLine1: str  # Alias for streetAddress1
+    addressLine2: str  # Alias for streetAddress2
+    addressLine3: str
+    addressLine4: str
+    city: str
+    state: str
+    zipCode: str
+    postalCode: str  # Alias for zipCode
+    country: str
+    isPrimaryAddress: bool
+
+
+class Contact(TypedDict, total=False):
+    """Contact data structure for company accounts."""
+
+    contactId: str
+    firstName: str
+    lastName: str
+    email: str
+    phone: str
+    title: str
+    isPrimaryContact: bool
 
 
 class DonationData(TypedDict, total=False):
@@ -116,3 +219,30 @@ Environment = Literal["production", "trial"]
 # Response data types
 ResponseData = Dict[str, Any]
 ListResponseData = List[Dict[str, Any]]
+
+
+# Account creation payloads
+class CreateIndividualAccountPayload(TypedDict):
+    """Payload for creating an individual account."""
+
+    individualAccount: IndividualAccount
+
+
+class CreateCompanyAccountPayload(TypedDict):
+    """Payload for creating a company account."""
+
+    companyAccount: CompanyAccount
+
+
+# Complete account creation with all optional fields
+class CompleteAccountPayload(TypedDict, total=False):
+    """Complete account creation payload with all optional fields."""
+
+    individualAccount: IndividualAccount
+    companyAccount: CompanyAccount
+    addresses: List["Address"]
+    source: Source
+    timestamps: Timestamps
+    loginName: str
+    consent: Dict[str, Any]
+    customFields: List[Dict[str, Any]]
