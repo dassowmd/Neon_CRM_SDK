@@ -15,7 +15,10 @@ help:
 	@echo "  pre-commit    Install and run pre-commit hooks"
 	@echo ""
 	@echo "Testing:"
-	@echo "  test          Run tests with coverage"
+	@echo "  test          Run all tests with coverage"
+	@echo "  test-unit     Run unit tests only (mocked, fast)"
+	@echo "  test-regression-readonly   Run regression tests (read-only, safe for production)"
+	@echo "  test-regression-writeops   Run regression tests (write operations, MODIFIES DATABASE)"
 	@echo "  test-verbose  Run tests with verbose output"
 	@echo "  test-watch    Run tests in watch mode"
 	@echo ""
@@ -65,8 +68,33 @@ pre-commit:
 
 # Testing
 test:
-	@echo "Running tests with coverage..."
+	@echo "Running all tests with coverage..."
 	pytest tests/ --cov=neon_crm --cov-report=term-missing --cov-report=html
+
+test-unit:
+	@echo "Running unit tests (mocked, fast)..."
+	pytest tests/unit/ -m unit -v --cov=neon_crm --cov-report=term-missing
+
+test-regression-readonly:
+	@echo "Running regression tests (read-only operations)..."
+	@echo "⚠️  These tests connect to the actual Neon CRM API but only perform read operations."
+	@echo "   Set NEON_ORG_ID and NEON_API_KEY environment variables."
+	@echo "   Set NEON_ENVIRONMENT=production for production or leave unset for trial."
+	@echo ""
+	pytest tests/regression/test_readonly.py -m "regression and readonly" -v -s
+
+test-regression-writeops:
+	@echo "🚨 WARNING: WRITE OPERATIONS TESTS 🚨"
+	@echo "These tests will CREATE, UPDATE, and DELETE records in your Neon CRM database!"
+	@echo "Required environment variables:"
+	@echo "  NEON_ORG_ID=your_org_id"
+	@echo "  NEON_API_KEY=your_api_key"
+	@echo "  NEON_ENVIRONMENT=trial (NEVER use production!)"
+	@echo "  NEON_ALLOW_WRITE_TESTS=true (explicit confirmation required)"
+	@echo ""
+	@echo "Press Ctrl+C now to cancel, or Enter to continue..."
+	@read confirm
+	pytest tests/regression/test_writeops.py -m "regression and writeops" -v -s
 
 test-verbose:
 	@echo "Running tests with verbose output..."
