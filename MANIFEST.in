@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+recursive-include src/neon_crm *.py
+recursive-include tests *.py
+recursive-include examples *.py
+exclude neon_crm_api_docs.html
