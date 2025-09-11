@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 from .base import SearchableResource
+from ..governance import ResourceType
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 class SoftCreditsResource(SearchableResource):
     """Resource for managing soft credits."""
+    
+    _resource_type = ResourceType.SOFT_CREDITS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the soft credits resource."""

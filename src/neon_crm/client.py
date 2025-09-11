@@ -38,6 +38,7 @@ from .resources import (
     WebhooksResource,
 )
 from .types import Environment
+from .governance import PermissionContext, UserPermissions, PermissionConfig
 
 
 class NeonClient:
@@ -52,6 +53,8 @@ class NeonClient:
         timeout: float = 30.0,
         max_retries: int = 3,
         base_url: Optional[str] = None,
+        user_permissions: Optional[UserPermissions] = None,
+        permission_config: Optional[PermissionConfig] = None,
     ) -> None:
         """Initialize the Neon CRM client.
 
@@ -63,6 +66,8 @@ class NeonClient:
             timeout: Request timeout in seconds. Defaults to 30.0.
             max_retries: Number of retries for failed requests. Defaults to 3.
             base_url: Custom base URL. If provided, overrides environment setting.
+            user_permissions: User permissions for access control. If provided, enables governance.
+            permission_config: Permission configuration system. If not provided, uses default.
         """
         self.org_id = org_id or os.getenv("NEON_ORG_ID")
         self.api_key = api_key or os.getenv("NEON_API_KEY")
@@ -80,6 +85,10 @@ class NeonClient:
         self.api_version = api_version
         self.timeout = timeout
         self.max_retries = max_retries
+        
+        # Set up governance
+        self.user_permissions = user_permissions
+        self.permission_config = permission_config or PermissionConfig()
 
         # Set base URL
         if base_url:
@@ -115,6 +124,43 @@ class NeonClient:
         self.soft_credits = SoftCreditsResource(self)
         self.volunteers = VolunteersResource(self)
         self.webhooks = WebhooksResource(self)
+        
+    def set_user_permissions(self, permissions: UserPermissions):
+        """Set user permissions for this client session.
+        
+        Args:
+            permissions: UserPermissions object containing user's access rights
+        """
+        self.user_permissions = permissions
+    
+    def set_user_by_id(self, user_id: str) -> bool:
+        """Set user permissions by looking up user ID in the permission config.
+        
+        Args:
+            user_id: The user identifier to look up
+            
+        Returns:
+            True if user was found and permissions set, False otherwise
+        """
+        permissions = self.permission_config.get_user_permissions(user_id)
+        if permissions:
+            self.user_permissions = permissions
+            return True
+        return False
+    
+    def get_permission_context(self) -> PermissionContext:
+        """Get a permission context manager for this client's user permissions.
+        
+        Returns:
+            PermissionContext that can be used as a context manager
+            
+        Raises:
+            ValueError: If no user permissions are set
+        """
+        if self.user_permissions is None:
+            raise ValueError("No user permissions set. Call set_user_permissions() first.")
+        
+        return PermissionContext(self.user_permissions)
 
     def _get_default_headers(self) -> Dict[str, str]:
         """Get default headers for API requests."""
@@ -194,14 +240,26 @@ class NeonClient:
             request_headers.update(headers)
 
         try:
-            response = self._client.request(
-                method=method,
-                url=url,
-                params=params,
-                json=json_data,
-                headers=request_headers,
-            )
-            return self._handle_response(response)
+            # Set permission context if user permissions are available
+            if self.user_permissions:
+                with PermissionContext(self.user_permissions):
+                    response = self._client.request(
+                        method=method,
+                        url=url,
+                        params=params,
+                        json=json_data,
+                        headers=request_headers,
+                    )
+                    return self._handle_response(response)
+            else:
+                response = self._client.request(
+                    method=method,
+                    url=url,
+                    params=params,
+                    json=json_data,
+                    headers=request_headers,
+                )
+                return self._handle_response(response)
 
         except httpx.TimeoutException as e:
             raise NeonTimeoutError(

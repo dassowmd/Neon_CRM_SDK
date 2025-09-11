@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 from .base import SearchableResource
+from ..governance import ResourceType
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 class RecurringDonationsResource(SearchableResource):
     """Resource for managing recurring donations."""
+    
+    _resource_type = ResourceType.RECURRING_DONATIONS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the recurring donations resource."""

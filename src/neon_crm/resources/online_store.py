@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 from .base import BaseResource
+from ..governance import ResourceType
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 class OnlineStoreResource(BaseResource):
     """Resource for managing online store items and transactions."""
+    
+    _resource_type = ResourceType.ONLINE_STORE
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the online store resource."""

@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 from .base import BaseResource
+from ..governance import ResourceType
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 class CustomFieldsResource(BaseResource):
     """Resource for managing custom fields."""
+    
+    _resource_type = ResourceType.CUSTOM_FIELDS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the custom fields resource."""

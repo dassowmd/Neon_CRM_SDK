@@ -12,6 +12,7 @@ A comprehensive, high-quality Python SDK for the Neon CRM API v2.
 - **Custom Objects**: Full support for Neon's custom object framework
 - **Error Handling**: Comprehensive error handling with specific exception types
 - **Rate Limiting**: Built-in rate limit handling and retries
+- **Access Control**: Built-in governance system with role-based permissions
 - **Modern Python**: Supports Python 3.8+
 
 ## Installation
@@ -58,6 +59,51 @@ new_account = client.accounts.create({
 # Get donations for an account
 donations = client.accounts.get_donations(account_id=12345)
 ```
+
+## Access Control & Governance
+
+The SDK includes a comprehensive governance system for controlling user access to different resources and actions:
+
+```python
+from neon_crm.governance import Role, create_user_permissions
+
+# Set up user permissions
+fundraiser_permissions = create_user_permissions("user123", Role.FUNDRAISER)
+client.set_user_permissions(fundraiser_permissions)
+
+# All API calls will now be checked against user permissions
+try:
+    accounts = list(client.accounts.list())  # ✓ Allowed for fundraisers
+    donations = client.donations.create(data)  # ✓ Allowed for fundraisers
+    # client.accounts.delete(123)  # ✗ Would raise PermissionError
+except PermissionError as e:
+    print(f"Access denied: {e}")
+```
+
+### Available Roles
+- **VIEWER** - Read-only access
+- **EDITOR** - Read and modify most resources
+- **FUNDRAISER** - Full access to donation-related activities  
+- **EVENT_MANAGER** - Full control over events and registrations
+- **VOLUNTEER_COORDINATOR** - Manage volunteers and activities
+- **ADMIN** - Full access to all resources
+
+### Custom Permissions
+```python
+from neon_crm.governance import ResourceType, Permission
+
+# Create custom permissions
+custom_permissions = create_user_permissions(
+    "special_user",
+    Role.VIEWER,  # Base role
+    custom_overrides={
+        ResourceType.EVENTS: {Permission.ADMIN},  # Full event access
+        ResourceType.CAMPAIGNS: {Permission.READ, Permission.WRITE}  # Campaign write access
+    }
+)
+```
+
+See [GOVERNANCE.md](GOVERNANCE.md) for complete documentation.
 
 ## Async Usage
 

@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional
 
 from .base import BaseResource
+from ..governance import ResourceType
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 class WebhooksResource(BaseResource):
     """Resource for managing webhooks."""
+    
+    _resource_type = ResourceType.WEBHOOKS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the webhooks resource."""
