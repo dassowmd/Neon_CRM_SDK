@@ -1,10 +1,12 @@
 """Unit tests for base resource classes."""
 
 import pytest
-from unittest.mock import MagicMock, patch
-from typing import Dict, Any
 
-from neon_crm.resources.base import BaseResource, SearchableResource, RelationshipResource
+from neon_crm.resources.base import (
+    BaseResource,
+    RelationshipResource,
+    SearchableResource,
+)
 from neon_crm.types import SearchRequest
 
 
@@ -15,34 +17,34 @@ class TestBaseResource:
     def test_initialization(self, mock_client):
         """Test BaseResource initialization."""
         resource = BaseResource(mock_client, "/test")
-        
+
         assert resource._client == mock_client
         assert resource._endpoint == "/test"
 
     def test_build_url_with_path(self, mock_client):
         """Test URL building with additional path."""
         resource = BaseResource(mock_client, "/test")
-        
+
         url = resource._build_url("123")
         assert url == "/test/123"
-        
+
         url = resource._build_url("/123")
         assert url == "/test/123"
 
     def test_build_url_without_path(self, mock_client):
         """Test URL building without additional path."""
         resource = BaseResource(mock_client, "/test")
-        
+
         url = resource._build_url()
         assert url == "/test"
 
     def test_get_method(self, mock_client, mock_successful_response):
         """Test GET request method."""
         mock_client.get.return_value = {"id": 123, "name": "Test"}
-        
+
         resource = BaseResource(mock_client, "/test")
         result = resource.get(123)
-        
+
         assert result == {"id": 123, "name": "Test"}
         mock_client.get.assert_called_once_with("/test/123")
 
@@ -50,10 +52,10 @@ class TestBaseResource:
         """Test CREATE request method."""
         test_data = {"name": "New Item"}
         mock_client.post.return_value = {"id": 456, "name": "New Item"}
-        
+
         resource = BaseResource(mock_client, "/test")
         result = resource.create(test_data)
-        
+
         assert result == {"id": 456, "name": "New Item"}
         mock_client.post.assert_called_once_with("/test", json_data=test_data)
 
@@ -61,10 +63,10 @@ class TestBaseResource:
         """Test UPDATE request method."""
         test_data = {"name": "Updated Item"}
         mock_client.put.return_value = {"id": 123, "name": "Updated Item"}
-        
+
         resource = BaseResource(mock_client, "/test")
         result = resource.update(123, test_data)
-        
+
         assert result == {"id": 123, "name": "Updated Item"}
         mock_client.put.assert_called_once_with("/test/123", json_data=test_data)
 
@@ -72,20 +74,20 @@ class TestBaseResource:
         """Test PATCH request method."""
         test_data = {"name": "Patched Item"}
         mock_client.patch.return_value = {"id": 123, "name": "Patched Item"}
-        
+
         resource = BaseResource(mock_client, "/test")
         result = resource.patch(123, test_data)
-        
+
         assert result == {"id": 123, "name": "Patched Item"}
         mock_client.patch.assert_called_once_with("/test/123", json_data=test_data)
 
     def test_delete_method(self, mock_client):
         """Test DELETE request method."""
         mock_client.delete.return_value = {"success": True}
-        
+
         resource = BaseResource(mock_client, "/test")
         result = resource.delete(123)
-        
+
         assert result == {"success": True}
         mock_client.delete.assert_called_once_with("/test/123")
 
@@ -93,13 +95,13 @@ class TestBaseResource:
         """Test LIST method with searchResults response."""
         mock_response = {
             "pagination": {"currentPage": 1, "totalPages": 1},
-            "searchResults": [{"id": 1}, {"id": 2}]
+            "searchResults": [{"id": 1}, {"id": 2}],
         }
         mock_client.get.return_value = mock_response
-        
+
         resource = BaseResource(mock_client, "/test")
         results = list(resource.list(page_size=10))
-        
+
         assert len(results) == 2
         assert results[0] == {"id": 1}
         assert results[1] == {"id": 2}
@@ -108,10 +110,10 @@ class TestBaseResource:
         """Test LIST method with direct list response."""
         mock_response = [{"id": 1}, {"id": 2}]
         mock_client.get.return_value = mock_response
-        
+
         resource = BaseResource(mock_client, "/test")
         results = list(resource.list())
-        
+
         assert len(results) == 2
         assert results[0] == {"id": 1}
         assert results[1] == {"id": 2}
@@ -121,18 +123,18 @@ class TestBaseResource:
         # Mock two pages of results
         page1_response = {
             "pagination": {"currentPage": 1, "totalPages": 2},
-            "searchResults": [{"id": 1}, {"id": 2}]
+            "searchResults": [{"id": 1}, {"id": 2}],
         }
         page2_response = {
             "pagination": {"currentPage": 2, "totalPages": 2},
-            "searchResults": [{"id": 3}, {"id": 4}]
+            "searchResults": [{"id": 3}, {"id": 4}],
         }
-        
+
         mock_client.get.side_effect = [page1_response, page2_response]
-        
+
         resource = BaseResource(mock_client, "/test")
         results = list(resource.list(page_size=2))
-        
+
         assert len(results) == 4
         assert mock_client.get.call_count == 2
 
@@ -144,21 +146,19 @@ class TestSearchableResource:
     def test_search_method(self, mock_client):
         """Test search functionality."""
         search_request: SearchRequest = {
-            "searchFields": [
-                {"field": "name", "operator": "EQUAL", "value": "test"}
-            ],
-            "outputFields": ["id", "name"]
+            "searchFields": [{"field": "name", "operator": "EQUAL", "value": "test"}],
+            "outputFields": ["id", "name"],
         }
-        
+
         mock_response = {
             "pagination": {"currentPage": 1, "totalPages": 1},
-            "searchResults": [{"id": 1, "name": "test"}]
+            "searchResults": [{"id": 1, "name": "test"}],
         }
         mock_client.post.return_value = mock_response
-        
+
         resource = SearchableResource(mock_client, "/test")
         results = list(resource.search(search_request))
-        
+
         assert len(results) == 1
         assert results[0] == {"id": 1, "name": "test"}
         mock_client.post.assert_called_once()
@@ -167,13 +167,13 @@ class TestSearchableResource:
         """Test get_search_fields method."""
         mock_response = [
             {"field": "name", "type": "string"},
-            {"field": "id", "type": "integer"}
+            {"field": "id", "type": "integer"},
         ]
         mock_client.get.return_value = mock_response
-        
+
         resource = SearchableResource(mock_client, "/test")
         fields = resource.get_search_fields()
-        
+
         assert len(fields) == 2
         assert fields[0]["field"] == "name"
         mock_client.get.assert_called_once_with("/test/search/searchFields")
@@ -182,13 +182,13 @@ class TestSearchableResource:
         """Test get_output_fields method."""
         mock_response = [
             {"field": "id", "type": "integer"},
-            {"field": "name", "type": "string"}
+            {"field": "name", "type": "string"},
         ]
         mock_client.get.return_value = mock_response
-        
+
         resource = SearchableResource(mock_client, "/test")
         fields = resource.get_output_fields()
-        
+
         assert len(fields) == 2
         assert fields[0]["field"] == "id"
         mock_client.get.assert_called_once_with("/test/search/outputFields")
@@ -201,7 +201,7 @@ class TestRelationshipResource:
     def test_initialization(self, mock_client):
         """Test RelationshipResource initialization."""
         resource = RelationshipResource(mock_client, "/accounts", 123, "contacts")
-        
+
         assert resource._client == mock_client
         assert resource.parent_id == 123
         assert resource.relationship == "contacts"
@@ -210,14 +210,14 @@ class TestRelationshipResource:
     def test_crud_operations(self, mock_client):
         """Test CRUD operations for relationship resource."""
         resource = RelationshipResource(mock_client, "/accounts", 123, "contacts")
-        
+
         # Test create
         test_data = {"firstName": "John", "lastName": "Doe"}
         mock_client.post.return_value = {"id": 456, **test_data}
-        
+
         result = resource.create(test_data)
         assert result["firstName"] == "John"
-        
+
         # Test get
         mock_client.get.return_value = {"id": 456, "firstName": "John"}
         result = resource.get(456)

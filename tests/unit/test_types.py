@@ -1,18 +1,16 @@
 """Unit tests for type definitions."""
 
 import pytest
-from typing import Dict, Any
 
 from neon_crm.types import (
-    IndividualAccount,
-    CompanyAccount,
-    AccountData,
     Address,
-    SearchRequest,
-    PaginationParams,
-    CreateIndividualAccountPayload,
+    CompanyAccount,
+    CompleteAccountPayload,
     CreateCompanyAccountPayload,
-    CompleteAccountPayload
+    CreateIndividualAccountPayload,
+    IndividualAccount,
+    PaginationParams,
+    SearchRequest,
 )
 
 
@@ -28,9 +26,9 @@ class TestTypeDefinitions:
             "lastName": "Doe",
             "email": "john.doe@example.com",
             "phone": "+1-555-123-4567",
-            "dateOfBirth": "1990-01-15"
+            "dateOfBirth": "1990-01-15",
         }
-        
+
         assert account["accountType"] == "INDIVIDUAL"
         assert account["firstName"] == "John"
         assert account["email"] == "john.doe@example.com"
@@ -41,9 +39,9 @@ class TestTypeDefinitions:
             "accountType": "COMPANY",
             "name": "Acme Corp",
             "email": "info@acme.com",
-            "website": "https://acme.com"
+            "website": "https://acme.com",
         }
-        
+
         assert account["accountType"] == "COMPANY"
         assert account["name"] == "Acme Corp"
         assert account["website"] == "https://acme.com"
@@ -57,9 +55,9 @@ class TestTypeDefinitions:
             "state": "IL",
             "zipCode": "62701",
             "country": "USA",
-            "isPrimaryAddress": True
+            "isPrimaryAddress": True,
         }
-        
+
         assert address["addressType"] == "Home"
         assert address["streetAddress1"] == "123 Main St"
         assert address["isPrimaryAddress"] is True
@@ -68,19 +66,12 @@ class TestTypeDefinitions:
         """Test SearchRequest type structure."""
         search_request: SearchRequest = {
             "searchFields": [
-                {
-                    "field": "firstName",
-                    "operator": "EQUAL",
-                    "value": "John"
-                }
+                {"field": "firstName", "operator": "EQUAL", "value": "John"}
             ],
             "outputFields": ["accountId", "firstName", "lastName"],
-            "pagination": {
-                "currentPage": 1,
-                "pageSize": 50
-            }
+            "pagination": {"currentPage": 1, "pageSize": 50},
         }
-        
+
         assert len(search_request["searchFields"]) == 1
         assert search_request["searchFields"][0]["field"] == "firstName"
         assert search_request["outputFields"] == ["accountId", "firstName", "lastName"]
@@ -88,11 +79,8 @@ class TestTypeDefinitions:
 
     def test_pagination_params_type(self):
         """Test PaginationParams type structure."""
-        pagination: PaginationParams = {
-            "currentPage": 2,
-            "pageSize": 25
-        }
-        
+        pagination: PaginationParams = {"currentPage": 2, "pageSize": 25}
+
         assert pagination["currentPage"] == 2
         assert pagination["pageSize"] == 25
 
@@ -103,10 +91,10 @@ class TestTypeDefinitions:
                 "accountType": "INDIVIDUAL",
                 "firstName": "Jane",
                 "lastName": "Smith",
-                "email": "jane.smith@example.com"
+                "email": "jane.smith@example.com",
             }
         }
-        
+
         assert payload["individualAccount"]["accountType"] == "INDIVIDUAL"
         assert payload["individualAccount"]["firstName"] == "Jane"
 
@@ -116,10 +104,10 @@ class TestTypeDefinitions:
             "companyAccount": {
                 "accountType": "COMPANY",
                 "name": "Tech Solutions",
-                "email": "info@techsolutions.com"
+                "email": "info@techsolutions.com",
             }
         }
-        
+
         assert payload["companyAccount"]["accountType"] == "COMPANY"
         assert payload["companyAccount"]["name"] == "Tech Solutions"
 
@@ -130,7 +118,7 @@ class TestTypeDefinitions:
                 "accountType": "INDIVIDUAL",
                 "firstName": "Bob",
                 "lastName": "Johnson",
-                "email": "bob.johnson@example.com"
+                "email": "bob.johnson@example.com",
             },
             "addresses": [
                 {
@@ -140,21 +128,13 @@ class TestTypeDefinitions:
                     "state": "OR",
                     "zipCode": "97201",
                     "country": "USA",
-                    "isPrimaryAddress": True
+                    "isPrimaryAddress": True,
                 }
             ],
-            "source": {
-                "sourceId": 1001,
-                "sourceName": "Website"
-            },
-            "customFields": [
-                {
-                    "fieldId": "custom_1",
-                    "value": "Test Value"
-                }
-            ]
+            "source": {"sourceId": 1001, "sourceName": "Website"},
+            "customFields": [{"fieldId": "custom_1", "value": "Test Value"}],
         }
-        
+
         assert payload["individualAccount"]["firstName"] == "Bob"
         assert len(payload["addresses"]) == 1
         assert payload["addresses"][0]["addressType"] == "Home"
@@ -167,18 +147,18 @@ class TestTypeDefinitions:
         minimal_individual: IndividualAccount = {
             "accountType": "INDIVIDUAL",
             "firstName": "John",
-            "lastName": "Doe"
+            "lastName": "Doe",
         }
-        
+
         assert "email" not in minimal_individual
         assert minimal_individual["firstName"] == "John"
 
         # Test minimal company account
         minimal_company: CompanyAccount = {
             "accountType": "COMPANY",
-            "name": "Test Company"
+            "name": "Test Company",
         }
-        
+
         assert "email" not in minimal_company
         assert minimal_company["name"] == "Test Company"
 
@@ -192,5 +172,5 @@ class TestTypeDefinitions:
             "email": "john@example.com",
             # Additional fields that might exist in API responses
         }
-        
+
         assert extended_account["firstName"] == "John"

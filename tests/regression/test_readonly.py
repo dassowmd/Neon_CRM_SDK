@@ -10,10 +10,7 @@ Environment variables required:
 """
 
 import pytest
-import os
-from typing import List, Dict, Any
 
-from neon_crm import NeonClient
 from neon_crm.types import SearchRequest
 
 
@@ -56,13 +53,13 @@ class TestReadOnlyOperations:
                 # Only get first few for testing
                 if len(accounts) >= 5:
                     break
-            
+
             print(f"Retrieved {len(accounts)} accounts")
             if accounts:
                 first_account = accounts[0]
                 assert "accountId" in first_account
                 print(f"First account ID: {first_account.get('accountId')}")
-                
+
         except Exception as e:
             pytest.skip(f"Accounts endpoint not accessible: {e}")
 
@@ -71,21 +68,27 @@ class TestReadOnlyOperations:
         try:
             # Test filtering by user type
             individual_count = 0
-            for account in regression_client.accounts.list(user_type="INDIVIDUAL", page_size=3):
+            for account in regression_client.accounts.list(
+                user_type="INDIVIDUAL", page_size=3
+            ):
                 individual_count += 1
-                assert account.get("userType") == "INDIVIDUAL" or "userType" not in account
+                assert (
+                    account.get("userType") == "INDIVIDUAL" or "userType" not in account
+                )
                 if individual_count >= 3:
                     break
-            
+
             company_count = 0
-            for account in regression_client.accounts.list(user_type="COMPANY", page_size=3):
+            for account in regression_client.accounts.list(
+                user_type="COMPANY", page_size=3
+            ):
                 company_count += 1
                 assert account.get("userType") == "COMPANY" or "userType" not in account
                 if company_count >= 3:
                     break
-                    
+
             print(f"Found {individual_count} individuals, {company_count} companies")
-            
+
         except Exception as e:
             print(f"Account filtering test failed: {e}")
 
@@ -94,29 +97,28 @@ class TestReadOnlyOperations:
         try:
             search_request: SearchRequest = {
                 "searchFields": [
-                    {
-                        "field": "userType",
-                        "operator": "EQUAL", 
-                        "value": "INDIVIDUAL"
-                    }
+                    {"field": "userType", "operator": "EQUAL", "value": "INDIVIDUAL"}
                 ],
-                "outputFields": ["accountId", "firstName", "lastName", "email", "userType"],
-                "pagination": {
-                    "currentPage": 1,
-                    "pageSize": 5
-                }
+                "outputFields": [
+                    "accountId",
+                    "firstName",
+                    "lastName",
+                    "email",
+                    "userType",
+                ],
+                "pagination": {"currentPage": 1, "pageSize": 5},
             }
-            
+
             results = []
             for result in regression_client.accounts.search(search_request):
                 results.append(result)
                 if len(results) >= 5:
                     break
-                    
+
             print(f"Search returned {len(results)} results")
             if results:
                 print(f"First result keys: {list(results[0].keys())}")
-                
+
         except Exception as e:
             print(f"Account search test failed: {e}")
 
@@ -126,10 +128,10 @@ class TestReadOnlyOperations:
             search_fields = regression_client.accounts.get_search_fields()
             assert isinstance(search_fields, list)
             print(f"Available search fields: {len(search_fields)}")
-            
+
             if search_fields:
                 print(f"Sample search field: {search_fields[0]}")
-                
+
         except Exception as e:
             print(f"Get search fields test failed: {e}")
 
@@ -139,10 +141,10 @@ class TestReadOnlyOperations:
             output_fields = regression_client.accounts.get_output_fields()
             assert isinstance(output_fields, list)
             print(f"Available output fields: {len(output_fields)}")
-            
+
             if output_fields:
                 print(f"Sample output field: {output_fields[0]}")
-                
+
         except Exception as e:
             print(f"Get output fields test failed: {e}")
 
@@ -154,12 +156,12 @@ class TestReadOnlyOperations:
                 donations.append(donation)
                 if len(donations) >= 3:
                     break
-                    
+
             print(f"Retrieved {len(donations)} donations")
             if donations:
                 first_donation = donations[0]
                 print(f"First donation keys: {list(first_donation.keys())}")
-                
+
         except Exception as e:
             print(f"Donations list test failed: {e}")
 
@@ -171,12 +173,12 @@ class TestReadOnlyOperations:
                 events.append(event)
                 if len(events) >= 3:
                     break
-                    
+
             print(f"Retrieved {len(events)} events")
             if events:
                 first_event = events[0]
                 print(f"First event keys: {list(first_event.keys())}")
-                
+
         except Exception as e:
             print(f"Events list test failed: {e}")
 
@@ -188,12 +190,12 @@ class TestReadOnlyOperations:
                 campaigns.append(campaign)
                 if len(campaigns) >= 3:
                     break
-                    
+
             print(f"Retrieved {len(campaigns)} campaigns")
             if campaigns:
                 first_campaign = campaigns[0]
                 print(f"First campaign keys: {list(first_campaign.keys())}")
-                
+
         except Exception as e:
             print(f"Campaigns list test failed: {e}")
 
@@ -205,12 +207,12 @@ class TestReadOnlyOperations:
                 memberships.append(membership)
                 if len(memberships) >= 3:
                     break
-                    
+
             print(f"Retrieved {len(memberships)} memberships")
             if memberships:
                 first_membership = memberships[0]
                 print(f"First membership keys: {list(first_membership.keys())}")
-                
+
         except Exception as e:
             print(f"Memberships list test failed: {e}")
 
@@ -222,12 +224,12 @@ class TestReadOnlyOperations:
                 activities.append(activity)
                 if len(activities) >= 3:
                     break
-                    
+
             print(f"Retrieved {len(activities)} activities")
             if activities:
                 first_activity = activities[0]
                 print(f"First activity keys: {list(first_activity.keys())}")
-                
+
         except Exception as e:
             print(f"Activities list test failed: {e}")
 
@@ -239,12 +241,12 @@ class TestReadOnlyOperations:
                 custom_fields.append(field)
                 if len(custom_fields) >= 5:
                     break
-                    
+
             print(f"Retrieved {len(custom_fields)} custom fields")
             if custom_fields:
                 first_field = custom_fields[0]
                 print(f"First custom field keys: {list(first_field.keys())}")
-                
+
         except Exception as e:
             print(f"Custom fields list test failed: {e}")
 
@@ -256,9 +258,9 @@ class TestReadOnlyOperations:
                 account_fields.append(field)
                 if len(account_fields) >= 5:
                     break
-                    
+
             print(f"Retrieved {len(account_fields)} account custom fields")
-            
+
         except Exception as e:
             print(f"Custom fields by component test failed: {e}")
 
@@ -268,21 +270,23 @@ class TestReadOnlyOperations:
         try:
             total_count = 0
             page_count = 0
-            
-            for account in regression_client.accounts.list(page_size=10):
+
+            for _account in regression_client.accounts.list(page_size=10):
                 total_count += 1
-                
+
                 # Track pages (approximate)
                 if total_count % 10 == 1:
                     page_count += 1
                     print(f"Processing page {page_count}, total items: {total_count}")
-                
+
                 # Limit test to reasonable number
                 if total_count >= 50:
                     break
-                    
-            print(f"Processed {total_count} items across approximately {page_count} pages")
-            
+
+            print(
+                f"Processed {total_count} items across approximately {page_count} pages"
+            )
+
         except Exception as e:
             print(f"Multi-page pagination test failed: {e}")
 
@@ -304,17 +308,17 @@ class TestReadOnlyOperations:
             for account in regression_client.accounts.list(page_size=1):
                 first_account = account
                 break
-                
+
             if first_account and "accountId" in first_account:
                 account_id = first_account["accountId"]
                 details = regression_client.accounts.get(account_id)
-                
+
                 assert isinstance(details, dict)
                 print(f"Retrieved details for account {account_id}")
                 print(f"Account details keys: {list(details.keys())}")
             else:
                 pytest.skip("No accounts available to test details")
-                
+
         except Exception as e:
             print(f"Account details test failed: {e}")
 
@@ -326,25 +330,29 @@ class TestReadOnlyOperations:
             for account in regression_client.accounts.list(page_size=1):
                 first_account = account
                 break
-                
+
             if first_account and "accountId" in first_account:
                 account_id = first_account["accountId"]
-                
+
                 # Test related data endpoints
                 try:
-                    donations = list(regression_client.accounts.get_donations(account_id))
+                    donations = list(
+                        regression_client.accounts.get_donations(account_id)
+                    )
                     print(f"Account {account_id} has {len(donations)} donations")
                 except Exception as e:
                     print(f"Could not get donations for account {account_id}: {e}")
-                
+
                 try:
-                    memberships = list(regression_client.accounts.get_memberships(account_id))
+                    memberships = list(
+                        regression_client.accounts.get_memberships(account_id)
+                    )
                     print(f"Account {account_id} has {len(memberships)} memberships")
                 except Exception as e:
                     print(f"Could not get memberships for account {account_id}: {e}")
-                    
+
             else:
                 pytest.skip("No accounts available to test related data")
-                
+
         except Exception as e:
             print(f"Account related data test failed: {e}")

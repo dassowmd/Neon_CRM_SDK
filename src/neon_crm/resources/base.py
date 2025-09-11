@@ -79,8 +79,7 @@ class BaseResource:
                 pagination = {}
 
             # Yield each item
-            for item in items:
-                yield item
+            yield from items
 
             # Check if there are more pages
             if not pagination:
@@ -195,8 +194,7 @@ class SearchableResource(BaseResource):
                 pagination = {}
 
             # Yield each item
-            for item in items:
-                yield item
+            yield from items
 
             # Check if there are more pages
             if not pagination:

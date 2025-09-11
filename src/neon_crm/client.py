@@ -206,9 +206,9 @@ class NeonClient:
         except httpx.TimeoutException as e:
             raise NeonTimeoutError(
                 timeout=self.timeout, details={"original_error": str(e)}
-            )
+            ) from e
         except httpx.ConnectError as e:
-            raise NeonConnectionError(original_error=e, details={"url": url})
+            raise NeonConnectionError(original_error=e, details={"url": url}) from e
         except httpx.HTTPStatusError as e:
             return self._handle_response(e.response)
 
@@ -416,9 +416,9 @@ class AsyncNeonClient:
         except httpx.TimeoutException as e:
             raise NeonTimeoutError(
                 timeout=self.timeout, details={"original_error": str(e)}
-            )
+            ) from e
         except httpx.ConnectError as e:
-            raise NeonConnectionError(original_error=e, details={"url": url})
+            raise NeonConnectionError(original_error=e, details={"url": url}) from e
         except httpx.HTTPStatusError as e:
             return self._handle_response(e.response)
 

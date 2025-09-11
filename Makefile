@@ -7,6 +7,7 @@ help:
 	@echo "Neon CRM Python SDK - Available Commands:"
 	@echo ""
 	@echo "Development:"
+	@echo "  setup-dev     Set up complete development environment with venv (recommended)"
 	@echo "  install       Install package in production mode"
 	@echo "  install-dev   Install package in development mode with dev dependencies"
 	@echo "  format        Format code with black and ruff"
@@ -38,42 +39,72 @@ help:
 	@echo "Utilities:"
 	@echo "  check-all     Run all checks (format, lint, type-check, test)"
 
+# Development environment setup
+setup-dev:
+	@echo "Setting up complete development environment..."
+	@if [ ! -d "venv" ]; then \
+		echo "Creating virtual environment..."; \
+		python3 -m venv venv; \
+		echo "✓ Virtual environment created in ./venv/"; \
+	else \
+		echo "✓ Virtual environment already exists"; \
+	fi
+	@echo "Installing package with dev dependencies..."
+	$(PIP) install -e ".[dev]"
+	@echo "✓ Package installed in development mode"
+	@echo "Installing pre-commit hooks..."
+	$(PYTHON) -m pre_commit install
+	@echo "✓ Pre-commit hooks installed"
+	@echo ""
+	@echo "🎉 Development environment setup complete!"
+	@echo ""
+	@echo "You can now run:"
+	@echo "  make test-unit              # Run unit tests"
+	@echo "  make lint                   # Check code quality"
+	@echo "  make format                 # Format code"
+	@echo ""
+	@echo "Note: All make commands automatically use the venv when available."
+
+# Python and pip commands (auto-detect venv)
+PYTHON := $(shell if [ -f "venv/bin/python" ]; then echo "venv/bin/python"; else echo "python3"; fi)
+PIP := $(shell if [ -f "venv/bin/pip" ]; then echo "venv/bin/pip"; else echo "pip3"; fi)
+
 # Installation
 install:
-	pip install .
+	$(PIP) install .
 
 install-dev:
-	pip install -e ".[dev]"
+	$(PIP) install -e ".[dev]"
 
 # Code quality
 format:
 	@echo "Formatting code with black..."
-	black src/ tests/ examples/
+	$(PYTHON) -m black src/ tests/ examples/
 	@echo "Sorting imports and fixing code with ruff..."
-	ruff check --fix src/ tests/ examples/
+	$(PYTHON) -m ruff check --fix src/ tests/ examples/
 
 lint:
 	@echo "Running ruff linting..."
-	ruff check src/ tests/ examples/
+	$(PYTHON) -m ruff check src/ tests/ examples/
 
 type-check:
 	@echo "Running mypy type checking..."
-	mypy src/neon_crm/
+	$(PYTHON) -m mypy src/neon_crm/
 
 pre-commit:
 	@echo "Installing pre-commit hooks..."
-	pre-commit install
+	$(PYTHON) -m pre_commit install
 	@echo "Running pre-commit on all files..."
-	pre-commit run --all-files
+	$(PYTHON) -m pre_commit run --all-files
 
 # Testing
 test:
 	@echo "Running all tests with coverage..."
-	pytest tests/ --cov=neon_crm --cov-report=term-missing --cov-report=html
+	$(PYTHON) -m pytest tests/ --cov=neon_crm --cov-report=term-missing --cov-report=html
 
 test-unit:
 	@echo "Running unit tests (mocked, fast)..."
-	pytest tests/unit/ -m unit -v --cov=neon_crm --cov-report=term-missing
+	$(PYTHON) -m pytest tests/unit/ -m unit -v --cov=neon_crm --cov-report=term-missing
 
 test-regression-readonly:
 	@echo "Running regression tests (read-only operations)..."
@@ -81,7 +112,7 @@ test-regression-readonly:
 	@echo "   Set NEON_ORG_ID and NEON_API_KEY environment variables."
 	@echo "   Set NEON_ENVIRONMENT=production for production or leave unset for trial."
 	@echo ""
-	pytest tests/regression/test_readonly.py -m "regression and readonly" -v -s
+	$(PYTHON) -m pytest tests/regression/test_readonly.py -m "regression and readonly" -v -s
 
 test-regression-writeops:
 	@echo "🚨 WARNING: WRITE OPERATIONS TESTS 🚨"
@@ -94,15 +125,15 @@ test-regression-writeops:
 	@echo ""
 	@echo "Press Ctrl+C now to cancel, or Enter to continue..."
 	@read confirm
-	pytest tests/regression/test_writeops.py -m "regression and writeops" -v -s
+	$(PYTHON) -m pytest tests/regression/test_writeops.py -m "regression and writeops" -v -s
 
 test-verbose:
 	@echo "Running tests with verbose output..."
-	pytest tests/ -v --cov=neon_crm --cov-report=term-missing
+	$(PYTHON) -m pytest tests/ -v --cov=neon_crm --cov-report=term-missing
 
 test-watch:
 	@echo "Running tests in watch mode..."
-	pytest-watch tests/ -- --cov=neon_crm
+	$(PYTHON) -m pytest_watch tests/ -- --cov=neon_crm
 
 # Build and distribution
 clean:
@@ -118,17 +149,17 @@ clean:
 
 build: clean
 	@echo "Building package..."
-	python -m build
+	$(PYTHON) -m build
 
 publish-test: build
 	@echo "Publishing to TestPyPI..."
 	@echo "Make sure you have set up your TestPyPI credentials in ~/.pypirc"
-	python -m twine upload --repository testpypi dist/*
+	$(PYTHON) -m twine upload --repository testpypi dist/*
 
 publish: build
 	@echo "Publishing to PyPI..."
 	@echo "Make sure you have set up your PyPI credentials in ~/.pypirc"
-	python -m twine upload dist/*
+	$(PYTHON) -m twine upload dist/*
 
 # Documentation
 docs:
@@ -164,7 +195,7 @@ setup-docs:
 example:
 	@echo "Running basic usage example..."
 	@echo "Note: Set NEON_ORG_ID and NEON_API_KEY environment variables to test with real API"
-	python examples/basic_usage.py
+	$(PYTHON) examples/basic_usage.py
 
 # Comprehensive checks
 check-all: format lint type-check test
@@ -183,29 +214,31 @@ release-check: clean format lint type-check test build
 # Quick development commands
 quick-test:
 	@echo "Running quick tests (no coverage)..."
-	pytest tests/ -x
+	$(PYTHON) -m pytest tests/ -x
 
 quick-check:
 	@echo "Running quick checks..."
-	ruff check src/
-	pytest tests/ -x
+	$(PYTHON) -m ruff check src/
+	$(PYTHON) -m pytest tests/ -x
 
 # Package info
 info:
 	@echo "Package Information:"
 	@echo "==================="
-	@python -c "import sys; sys.path.insert(0, 'src'); import neon_crm; print(f'Version: {neon_crm.__version__}')"
-	@echo "Python version: $(shell python --version)"
+	@$(PYTHON) -c "import sys; sys.path.insert(0, 'src'); import neon_crm; print(f'Version: {neon_crm.__version__}')"
+	@echo "Python version: $(shell $(PYTHON) --version)"
+	@echo "Python path: $(PYTHON)"
+	@echo "Pip path: $(PIP)"
 	@echo "Installed packages:"
-	@pip list | grep -E "(neon-crm|httpx|pydantic|pytest)"
+	@$(PIP) list | grep -E "(neon-crm|httpx|pydantic|pytest)"
 
 # Environment checks
 check-env:
 	@echo "Environment Check:"
 	@echo "=================="
-	@echo "Python: $(shell which python)"
-	@echo "Pip: $(shell which pip)"
-	@echo "Virtual environment: $(VIRTUAL_ENV)"
+	@echo "Python: $(PYTHON)"
+	@echo "Pip: $(PIP)"
+	@echo "Virtual environment: $(if $(findstring venv,$(PYTHON)),✓ Using venv,⚠️  Not using venv)"
 	@if [ -f "pyproject.toml" ]; then echo "✓ pyproject.toml found"; else echo "✗ pyproject.toml missing"; fi
 	@if [ -d "src/neon_crm" ]; then echo "✓ Source directory found"; else echo "✗ Source directory missing"; fi
 	@if [ -d "tests" ]; then echo "✓ Tests directory found"; else echo "✗ Tests directory missing"; fi

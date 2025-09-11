@@ -1,28 +1,19 @@
 """Unit tests for all resource classes."""
 
 import pytest
-from unittest.mock import MagicMock
-from typing import Dict, Any
 
 from neon_crm.resources.accounts import AccountsResource
+from neon_crm.resources.custom_fields import CustomFieldsResource
 from neon_crm.resources.donations import DonationsResource
 from neon_crm.resources.events import EventsResource
-from neon_crm.resources.campaigns import CampaignsResource
-from neon_crm.resources.memberships import MembershipsResource
-from neon_crm.resources.volunteers import VolunteersResource
-from neon_crm.resources.activities import ActivitiesResource
+from neon_crm.resources.grants import GrantsResource
+from neon_crm.resources.households import HouseholdsResource
+from neon_crm.resources.online_store import OnlineStoreResource
 from neon_crm.resources.orders import OrdersResource
 from neon_crm.resources.pledges import PledgesResource
-from neon_crm.resources.payments import PaymentsResource
-from neon_crm.resources.households import HouseholdsResource
-from neon_crm.resources.grants import GrantsResource
-from neon_crm.resources.custom_fields import CustomFieldsResource
-from neon_crm.resources.custom_objects import CustomObjectsResource
-from neon_crm.resources.online_store import OnlineStoreResource
-from neon_crm.resources.recurring_donations import RecurringDonationsResource
-from neon_crm.resources.soft_credits import SoftCreditsResource
-from neon_crm.resources.webhooks import WebhooksResource
 from neon_crm.resources.properties import PropertiesResource
+from neon_crm.resources.recurring_donations import RecurringDonationsResource
+from neon_crm.resources.webhooks import WebhooksResource
 
 
 @pytest.mark.unit
@@ -36,15 +27,18 @@ class TestAccountsResource:
 
     def test_list_with_filters(self, mock_client):
         """Test list method with various filters."""
-        mock_client.get.return_value = {"searchResults": [{"id": 1}], "pagination": {"currentPage": 1, "totalPages": 1}}
-        
+        mock_client.get.return_value = {
+            "searchResults": [{"id": 1}],
+            "pagination": {"currentPage": 1, "totalPages": 1},
+        }
+
         resource = AccountsResource(mock_client)
-        results = list(resource.list(
-            email="test@example.com",
-            first_name="John",
-            user_type="INDIVIDUAL"
-        ))
-        
+        results = list(
+            resource.list(
+                email="test@example.com", first_name="John", user_type="INDIVIDUAL"
+            )
+        )
+
         assert len(results) == 1
         # Verify the parameters were passed correctly
         call_args = mock_client.get.call_args
@@ -57,36 +51,34 @@ class TestAccountsResource:
     def test_link_accounts(self, mock_client):
         """Test linking individual account to company."""
         mock_client.post.return_value = {"success": True}
-        
+
         resource = AccountsResource(mock_client)
         result = resource.link(individual_id=123, company_id=456)
-        
+
         assert result["success"] is True
         mock_client.post.assert_called_once_with(
-            "/accounts/link",
-            json_data={"individualId": 123, "companyId": 456}
+            "/accounts/link", json_data={"individualId": 123, "companyId": 456}
         )
 
     def test_unlink_accounts(self, mock_client):
         """Test unlinking individual account from company."""
         mock_client.post.return_value = {"success": True}
-        
+
         resource = AccountsResource(mock_client)
         result = resource.unlink(individual_id=123, company_id=456)
-        
+
         assert result["success"] is True
         mock_client.post.assert_called_once_with(
-            "/accounts/unlink",
-            json_data={"individualId": 123, "companyId": 456}
+            "/accounts/unlink", json_data={"individualId": 123, "companyId": 456}
         )
 
     def test_get_donations(self, mock_client):
         """Test getting donations for an account."""
         mock_client.get.return_value = {"donations": [{"id": 1, "amount": 100}]}
-        
+
         resource = AccountsResource(mock_client)
         results = list(resource.get_donations(account_id=123))
-        
+
         assert len(results) == 1
         assert results[0]["amount"] == 100
         mock_client.get.assert_called_once_with("/accounts/123/donations", params={})
@@ -94,30 +86,30 @@ class TestAccountsResource:
     def test_get_memberships(self, mock_client):
         """Test getting memberships for an account."""
         mock_client.get.return_value = [{"id": 1, "type": "Premium"}]
-        
+
         resource = AccountsResource(mock_client)
         results = list(resource.get_memberships(account_id=123))
-        
+
         assert len(results) == 1
         assert results[0]["type"] == "Premium"
 
     def test_get_orders(self, mock_client):
         """Test getting orders for an account."""
         mock_client.get.return_value = [{"id": 1, "total": 50}]
-        
+
         resource = AccountsResource(mock_client)
         results = list(resource.get_orders(account_id=123))
-        
+
         assert len(results) == 1
         assert results[0]["total"] == 50
 
     def test_get_pledges(self, mock_client):
         """Test getting pledges for an account."""
         mock_client.get.return_value = [{"id": 1, "amount": 200}]
-        
+
         resource = AccountsResource(mock_client)
         results = list(resource.get_pledges(account_id=123))
-        
+
         assert len(results) == 1
         assert results[0]["amount"] == 200
 
@@ -133,16 +125,21 @@ class TestDonationsResource:
 
     def test_list_with_filters(self, mock_client):
         """Test list method with donation-specific filters."""
-        mock_client.get.return_value = {"searchResults": [{"id": 1}], "pagination": {"currentPage": 1, "totalPages": 1}}
-        
+        mock_client.get.return_value = {
+            "searchResults": [{"id": 1}],
+            "pagination": {"currentPage": 1, "totalPages": 1},
+        }
+
         resource = DonationsResource(mock_client)
-        results = list(resource.list(
-            campaign_id=123,
-            fund_id=456,
-            start_date="2024-01-01",
-            end_date="2024-12-31"
-        ))
-        
+        results = list(
+            resource.list(
+                campaign_id=123,
+                fund_id=456,
+                start_date="2024-01-01",
+                end_date="2024-12-31",
+            )
+        )
+
         assert len(results) == 1
         call_args = mock_client.get.call_args
         params = call_args[1]["params"]
@@ -158,15 +155,18 @@ class TestEventsResource:
 
     def test_list_with_filters(self, mock_client):
         """Test list method with event-specific filters."""
-        mock_client.get.return_value = {"searchResults": [{"id": 1}], "pagination": {"currentPage": 1, "totalPages": 1}}
-        
+        mock_client.get.return_value = {
+            "searchResults": [{"id": 1}],
+            "pagination": {"currentPage": 1, "totalPages": 1},
+        }
+
         resource = EventsResource(mock_client)
-        results = list(resource.list(
-            event_status="published",
-            category_id=123,
-            start_date="2024-01-01"
-        ))
-        
+        results = list(
+            resource.list(
+                event_status="published", category_id=123, start_date="2024-01-01"
+            )
+        )
+
         assert len(results) == 1
         call_args = mock_client.get.call_args
         params = call_args[1]["params"]
@@ -180,14 +180,14 @@ class TestOrdersResource:
 
     def test_list_with_filters(self, mock_client):
         """Test list method with order-specific filters."""
-        mock_client.get.return_value = {"searchResults": [{"id": 1}], "pagination": {"currentPage": 1, "totalPages": 1}}
-        
+        mock_client.get.return_value = {
+            "searchResults": [{"id": 1}],
+            "pagination": {"currentPage": 1, "totalPages": 1},
+        }
+
         resource = OrdersResource(mock_client)
-        results = list(resource.list(
-            order_status="completed",
-            start_date="2024-01-01"
-        ))
-        
+        results = list(resource.list(order_status="completed", start_date="2024-01-01"))
+
         assert len(results) == 1
         call_args = mock_client.get.call_args
         params = call_args[1]["params"]
@@ -201,15 +201,16 @@ class TestPledgesResource:
 
     def test_list_with_filters(self, mock_client):
         """Test list method with pledge-specific filters."""
-        mock_client.get.return_value = {"searchResults": [{"id": 1}], "pagination": {"currentPage": 1, "totalPages": 1}}
-        
+        mock_client.get.return_value = {
+            "searchResults": [{"id": 1}],
+            "pagination": {"currentPage": 1, "totalPages": 1},
+        }
+
         resource = PledgesResource(mock_client)
-        results = list(resource.list(
-            pledge_status="active",
-            campaign_id=123,
-            fund_id=456
-        ))
-        
+        results = list(
+            resource.list(pledge_status="active", campaign_id=123, fund_id=456)
+        )
+
         assert len(results) == 1
         call_args = mock_client.get.call_args
         params = call_args[1]["params"]
@@ -224,23 +225,22 @@ class TestHouseholdsResource:
     def test_add_member(self, mock_client):
         """Test adding a member to a household."""
         mock_client.post.return_value = {"success": True}
-        
+
         resource = HouseholdsResource(mock_client)
         result = resource.add_member(household_id=123, account_id=456)
-        
+
         assert result["success"] is True
         mock_client.post.assert_called_once_with(
-            "/households/123/members",
-            json_data={"accountId": 456}
+            "/households/123/members", json_data={"accountId": 456}
         )
 
     def test_remove_member(self, mock_client):
         """Test removing a member from a household."""
         mock_client.delete.return_value = {"success": True}
-        
+
         resource = HouseholdsResource(mock_client)
         result = resource.remove_member(household_id=123, account_id=456)
-        
+
         assert result["success"] is True
         mock_client.delete.assert_called_once_with("/households/123/members/456")
 
@@ -251,11 +251,14 @@ class TestGrantsResource:
 
     def test_get_by_funder(self, mock_client):
         """Test getting grants by funder."""
-        mock_client.get.return_value = {"searchResults": [{"id": 1}], "pagination": {"currentPage": 1, "totalPages": 1}}
-        
+        mock_client.get.return_value = {
+            "searchResults": [{"id": 1}],
+            "pagination": {"currentPage": 1, "totalPages": 1},
+        }
+
         resource = GrantsResource(mock_client)
         results = list(resource.get_by_funder("Gates Foundation"))
-        
+
         assert len(results) == 1
         call_args = mock_client.get.call_args
         params = call_args[1]["params"]
@@ -263,11 +266,14 @@ class TestGrantsResource:
 
     def test_get_active(self, mock_client):
         """Test getting active grants."""
-        mock_client.get.return_value = {"searchResults": [{"id": 1}], "pagination": {"currentPage": 1, "totalPages": 1}}
-        
+        mock_client.get.return_value = {
+            "searchResults": [{"id": 1}],
+            "pagination": {"currentPage": 1, "totalPages": 1},
+        }
+
         resource = GrantsResource(mock_client)
         results = list(resource.get_active())
-        
+
         assert len(results) == 1
         call_args = mock_client.get.call_args
         params = call_args[1]["params"]
@@ -280,11 +286,14 @@ class TestCustomFieldsResource:
 
     def test_get_by_component(self, mock_client):
         """Test getting custom fields by component."""
-        mock_client.get.return_value = {"searchResults": [{"id": 1}], "pagination": {"currentPage": 1, "totalPages": 1}}
-        
+        mock_client.get.return_value = {
+            "searchResults": [{"id": 1}],
+            "pagination": {"currentPage": 1, "totalPages": 1},
+        }
+
         resource = CustomFieldsResource(mock_client)
         results = list(resource.get_by_component("accounts"))
-        
+
         assert len(results) == 1
         call_args = mock_client.get.call_args
         params = call_args[1]["params"]
@@ -298,20 +307,23 @@ class TestRecurringDonationsResource:
     def test_cancel(self, mock_client):
         """Test canceling a recurring donation."""
         mock_client.post.return_value = {"success": True}
-        
+
         resource = RecurringDonationsResource(mock_client)
         result = resource.cancel(donation_id=123)
-        
+
         assert result["success"] is True
         mock_client.post.assert_called_once_with("/recurringDonations/123/cancel")
 
     def test_get_by_frequency(self, mock_client):
         """Test getting recurring donations by frequency."""
-        mock_client.get.return_value = {"searchResults": [{"id": 1}], "pagination": {"currentPage": 1, "totalPages": 1}}
-        
+        mock_client.get.return_value = {
+            "searchResults": [{"id": 1}],
+            "pagination": {"currentPage": 1, "totalPages": 1},
+        }
+
         resource = RecurringDonationsResource(mock_client)
         results = list(resource.get_by_frequency("monthly"))
-        
+
         assert len(results) == 1
         call_args = mock_client.get.call_args
         params = call_args[1]["params"]
@@ -324,15 +336,18 @@ class TestWebhooksResource:
 
     def test_create_webhook(self, mock_client):
         """Test creating a webhook."""
-        mock_client.post.return_value = {"id": 123, "url": "https://example.com/webhook"}
-        
+        mock_client.post.return_value = {
+            "id": 123,
+            "url": "https://example.com/webhook",
+        }
+
         resource = WebhooksResource(mock_client)
         result = resource.create_webhook(
             url="https://example.com/webhook",
             event_types=["donation.created"],
-            secret="test_secret"
+            secret="test_secret",
         )
-        
+
         assert result["id"] == 123
         call_args = mock_client.post.call_args
         data = call_args[1]["json_data"]
@@ -343,20 +358,20 @@ class TestWebhooksResource:
     def test_test_webhook(self, mock_client):
         """Test testing a webhook."""
         mock_client.post.return_value = {"success": True}
-        
+
         resource = WebhooksResource(mock_client)
         result = resource.test_webhook(webhook_id=123)
-        
+
         assert result["success"] is True
         mock_client.post.assert_called_once_with("/webhooks/123/test")
 
     def test_get_event_types(self, mock_client):
         """Test getting available event types."""
         mock_client.get.return_value = [{"type": "donation.created"}]
-        
+
         resource = WebhooksResource(mock_client)
         result = resource.get_event_types()
-        
+
         assert len(result) == 1
         assert result[0]["type"] == "donation.created"
 
@@ -368,21 +383,23 @@ class TestOnlineStoreResource:
     def test_list_products(self, mock_client):
         """Test listing products."""
         mock_client.get.return_value = {"products": [{"id": 1, "name": "T-Shirt"}]}
-        
+
         resource = OnlineStoreResource(mock_client)
         results = list(resource.list_products(product_status="active"))
-        
+
         assert len(results) == 1
         assert results[0]["name"] == "T-Shirt"
-        mock_client.get.assert_called_once_with("/onlineStore/products", params={"productStatus": "active"})
+        mock_client.get.assert_called_once_with(
+            "/onlineStore/products", params={"productStatus": "active"}
+        )
 
     def test_list_transactions(self, mock_client):
         """Test listing transactions."""
         mock_client.get.return_value = [{"id": 1, "amount": 25.00}]
-        
+
         resource = OnlineStoreResource(mock_client)
         results = list(resource.list_transactions(start_date="2024-01-01"))
-        
+
         assert len(results) == 1
         assert results[0]["amount"] == 25.00
 
@@ -394,19 +411,19 @@ class TestPropertiesResource:
     def test_get_system_info(self, mock_client):
         """Test getting system information."""
         mock_client.get.return_value = {"version": "2.10", "status": "active"}
-        
+
         resource = PropertiesResource(mock_client)
         result = resource.get_system_info()
-        
+
         assert result["version"] == "2.10"
         mock_client.get.assert_called_once_with("/properties/system")
 
     def test_get_organization_info(self, mock_client):
         """Test getting organization information."""
         mock_client.get.return_value = {"name": "Test Org", "id": "12345"}
-        
+
         resource = PropertiesResource(mock_client)
         result = resource.get_organization_info()
-        
+
         assert result["name"] == "Test Org"
         mock_client.get.assert_called_once_with("/properties/organization")
