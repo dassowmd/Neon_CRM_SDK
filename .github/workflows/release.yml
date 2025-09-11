@@ -4,6 +4,17 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v1.0.0)'
+        required: true
+        type: string
+      publish_to_pypi:
+        description: 'Publish to PyPI'
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -27,7 +38,12 @@ jobs:
     - name: Extract version
       id: version
       run: |
-        VERSION=${GITHUB_REF_NAME#v}
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION=${{ github.event.inputs.tag }}
+          VERSION=${VERSION#v}
+        else
+          VERSION=${GITHUB_REF_NAME#v}
+        fi
         echo "version=$VERSION" >> $GITHUB_OUTPUT
 
     - name: Set up Python
@@ -105,7 +121,7 @@ jobs:
   publish-testpypi:
     runs-on: ubuntu-latest
     needs: build
-    environment: 
+    environment:
       name: testpypi
       url: https://test.pypi.org/p/neon-crm-sdk
     steps:
@@ -134,17 +150,18 @@ jobs:
       run: |
         # Wait a bit for package to be available
         sleep 30
-        
+
         # Install from TestPyPI
         pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ neon-crm-sdk==${{ needs.validate-tag.outputs.version }}
-        
+
         # Test import
         python -c "import neon_crm; print(f'Successfully installed neon-crm-sdk v{neon_crm.__version__}')"
 
   publish-pypi:
     runs-on: ubuntu-latest
     needs: [validate-tag, test-testpypi]
-    environment: 
+    if: github.event.inputs.publish_to_pypi == 'true' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+    environment:
       name: pypi
       url: https://pypi.org/p/neon-crm-sdk
     steps:
@@ -161,7 +178,8 @@ jobs:
 
   create-release:
     runs-on: ubuntu-latest
-    needs: [validate-tag, publish-pypi]
+    needs: [validate-tag, test-testpypi]
+    if: always() && needs.validate-tag.result == 'success' && needs.test-testpypi.result == 'success'
     steps:
     - uses: actions/checkout@v4
       with:
@@ -183,19 +201,19 @@ jobs:
         else
           CHANGELOG=$(git log --pretty=format:"- %s")
         fi
-        
+
         # Create changelog file
         cat > RELEASE_NOTES.md << EOF
         # Release ${{ github.ref_name }}
-        
+
         ## Changes
         $CHANGELOG
-        
+
         ## Installation
         \`\`\`bash
         pip install neon-crm-sdk==${{ needs.validate-tag.outputs.version }}
         \`\`\`
-        
+
         ## Verification
         \`\`\`python
         import neon_crm

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "neon-crm-sdk"
-dynamic = ["version"]
+version = "0.1.0"
 description = "Python SDK for the Neon CRM API"
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -55,6 +55,7 @@ dev = [
     "ruff>=0.1.0",
     "black>=23.0.0",
     "pre-commit>=3.0.0",
+    "bump-my-version>=0.15.0",
 ]
 docs = [
     "mkdocs>=1.5.0",
@@ -65,11 +66,6 @@ docs = [
     "mkdocstrings[python]>=0.24.0",
 ]
 
-[project.urls]
-Homepage = "https://github.com/your-username/neon-crm-python"
-Documentation = "https://neon-crm-python.readthedocs.io"
-Repository = "https://github.com/your-username/neon-crm-python.git"
-"Bug Tracker" = "https://github.com/your-username/neon-crm-python/issues"
 
 [tool.hatch.version]
 path = "src/neon_crm/__init__.py"

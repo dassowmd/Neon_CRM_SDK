@@ -1,6 +1,6 @@
 # Makefile for Neon CRM Python SDK
 
-.PHONY: help install install-dev test test-verbose lint format type-check clean build publish-test publish docs serve-docs example
+.PHONY: help install install-dev test test-verbose lint format type-check clean build publish-test publish docs serve-docs example version-patch version-minor version-major
 
 # Default target
 help:
@@ -31,6 +31,12 @@ help:
 	@echo ""
 	@echo "Examples:"
 	@echo "  example       Run the basic usage example"
+	@echo ""
+	@echo "Version Management:"
+	@echo "  version-patch    Bump patch version (0.1.0 -> 0.1.1)"
+	@echo "  version-minor    Bump minor version (0.1.0 -> 0.2.0)"
+	@echo "  version-major    Bump major version (0.1.0 -> 1.0.0)"
+	@echo "  version-show     Show current version"
 	@echo ""
 	@echo "Utilities:"
 	@echo "  check-all     Run all checks (format, lint, type-check, test)"
@@ -170,6 +176,29 @@ info:
 	@echo "Python version: $(shell python --version)"
 	@echo "Installed packages:"
 	@pip list | grep -E "(neon-crm|httpx|pydantic|pytest)"
+
+# Version management
+version-show:
+	@echo "Current version:"
+	@python -c "import sys; sys.path.insert(0, 'src'); import neon_crm; print(f'  {neon_crm.__version__}')"
+
+version-patch:
+	@echo "Bumping patch version..."
+	@bump-my-version bump patch
+	@echo "✓ Patch version bumped"
+	@$(MAKE) version-show
+
+version-minor:
+	@echo "Bumping minor version..."
+	@bump-my-version bump minor
+	@echo "✓ Minor version bumped"
+	@$(MAKE) version-show
+
+version-major:
+	@echo "Bumping major version..."
+	@bump-my-version bump major
+	@echo "✓ Major version bumped"
+	@$(MAKE) version-show
 
 # Environment checks
 check-env:
