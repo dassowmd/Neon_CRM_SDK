@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "neon-crm"
+name = "neon-crm-sdk"
 dynamic = ["version"]
 description = "Python SDK for the Neon CRM API"
 readme = "README.md"
@@ -20,11 +20,11 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Office/Business",
@@ -35,7 +35,15 @@ dependencies = [
     "pydantic>=2.0.0",
     "typing-extensions>=4.0.0",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
+
+[project.urls]
+Homepage = "https://github.com/mdassow/neon-crm-python-sdk"
+Documentation = "https://mdassow.github.io/neon-crm-python-sdk/"
+Repository = "https://github.com/mdassow/neon-crm-python-sdk"
+"Bug Tracker" = "https://github.com/mdassow/neon-crm-python-sdk/issues"
+Changelog = "https://github.com/mdassow/neon-crm-python-sdk/blob/main/CHANGELOG.md"
+"Source Code" = "https://github.com/mdassow/neon-crm-python-sdk"
 
 [project.optional-dependencies]
 dev = [
