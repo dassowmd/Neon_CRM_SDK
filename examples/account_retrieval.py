@@ -11,9 +11,7 @@ from neon_crm.types import SearchRequest
 
 def list_all_accounts():
     """List all accounts with basic pagination."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     try:
         print("Fetching all accounts...")
@@ -41,9 +39,7 @@ def list_all_accounts():
 
 def search_accounts_by_email():
     """Search for accounts by email address."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Search using the list method with email filter
     try:
@@ -59,9 +55,7 @@ def search_accounts_by_email():
 
 def advanced_account_search():
     """Perform advanced search using the search endpoint."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Advanced search with multiple criteria
     search_request: SearchRequest = {
@@ -100,9 +94,7 @@ def advanced_account_search():
 
 def get_account_details():
     """Get detailed information about a specific account."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Replace with an actual account ID
     account_id = "12345"
@@ -130,9 +122,7 @@ def get_account_details():
 
 def get_account_donations():
     """Get donation history for a specific account."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Replace with an actual account ID
     account_id = "12345"
@@ -171,9 +161,7 @@ def get_account_donations():
 
 def get_account_memberships():
     """Get membership history for a specific account."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Replace with an actual account ID
     account_id = "12345"
@@ -209,9 +197,7 @@ def get_account_memberships():
 
 def get_account_orders():
     """Get order history for a specific account."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Replace with an actual account ID
     account_id = "12345"
@@ -244,9 +230,7 @@ def get_account_orders():
 
 def get_account_pledges():
     """Get pledge information for a specific account."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Replace with an actual account ID
     account_id = "12345"
@@ -280,9 +264,7 @@ def get_account_pledges():
 
 def filter_accounts_by_type():
     """Filter accounts by type (INDIVIDUAL vs COMPANY)."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Get individual accounts only
     try:
@@ -316,8 +298,8 @@ if __name__ == "__main__":
 
     # Uncomment the examples you want to run:
 
-    # print("Listing all accounts...")
-    # list_all_accounts()
+    print("Listing all accounts...")
+    list_all_accounts()
 
     # print("\nSearching accounts by email...")
     # search_accounts_by_email()

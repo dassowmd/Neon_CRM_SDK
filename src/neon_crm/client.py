@@ -1,12 +1,13 @@
 """Main client for the Neon CRM SDK."""
 
 import base64
-import os
-from typing import Any, Dict, Optional
+from pathlib import Path
+from typing import Any, Dict, Optional, Union
 from urllib.parse import urljoin
 
 import httpx
 
+from .config import ConfigLoader
 from .exceptions import (
     NeonAPIError,
     NeonAuthenticationError,
@@ -47,51 +48,65 @@ class NeonClient:
         self,
         org_id: Optional[str] = None,
         api_key: Optional[str] = None,
-        environment: Environment = "production",
-        api_version: str = "2.10",
-        timeout: float = 30.0,
-        max_retries: int = 3,
+        environment: Optional[Environment] = None,
+        api_version: Optional[str] = None,
+        timeout: Optional[float] = None,
+        max_retries: Optional[int] = None,
         base_url: Optional[str] = None,
+        config_path: Optional[Union[str, Path]] = None,
     ) -> None:
         """Initialize the Neon CRM client.
 
         Args:
-            org_id: Your Neon organization ID. If not provided, will look for NEON_ORG_ID env var.
-            api_key: Your API key. If not provided, will look for NEON_API_KEY env var.
-            environment: "production" or "trial". Defaults to production.
-            api_version: API version to use. Defaults to "2.10".
-            timeout: Request timeout in seconds. Defaults to 30.0.
-            max_retries: Number of retries for failed requests. Defaults to 3.
-            base_url: Custom base URL. If provided, overrides environment setting.
+            org_id: Your Neon organization ID. If not provided, will look in config file then NEON_ORG_ID env var.
+            api_key: Your API key. If not provided, will look in config file then NEON_API_KEY env var.
+            environment: "production" or "trial". If not provided, will look in config file then NEON_ENVIRONMENT env var, defaults to "production".
+            api_version: API version to use. If not provided, will look in config file then NEON_API_VERSION env var, defaults to "2.10".
+            timeout: Request timeout in seconds. If not provided, will look in config file then NEON_TIMEOUT env var, defaults to 30.0.
+            max_retries: Number of retries for failed requests. If not provided, will look in config file then NEON_MAX_RETRIES env var, defaults to 3.
+            base_url: Custom base URL. If provided, overrides environment setting. Can also be set in config file or NEON_BASE_URL env var.
+            config_path: Path to configuration file. Defaults to ~/.neon/config.json.
         """
-        self.org_id = org_id or os.getenv("NEON_ORG_ID")
-        self.api_key = api_key or os.getenv("NEON_API_KEY")
+        # Load configuration using config loader
+        config_loader = ConfigLoader(config_path)
+        config = config_loader.get_config(
+            org_id=org_id,
+            api_key=api_key,
+            environment=environment,
+            api_version=api_version,
+            timeout=timeout,
+            max_retries=max_retries,
+            base_url=base_url,
+        )
+
+        self.org_id = config["org_id"]
+        self.api_key = config["api_key"]
 
         if not self.org_id:
             raise ValueError(
-                "org_id is required. Provide it directly or set NEON_ORG_ID environment variable."
+                "org_id is required. Provide it directly, in config file, or set NEON_ORG_ID environment variable."
             )
         if not self.api_key:
             raise ValueError(
-                "api_key is required. Provide it directly or set NEON_API_KEY environment variable."
+                "api_key is required. Provide it directly, in config file, or set NEON_API_KEY environment variable."
             )
 
-        self.environment = environment
-        self.api_version = api_version
-        self.timeout = timeout
-        self.max_retries = max_retries
+        self.environment = config["environment"]
+        self.api_version = config["api_version"]
+        self.timeout = config["timeout"]
+        self.max_retries = config["max_retries"]
 
         # Set base URL
-        if base_url:
-            self.base_url = base_url
-        elif environment == "trial":
+        if config["base_url"]:
+            self.base_url = config["base_url"]
+        elif self.environment == "trial":
             self.base_url = "https://trial.neoncrm.com/v2"
         else:
             self.base_url = "https://api.neoncrm.com/v2"
 
         # Create HTTP client
         self._client = httpx.Client(
-            timeout=timeout,
+            timeout=self.timeout,
             headers=self._get_default_headers(),
         )
 
@@ -271,44 +286,58 @@ class AsyncNeonClient:
         self,
         org_id: Optional[str] = None,
         api_key: Optional[str] = None,
-        environment: Environment = "production",
-        api_version: str = "2.10",
-        timeout: float = 30.0,
-        max_retries: int = 3,
+        environment: Optional[Environment] = None,
+        api_version: Optional[str] = None,
+        timeout: Optional[float] = None,
+        max_retries: Optional[int] = None,
         base_url: Optional[str] = None,
+        config_path: Optional[Union[str, Path]] = None,
     ) -> None:
         """Initialize the async Neon CRM client.
 
         Args:
-            org_id: Your Neon organization ID. If not provided, will look for NEON_ORG_ID env var.
-            api_key: Your API key. If not provided, will look for NEON_API_KEY env var.
-            environment: "production" or "trial". Defaults to production.
-            api_version: API version to use. Defaults to "2.10".
-            timeout: Request timeout in seconds. Defaults to 30.0.
-            max_retries: Number of retries for failed requests. Defaults to 3.
-            base_url: Custom base URL. If provided, overrides environment setting.
+            org_id: Your Neon organization ID. If not provided, will look in config file then NEON_ORG_ID env var.
+            api_key: Your API key. If not provided, will look in config file then NEON_API_KEY env var.
+            environment: "production" or "trial". If not provided, will look in config file then NEON_ENVIRONMENT env var, defaults to "production".
+            api_version: API version to use. If not provided, will look in config file then NEON_API_VERSION env var, defaults to "2.10".
+            timeout: Request timeout in seconds. If not provided, will look in config file then NEON_TIMEOUT env var, defaults to 30.0.
+            max_retries: Number of retries for failed requests. If not provided, will look in config file then NEON_MAX_RETRIES env var, defaults to 3.
+            base_url: Custom base URL. If provided, overrides environment setting. Can also be set in config file or NEON_BASE_URL env var.
+            config_path: Path to configuration file. Defaults to ~/.neon/config.json.
         """
-        self.org_id = org_id or os.getenv("NEON_ORG_ID")
-        self.api_key = api_key or os.getenv("NEON_API_KEY")
+        # Load configuration using config loader
+        config_loader = ConfigLoader(config_path)
+        config = config_loader.get_config(
+            org_id=org_id,
+            api_key=api_key,
+            environment=environment,
+            api_version=api_version,
+            timeout=timeout,
+            max_retries=max_retries,
+            base_url=base_url,
+        )
+
+        self.org_id = config["org_id"]
+        self.api_key = config["api_key"]
 
         if not self.org_id:
             raise ValueError(
-                "org_id is required. Provide it directly or set NEON_ORG_ID environment variable."
+                "org_id is required. Provide it directly, in config file, or set NEON_ORG_ID environment variable."
             )
         if not self.api_key:
             raise ValueError(
-                "api_key is required. Provide it directly or set NEON_API_KEY environment variable."
+                "api_key is required. Provide it directly, in config file, or set NEON_API_KEY environment variable."
             )
 
-        self.environment = environment
-        self.api_version = api_version
-        self.timeout = timeout
-        self.max_retries = max_retries
+        self.environment = config["environment"]
+        self.api_version = config["api_version"]
+        self.timeout = config["timeout"]
+        self.max_retries = config["max_retries"]
 
         # Set base URL
-        if base_url:
-            self.base_url = base_url
-        elif environment == "trial":
+        if config["base_url"]:
+            self.base_url = config["base_url"]
+        elif self.environment == "trial":
             self.base_url = "https://trial.neoncrm.com/v2"
         else:
             self.base_url = "https://api.neoncrm.com/v2"

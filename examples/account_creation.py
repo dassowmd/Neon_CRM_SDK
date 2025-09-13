@@ -20,9 +20,7 @@ from neon_crm.types import (
 
 def create_basic_individual_account():
     """Create a basic individual account with minimal required fields."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Minimal individual account - just the required fields
     payload: CreateIndividualAccountPayload = {
@@ -44,9 +42,7 @@ def create_basic_individual_account():
 
 def create_detailed_individual_account():
     """Create an individual account with comprehensive details."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Comprehensive individual account with all optional fields
     individual_account: IndividualAccount = {
@@ -114,9 +110,7 @@ def create_detailed_individual_account():
 
 def create_basic_company_account():
     """Create a basic company account with minimal required fields."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Minimal company account
     payload: CreateCompanyAccountPayload = {
@@ -137,9 +131,7 @@ def create_basic_company_account():
 
 def create_detailed_company_account():
     """Create a company account with comprehensive details."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Comprehensive company account
     company_account: CompanyAccount = {
@@ -200,9 +192,7 @@ def create_detailed_company_account():
 
 def create_account_with_multiple_addresses():
     """Create an account with multiple addresses."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # Individual with multiple addresses
     individual_account: IndividualAccount = {

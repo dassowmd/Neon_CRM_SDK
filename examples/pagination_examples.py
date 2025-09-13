@@ -11,9 +11,7 @@ from neon_crm.types import SearchRequest
 
 def basic_pagination_example():
     """Basic pagination using the list method."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     print("Basic Pagination Example")
     print("=" * 30)
@@ -52,9 +50,7 @@ def basic_pagination_example():
 
 def manual_pagination_example():
     """Manual pagination control."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     print("Manual Pagination Example")
     print("=" * 30)
@@ -109,9 +105,7 @@ def manual_pagination_example():
 
 def search_pagination_example():
     """Pagination with search requests."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     print("Search Pagination Example")
     print("=" * 30)
@@ -149,9 +143,7 @@ def search_pagination_example():
 
 def pagination_with_filtering():
     """Pagination combined with filtering."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     print("Pagination with Filtering Example")
     print("=" * 35)
@@ -192,9 +184,7 @@ def pagination_with_filtering():
 
 def bulk_processing_example():
     """Example of processing large datasets with pagination."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     print("Bulk Processing Example")
     print("=" * 25)

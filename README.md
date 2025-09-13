@@ -131,14 +131,49 @@ except NeonAPIError as e:
 
 ## Configuration
 
+The SDK supports flexible configuration through multiple sources with the following priority order:
+
+1. **Init parameters** (highest priority)
+2. **Configuration file**
+3. **Environment variables**
+4. **Default values** (lowest priority)
+
+### Configuration File
+
+Create a configuration file at `~/.neon/config.json`:
+
+```json
+{
+  "org_id": "your_org_id",
+  "api_key": "your_api_key",
+  "environment": "production",
+  "api_version": "2.10",
+  "timeout": 30.0,
+  "max_retries": 3,
+  "base_url": "https://api.neoncrm.com/v2"
+}
+```
+
+```python
+# Client will automatically use config file
+client = NeonClient()
+
+# Or specify a custom config file path
+client = NeonClient(config_path="/path/to/your/config.json")
+```
+
 ### Environment Variables
 
-You can set your credentials as environment variables:
+Set your credentials and configuration as environment variables:
 
 ```bash
 export NEON_ORG_ID="your_org_id"
 export NEON_API_KEY="your_api_key"
 export NEON_ENVIRONMENT="production"  # or "trial"
+export NEON_API_VERSION="2.10"
+export NEON_TIMEOUT="30.0"
+export NEON_MAX_RETRIES="3"
+export NEON_BASE_URL="https://api.neoncrm.com/v2"
 ```
 
 ```python
@@ -146,16 +181,45 @@ export NEON_ENVIRONMENT="production"  # or "trial"
 client = NeonClient()
 ```
 
-### Custom Configuration
+### Init Parameters (Override Everything)
 
 ```python
 client = NeonClient(
-    org_id="your_org_id",
+    org_id="your_org_id",  # Overrides config file and env vars
     api_key="your_api_key",
     environment="production",  # "production" or "trial"
     timeout=30.0,  # Request timeout in seconds
     max_retries=3,  # Number of retries for failed requests
-    api_version="2.10"  # API version (latest by default)
+    api_version="2.10",  # API version
+    base_url="https://custom.api.com/v2",  # Custom base URL (optional)
+    config_path="~/.neon/config.json"  # Custom config file path
+)
+```
+
+### Configuration Priority Example
+
+```python
+# Example showing priority order:
+# 1. Config file has: org_id="file_org", timeout=60.0
+# 2. Environment variable: NEON_ORG_ID="env_org"
+# 3. Init parameter: org_id="init_org"
+
+client = NeonClient(org_id="init_org")  # org_id will be "init_org"
+# timeout will be 60.0 from config file (no override)
+```
+
+### Saving Configuration
+
+You can programmatically save configuration:
+
+```python
+from neon_crm.config import ConfigLoader
+
+loader = ConfigLoader()
+loader.save_config(
+    org_id="your_org_id",
+    api_key="your_api_key",
+    environment="production"
 )
 ```
 

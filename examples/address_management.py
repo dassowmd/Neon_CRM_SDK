@@ -16,9 +16,7 @@ from neon_crm.types import (
 
 def create_account_with_single_address():
     """Create an account with a single address."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     print("Creating account with single address...")
 
@@ -61,9 +59,7 @@ def create_account_with_single_address():
 
 def create_account_with_multiple_addresses():
     """Create an account with multiple addresses."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     print("Creating account with multiple addresses...")
 
@@ -133,9 +129,7 @@ def create_account_with_multiple_addresses():
 
 def create_company_with_addresses():
     """Create a company account with business addresses."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     print("Creating company with business addresses...")
 
@@ -211,9 +205,7 @@ def create_company_with_addresses():
 
 def update_account_with_new_address():
     """Update an existing account to add a new address."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     # This would typically be an existing account ID
     account_id = "12345"  # Replace with actual account ID
@@ -256,9 +248,7 @@ def update_account_with_new_address():
 
 def international_address_example():
     """Create account with international address."""
-    client = NeonClient(
-        org_id="your_org_id", api_key="your_api_key", environment="production"
-    )
+    client = NeonClient(org_id=None, api_key=None, environment="production")
 
     print("Creating account with international address...")
 
