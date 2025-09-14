@@ -129,6 +129,47 @@ except NeonAPIError as e:
     print(f"API error: {e.message}")
 ```
 
+## Rate Limiting
+
+The SDK automatically handles rate limiting with intelligent retry logic:
+
+### Features:
+- **Automatic retries** for rate limit errors (HTTP 429)
+- **Exponential backoff** with jitter to prevent thundering herd
+- **Honors Retry-After headers** from the server
+- **Configurable retry attempts** (default: 3)
+- **Maximum delay cap** of 60 seconds
+
+### Configuration:
+
+```python
+client = NeonClient(
+    org_id="your_org_id",
+    api_key="your_api_key",
+    max_retries=5,  # Custom retry count
+)
+```
+
+### Retry Behavior:
+
+1. **Server-specified delays**: When the API returns a `Retry-After` header, the SDK waits that duration plus small random jitter
+2. **Exponential backoff**: Without a `Retry-After` header, delays follow: 1s, 2s, 4s, 8s... (with jitter)
+3. **Jitter**: Random delays prevent multiple clients from retrying simultaneously
+4. **Final failure**: After exhausting all retries, raises `NeonRateLimitError`
+
+```python
+from neon_crm.exceptions import NeonRateLimitError
+
+try:
+    # This will automatically retry if rate limited
+    accounts = client.accounts.list(user_type="INDIVIDUAL")
+except NeonRateLimitError as e:
+    print(f"Rate limit exceeded after {client.max_retries} retries")
+    print(f"Wait {e.retry_after} seconds before trying again")
+```
+
+The retry logic works identically for both synchronous and asynchronous clients.
+
 ## Configuration
 
 The SDK supports flexible configuration through multiple sources with the following priority order:

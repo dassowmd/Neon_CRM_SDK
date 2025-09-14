@@ -1,6 +1,9 @@
 """Main client for the Neon CRM SDK."""
 
+import asyncio
 import base64
+import random
+import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
 from urllib.parse import urljoin
@@ -131,6 +134,28 @@ class NeonClient:
         self.volunteers = VolunteersResource(self)
         self.webhooks = WebhooksResource(self)
 
+    def _calculate_retry_delay(
+        self, attempt: int, retry_after: Optional[int] = None
+    ) -> float:
+        """Calculate delay for retry with exponential backoff and jitter.
+
+        Args:
+            attempt: Current retry attempt (0-indexed)
+            retry_after: Retry-After header value in seconds if provided by server
+
+        Returns:
+            Delay in seconds
+        """
+        if retry_after is not None:
+            # Honor server's Retry-After header with small jitter
+            return retry_after + random.uniform(0.1, 1.0)
+
+        # Exponential backoff: 2^attempt seconds with jitter
+        base_delay = 2**attempt
+        # Add jitter to prevent thundering herd
+        jitter = random.uniform(0.1, 0.5) * base_delay
+        return min(base_delay + jitter, 60.0)  # Cap at 60 seconds
+
     def _get_default_headers(self) -> Dict[str, str]:
         """Get default headers for API requests."""
         # Create basic auth header
@@ -184,7 +209,7 @@ class NeonClient:
         json_data: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
-        """Make an HTTP request to the API.
+        """Make an HTTP request to the API with retry logic for rate limits.
 
         Args:
             method: HTTP method (GET, POST, PUT, PATCH, DELETE)
@@ -200,6 +225,7 @@ class NeonClient:
             NeonAPIError: For API errors
             NeonTimeoutError: For timeout errors
             NeonConnectionError: For connection errors
+            NeonRateLimitError: For rate limit errors after all retries exhausted
         """
         url = urljoin(self.base_url, endpoint.lstrip("/"))
 
@@ -208,24 +234,42 @@ class NeonClient:
         if headers:
             request_headers.update(headers)
 
-        try:
-            response = self._client.request(
-                method=method,
-                url=url,
-                params=params,
-                json=json_data,
-                headers=request_headers,
-            )
-            return self._handle_response(response)
+        last_exception = None
 
-        except httpx.TimeoutException as e:
-            raise NeonTimeoutError(
-                timeout=self.timeout, details={"original_error": str(e)}
-            ) from e
-        except httpx.ConnectError as e:
-            raise NeonConnectionError(original_error=e, details={"url": url}) from e
-        except httpx.HTTPStatusError as e:
-            return self._handle_response(e.response)
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = self._client.request(
+                    method=method,
+                    url=url,
+                    params=params,
+                    json=json_data,
+                    headers=request_headers,
+                )
+                return self._handle_response(response)
+
+            except NeonRateLimitError as e:
+                last_exception = e
+                if attempt == self.max_retries:
+                    # Final attempt, don't retry
+                    raise
+
+                # Calculate delay based on Retry-After header or exponential backoff
+                delay = self._calculate_retry_delay(attempt, e.retry_after)
+                time.sleep(delay)
+                continue
+
+            except httpx.TimeoutException as e:
+                raise NeonTimeoutError(
+                    timeout=self.timeout, details={"original_error": str(e)}
+                ) from e
+            except httpx.ConnectError as e:
+                raise NeonConnectionError(original_error=e, details={"url": url}) from e
+            except httpx.HTTPStatusError as e:
+                return self._handle_response(e.response)
+
+        # This shouldn't be reached, but just in case
+        if last_exception:
+            raise last_exception
 
     def get(
         self, endpoint: str, params: Optional[Dict[str, Any]] = None
@@ -345,6 +389,28 @@ class AsyncNeonClient:
         # HTTP client will be created when needed
         self._client: Optional[httpx.AsyncClient] = None
 
+    def _calculate_retry_delay(
+        self, attempt: int, retry_after: Optional[int] = None
+    ) -> float:
+        """Calculate delay for retry with exponential backoff and jitter.
+
+        Args:
+            attempt: Current retry attempt (0-indexed)
+            retry_after: Retry-After header value in seconds if provided by server
+
+        Returns:
+            Delay in seconds
+        """
+        if retry_after is not None:
+            # Honor server's Retry-After header with small jitter
+            return retry_after + random.uniform(0.1, 1.0)
+
+        # Exponential backoff: 2^attempt seconds with jitter
+        base_delay = 2**attempt
+        # Add jitter to prevent thundering herd
+        jitter = random.uniform(0.1, 0.5) * base_delay
+        return min(base_delay + jitter, 60.0)  # Cap at 60 seconds
+
     def _get_default_headers(self) -> Dict[str, str]:
         """Get default headers for API requests."""
         # Create basic auth header
@@ -407,7 +473,7 @@ class AsyncNeonClient:
         json_data: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
     ) -> Dict[str, Any]:
-        """Make an async HTTP request to the API.
+        """Make an async HTTP request to the API with retry logic for rate limits.
 
         Args:
             method: HTTP method (GET, POST, PUT, PATCH, DELETE)
@@ -423,6 +489,7 @@ class AsyncNeonClient:
             NeonAPIError: For API errors
             NeonTimeoutError: For timeout errors
             NeonConnectionError: For connection errors
+            NeonRateLimitError: For rate limit errors after all retries exhausted
         """
         client = self._get_client()
         url = urljoin(self.base_url, endpoint.lstrip("/"))
@@ -432,24 +499,42 @@ class AsyncNeonClient:
         if headers:
             request_headers.update(headers)
 
-        try:
-            response = await client.request(
-                method=method,
-                url=url,
-                params=params,
-                json=json_data,
-                headers=request_headers,
-            )
-            return self._handle_response(response)
+        last_exception = None
 
-        except httpx.TimeoutException as e:
-            raise NeonTimeoutError(
-                timeout=self.timeout, details={"original_error": str(e)}
-            ) from e
-        except httpx.ConnectError as e:
-            raise NeonConnectionError(original_error=e, details={"url": url}) from e
-        except httpx.HTTPStatusError as e:
-            return self._handle_response(e.response)
+        for attempt in range(self.max_retries + 1):
+            try:
+                response = await client.request(
+                    method=method,
+                    url=url,
+                    params=params,
+                    json=json_data,
+                    headers=request_headers,
+                )
+                return self._handle_response(response)
+
+            except NeonRateLimitError as e:
+                last_exception = e
+                if attempt == self.max_retries:
+                    # Final attempt, don't retry
+                    raise
+
+                # Calculate delay based on Retry-After header or exponential backoff
+                delay = self._calculate_retry_delay(attempt, e.retry_after)
+                await asyncio.sleep(delay)
+                continue
+
+            except httpx.TimeoutException as e:
+                raise NeonTimeoutError(
+                    timeout=self.timeout, details={"original_error": str(e)}
+                ) from e
+            except httpx.ConnectError as e:
+                raise NeonConnectionError(original_error=e, details={"url": url}) from e
+            except httpx.HTTPStatusError as e:
+                return self._handle_response(e.response)
+
+        # This shouldn't be reached, but just in case
+        if last_exception:
+            raise last_exception
 
     async def get(
         self, endpoint: str, params: Optional[Dict[str, Any]] = None
