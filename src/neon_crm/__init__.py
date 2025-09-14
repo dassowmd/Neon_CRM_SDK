@@ -9,9 +9,14 @@ from .client import NeonClient
 from .exceptions import (
     NeonAPIError,
     NeonAuthenticationError,
+    NeonBadRequestError,
+    NeonConflictError,
     NeonError,
+    NeonForbiddenError,
     NeonNotFoundError,
     NeonRateLimitError,
+    NeonServerError,
+    NeonUnprocessableEntityError,
 )
 from .types import UserType
 
@@ -22,6 +27,11 @@ __all__ = [
     "NeonError",
     "NeonAPIError",
     "NeonAuthenticationError",
+    "NeonBadRequestError",
+    "NeonConflictError",
+    "NeonForbiddenError",
     "NeonNotFoundError",
     "NeonRateLimitError",
+    "NeonServerError",
+    "NeonUnprocessableEntityError",
 ]

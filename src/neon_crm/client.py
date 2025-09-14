@@ -14,11 +14,15 @@ from .config import ConfigLoader
 from .exceptions import (
     NeonAPIError,
     NeonAuthenticationError,
+    NeonBadRequestError,
+    NeonConflictError,
     NeonConnectionError,
     NeonForbiddenError,
     NeonNotFoundError,
     NeonRateLimitError,
+    NeonServerError,
     NeonTimeoutError,
+    NeonUnprocessableEntityError,
 )
 from .resources import (
     AccountsResource,
@@ -170,6 +174,56 @@ class NeonClient:
             "User-Agent": "neon-crm-python-sdk/0.1.0",
         }
 
+    def _format_error_message(self, status_code: int, response_data: Any) -> str:
+        """Format a detailed error message from API response."""
+        base_message = f"HTTP {status_code}"
+
+        # If response_data is a list (like your example), extract error messages
+        if isinstance(response_data, list):
+            error_messages = []
+            for error in response_data:
+                if isinstance(error, dict):
+                    code = error.get("code", "Unknown")
+                    message = error.get("message", "No message provided")
+                    error_messages.append(f"[Code {code}] {message}")
+                else:
+                    error_messages.append(str(error))
+            if error_messages:
+                return f"{base_message}: " + "; ".join(error_messages)
+
+        # If response_data is a dict, extract common error fields
+        elif isinstance(response_data, dict):
+            error_parts = []
+
+            # Check for common error message fields
+            if "message" in response_data:
+                error_parts.append(response_data["message"])
+            elif "error" in response_data:
+                error_parts.append(str(response_data["error"]))
+            elif "detail" in response_data:
+                error_parts.append(response_data["detail"])
+
+            # Check for validation errors or error lists
+            if "errors" in response_data:
+                errors = response_data["errors"]
+                if isinstance(errors, list):
+                    for error in errors:
+                        if isinstance(error, dict):
+                            code = error.get("code", "Unknown")
+                            message = error.get("message", "No message provided")
+                            error_parts.append(f"[Code {code}] {message}")
+                        else:
+                            error_parts.append(str(error))
+
+            if error_parts:
+                return f"{base_message}: " + "; ".join(error_parts)
+
+        # Fallback to basic message with response data if available
+        if response_data:
+            return f"{base_message}: {str(response_data)}"
+
+        return f"{base_message}: Error occurred"
+
     def _handle_response(self, response: httpx.Response) -> Dict[str, Any]:
         """Handle API response and raise appropriate exceptions."""
         if response.status_code == 200:
@@ -184,22 +238,52 @@ class NeonClient:
         except ValueError:
             response_data = {"error": response.text}
 
-        # Handle specific error codes
-        if response.status_code == 401:
-            raise NeonAuthenticationError(response_data=response_data)
+        # Create detailed error message
+        detailed_message = self._format_error_message(
+            response.status_code, response_data
+        )
+
+        # Handle specific error codes with detailed messages
+        if response.status_code == 400:
+            raise NeonBadRequestError(
+                message=detailed_message, response_data=response_data
+            )
+        elif response.status_code == 401:
+            raise NeonAuthenticationError(
+                message=detailed_message, response_data=response_data
+            )
         elif response.status_code == 403:
-            raise NeonForbiddenError(response_data=response_data)
+            raise NeonForbiddenError(
+                message=detailed_message, response_data=response_data
+            )
         elif response.status_code == 404:
-            raise NeonNotFoundError(response_data=response_data)
+            raise NeonNotFoundError(
+                message=detailed_message, response_data=response_data
+            )
+        elif response.status_code == 409:
+            raise NeonConflictError(
+                message=detailed_message, response_data=response_data
+            )
+        elif response.status_code == 422:
+            raise NeonUnprocessableEntityError(
+                message=detailed_message, response_data=response_data
+            )
         elif response.status_code == 429:
             retry_after = response.headers.get("Retry-After")
             retry_after_int = int(retry_after) if retry_after else None
             raise NeonRateLimitError(
-                retry_after=retry_after_int, response_data=response_data
+                message=detailed_message,
+                retry_after=retry_after_int,
+                response_data=response_data,
+            )
+        elif 500 <= response.status_code < 600:
+            raise NeonServerError(
+                message=detailed_message,
+                status_code=response.status_code,
+                response_data=response_data,
             )
         else:
-            message = response_data.get("message", f"API error: {response.status_code}")
-            raise NeonAPIError(message, response.status_code, response_data)
+            raise NeonAPIError(detailed_message, response.status_code, response_data)
 
     def request(
         self,
@@ -266,6 +350,8 @@ class NeonClient:
                 raise NeonConnectionError(original_error=e, details={"url": url}) from e
             except httpx.HTTPStatusError as e:
                 return self._handle_response(e.response)
+            except Exception as e:
+                raise e
 
         # This shouldn't be reached, but just in case
         if last_exception:
@@ -425,6 +511,56 @@ class AsyncNeonClient:
             "User-Agent": "neon-crm-python-sdk/0.1.0",
         }
 
+    def _format_error_message(self, status_code: int, response_data: Any) -> str:
+        """Format a detailed error message from API response."""
+        base_message = f"HTTP {status_code}"
+
+        # If response_data is a list (like your example), extract error messages
+        if isinstance(response_data, list):
+            error_messages = []
+            for error in response_data:
+                if isinstance(error, dict):
+                    code = error.get("code", "Unknown")
+                    message = error.get("message", "No message provided")
+                    error_messages.append(f"[Code {code}] {message}")
+                else:
+                    error_messages.append(str(error))
+            if error_messages:
+                return f"{base_message}: " + "; ".join(error_messages)
+
+        # If response_data is a dict, extract common error fields
+        elif isinstance(response_data, dict):
+            error_parts = []
+
+            # Check for common error message fields
+            if "message" in response_data:
+                error_parts.append(response_data["message"])
+            elif "error" in response_data:
+                error_parts.append(str(response_data["error"]))
+            elif "detail" in response_data:
+                error_parts.append(response_data["detail"])
+
+            # Check for validation errors or error lists
+            if "errors" in response_data:
+                errors = response_data["errors"]
+                if isinstance(errors, list):
+                    for error in errors:
+                        if isinstance(error, dict):
+                            code = error.get("code", "Unknown")
+                            message = error.get("message", "No message provided")
+                            error_parts.append(f"[Code {code}] {message}")
+                        else:
+                            error_parts.append(str(error))
+
+            if error_parts:
+                return f"{base_message}: " + "; ".join(error_parts)
+
+        # Fallback to basic message with response data if available
+        if response_data:
+            return f"{base_message}: {str(response_data)}"
+
+        return f"{base_message}: Error occurred"
+
     def _get_client(self) -> httpx.AsyncClient:
         """Get or create the HTTP client."""
         if self._client is None:
@@ -448,22 +584,52 @@ class AsyncNeonClient:
         except ValueError:
             response_data = {"error": response.text}
 
-        # Handle specific error codes
-        if response.status_code == 401:
-            raise NeonAuthenticationError(response_data=response_data)
+        # Create detailed error message
+        detailed_message = self._format_error_message(
+            response.status_code, response_data
+        )
+
+        # Handle specific error codes with detailed messages
+        if response.status_code == 400:
+            raise NeonBadRequestError(
+                message=detailed_message, response_data=response_data
+            )
+        elif response.status_code == 401:
+            raise NeonAuthenticationError(
+                message=detailed_message, response_data=response_data
+            )
         elif response.status_code == 403:
-            raise NeonForbiddenError(response_data=response_data)
+            raise NeonForbiddenError(
+                message=detailed_message, response_data=response_data
+            )
         elif response.status_code == 404:
-            raise NeonNotFoundError(response_data=response_data)
+            raise NeonNotFoundError(
+                message=detailed_message, response_data=response_data
+            )
+        elif response.status_code == 409:
+            raise NeonConflictError(
+                message=detailed_message, response_data=response_data
+            )
+        elif response.status_code == 422:
+            raise NeonUnprocessableEntityError(
+                message=detailed_message, response_data=response_data
+            )
         elif response.status_code == 429:
             retry_after = response.headers.get("Retry-After")
             retry_after_int = int(retry_after) if retry_after else None
             raise NeonRateLimitError(
-                retry_after=retry_after_int, response_data=response_data
+                message=detailed_message,
+                retry_after=retry_after_int,
+                response_data=response_data,
+            )
+        elif 500 <= response.status_code < 600:
+            raise NeonServerError(
+                message=detailed_message,
+                status_code=response.status_code,
+                response_data=response_data,
             )
         else:
-            message = response_data.get("message", f"API error: {response.status_code}")
-            raise NeonAPIError(message, response.status_code, response_data)
+            raise NeonAPIError(detailed_message, response.status_code, response_data)
 
     async def request(
         self,

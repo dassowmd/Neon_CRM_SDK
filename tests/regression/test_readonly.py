@@ -108,7 +108,7 @@ class TestReadOnlyOperations:
                     "email",
                     "userType",
                 ],
-                "pagination": {"currentPage": 1, "pageSize": 5},
+                "pagination": {"currentPage": 0, "pageSize": 5},
             }
 
             results = []
