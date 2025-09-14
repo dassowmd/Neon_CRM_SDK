@@ -73,6 +73,10 @@ class BaseResource:
                 # Response with data wrapper
                 items = response["data"]
                 pagination = response.get("pagination", {})
+            elif self._endpoint.lstrip("/") in response:
+                items = response[self._endpoint.lstrip("/")]
+                pagination = response.get("pagination", {})
+
             else:
                 # Assume the response itself is the data
                 items = [response] if isinstance(response, dict) else []
