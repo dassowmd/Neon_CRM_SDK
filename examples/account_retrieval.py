@@ -5,7 +5,7 @@ This file demonstrates various ways to find, search, and retrieve account
 information including related data like donations, memberships, etc.
 """
 
-from neon_crm import NeonClient
+from neon_crm import NeonClient, UserType
 from neon_crm.types import SearchRequest
 
 
@@ -16,7 +16,9 @@ def list_all_accounts():
     try:
         print("Fetching all accounts...")
         count = 0
-        for account in client.accounts.list(page_size=10, user_type="INDIVIDUAL"):
+        for account in client.accounts.list(
+            page_size=10, user_type=UserType.INDIVIDUAL
+        ):
             count += 1
             account_type = account.get("userType", "Unknown")
             if account_type == "INDIVIDUAL":
@@ -270,14 +272,14 @@ def filter_accounts_by_type():
     try:
         print("Individual accounts:")
         individual_count = 0
-        for account in client.accounts.list(user_type="INDIVIDUAL", page_size=5):
+        for account in client.accounts.list(user_type=UserType.INDIVIDUAL, page_size=5):
             individual_count += 1
             name = f"{account.get('firstName', '')} {account.get('lastName', '')}"
             print(f"  {individual_count}. {name} ({account.get('email', 'No email')})")
 
         print("\nCompany accounts:")
         company_count = 0
-        for account in client.accounts.list(user_type="COMPANY", page_size=5):
+        for account in client.accounts.list(user_type=UserType.COMPANY, page_size=5):
             company_count += 1
             name = account.get("companyName", "Unknown Company")
             print(f"  {company_count}. {name} ({account.get('email', 'No email')})")
