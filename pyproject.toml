@@ -46,6 +46,7 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
     "black>=23.0.0",
+    "flake8>=6.0.0",
     "pre-commit>=3.0.0",
 ]
 docs = [
@@ -145,6 +146,9 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+    "regression: marks tests as regression tests that use real API",
+    "readonly: marks tests as read-only operations (safe for production)",
+    "writeops: marks tests as write operations (modifies database)",
 ]
 
 [tool.coverage.run]
