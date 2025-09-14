@@ -14,7 +14,6 @@ def main():
         client = NeonClient(
             org_id=os.getenv("NEON_ORG_ID"),
             api_key=os.getenv("NEON_API_KEY"),
-            environment="trial",  # Use trial for testing
         )
     except ValueError as e:
         print(f"Configuration error: {e}")
@@ -25,7 +24,7 @@ def main():
         # Example 1: List accounts
         print("=== Listing Accounts ===")
         account_count = 0
-        for account in client.accounts.list(page_size=10):
+        for account in client.accounts.list(page_size=10, user_type="INDIVIDUAL"):
             account_count += 1
             print(
                 f"Account {account_count}: {account.get('firstName', '')} {account.get('lastName', '')}"

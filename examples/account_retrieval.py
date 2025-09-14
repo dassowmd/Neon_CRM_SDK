@@ -16,7 +16,7 @@ def list_all_accounts():
     try:
         print("Fetching all accounts...")
         count = 0
-        for account in client.accounts.list(page_size=10):
+        for account in client.accounts.list(page_size=10, user_type="INDIVIDUAL"):
             count += 1
             account_type = account.get("userType", "Unknown")
             if account_type == "INDIVIDUAL":
