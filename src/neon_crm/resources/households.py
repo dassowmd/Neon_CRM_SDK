@@ -40,7 +40,9 @@ class HouseholdsResource(BaseResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def add_member(self, household_id: int, account_id: int) -> Dict[str, Any]:
         """Add a member to a household.

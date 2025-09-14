@@ -52,7 +52,9 @@ class GrantsResource(SearchableResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def get_by_funder(self, funder_name: str) -> Iterator[Dict[str, Any]]:
         """Get grants from a specific funder.

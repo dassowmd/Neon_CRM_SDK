@@ -56,7 +56,9 @@ class SoftCreditsResource(SearchableResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def get_by_account(self, account_id: int) -> Iterator[Dict[str, Any]]:
         """Get soft credits for a specific account.

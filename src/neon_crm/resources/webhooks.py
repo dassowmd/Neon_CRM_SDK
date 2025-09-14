@@ -44,7 +44,9 @@ class WebhooksResource(BaseResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def create_webhook(
         self,

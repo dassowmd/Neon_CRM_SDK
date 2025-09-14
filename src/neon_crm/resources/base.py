@@ -85,7 +85,7 @@ class BaseResource:
 
             # Yield each item
             for item in items:
-                if results_returned < limit:
+                if limit is None or results_returned < limit:
                     yield item
                     results_returned += 1
                 else:
@@ -101,10 +101,9 @@ class BaseResource:
             if current_page_num >= total_pages - 1:
                 break
 
-            results_returned += len(items)
-            if limit:
-                if results_returned >= limit:
-                    break
+            # Check limit for pagination continuation
+            if limit is not None and results_returned >= limit:
+                break
 
             # Update params for next page
             params["currentPage"] = current_page_num + 1

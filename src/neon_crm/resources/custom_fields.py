@@ -44,7 +44,9 @@ class CustomFieldsResource(BaseResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def get_by_component(self, component: str) -> Iterator[Dict[str, Any]]:
         """Get custom fields for a specific component.

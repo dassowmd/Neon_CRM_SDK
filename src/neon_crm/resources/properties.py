@@ -44,7 +44,9 @@ class PropertiesResource(BaseResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def get_by_category(self, category: str) -> Iterator[Dict[str, Any]]:
         """Get properties by category.

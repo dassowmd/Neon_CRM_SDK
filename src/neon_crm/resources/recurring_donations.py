@@ -56,7 +56,9 @@ class RecurringDonationsResource(SearchableResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def get_active(self) -> Iterator[Dict[str, Any]]:
         """Get all active recurring donations.
