@@ -19,6 +19,7 @@ class GrantsResource(SearchableResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         grant_status: Optional[str] = None,
         funder_name: Optional[str] = None,
         start_date: Optional[str] = None,

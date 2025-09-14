@@ -19,6 +19,7 @@ class WebhooksResource(BaseResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         event_type: Optional[str] = None,
         status: Optional[str] = None,
         **kwargs: Any,

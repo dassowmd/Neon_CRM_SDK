@@ -19,6 +19,7 @@ class DonationsResource(SearchableResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         campaign_id: Optional[int] = None,
         fund_id: Optional[int] = None,
         start_date: Optional[str] = None,

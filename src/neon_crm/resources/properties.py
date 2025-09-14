@@ -19,6 +19,7 @@ class PropertiesResource(BaseResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         category: Optional[str] = None,
         property_type: Optional[str] = None,
         **kwargs: Any,

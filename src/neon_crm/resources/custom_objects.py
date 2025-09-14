@@ -19,6 +19,7 @@ class CustomObjectsResource(SearchableResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         object_type: Optional[str] = None,
         status: Optional[str] = None,
         **kwargs: Any,

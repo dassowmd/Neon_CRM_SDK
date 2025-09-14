@@ -19,6 +19,7 @@ class PaymentsResource(SearchableResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         payment_status: Optional[str] = None,
         payment_method: Optional[str] = None,
         start_date: Optional[str] = None,

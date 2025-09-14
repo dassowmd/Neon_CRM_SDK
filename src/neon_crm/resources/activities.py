@@ -19,6 +19,7 @@ class ActivitiesResource(SearchableResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         activity_type: Optional[str] = None,
         account_id: Optional[int] = None,
         start_date: Optional[str] = None,

@@ -39,6 +39,7 @@ class BaseResource:
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: int = None,
         **kwargs: Any,
     ) -> Iterator[Dict[str, Any]]:
         """List resources with pagination.
@@ -46,6 +47,7 @@ class BaseResource:
         Args:
             current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
+            limit: Maximum number of items to return
             **kwargs: Additional query parameters
 
         Yields:
@@ -57,6 +59,7 @@ class BaseResource:
             **kwargs,
         }
 
+        results_returned = 0
         while True:
             response = self._client.get(self._endpoint, params=params)
 
@@ -81,7 +84,12 @@ class BaseResource:
                 raise Exception("Unable to parse response")
 
             # Yield each item
-            yield from items
+            for item in items:
+                if results_returned < limit:
+                    yield item
+                    results_returned += 1
+                else:
+                    break
 
             # Check if there are more pages
             if not pagination:
@@ -92,6 +100,11 @@ class BaseResource:
 
             if current_page_num >= total_pages - 1:
                 break
+
+            results_returned += len(items)
+            if limit:
+                if results_returned >= limit:
+                    break
 
             # Update params for next page
             params["currentPage"] = current_page_num + 1

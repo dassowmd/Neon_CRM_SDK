@@ -19,6 +19,7 @@ class HouseholdsResource(BaseResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         household_name: Optional[str] = None,
         **kwargs: Any,
     ) -> Iterator[Dict[str, Any]]:

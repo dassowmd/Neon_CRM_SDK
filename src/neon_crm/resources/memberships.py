@@ -19,6 +19,7 @@ class MembershipsResource(SearchableResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         membership_status: Optional[str] = None,
         membership_type_id: Optional[int] = None,
         start_date: Optional[str] = None,

@@ -20,6 +20,7 @@ class AccountsResource(SearchableResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         email: Optional[str] = None,
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
@@ -31,6 +32,7 @@ class AccountsResource(SearchableResource):
         Args:
             current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
+            limit: Number of items to return
             email: Filter by email address
             first_name: Filter by first name
             last_name: Filter by last name
@@ -72,7 +74,9 @@ class AccountsResource(SearchableResource):
         params["userType"] = user_type_str
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def link(self, individual_id: int, company_id: int) -> Dict[str, Any]:
         """Link an individual account to a company.

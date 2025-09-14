@@ -19,6 +19,7 @@ class RecurringDonationsResource(SearchableResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         donation_status: Optional[str] = None,
         frequency: Optional[str] = None,
         campaign_id: Optional[int] = None,

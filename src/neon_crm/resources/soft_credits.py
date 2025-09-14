@@ -19,6 +19,7 @@ class SoftCreditsResource(SearchableResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         donation_id: Optional[int] = None,
         account_id: Optional[int] = None,
         campaign_id: Optional[int] = None,

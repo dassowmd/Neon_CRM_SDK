@@ -19,6 +19,7 @@ class OrdersResource(SearchableResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         order_status: Optional[str] = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,

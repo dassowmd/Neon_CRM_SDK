@@ -19,6 +19,7 @@ class CustomFieldsResource(BaseResource):
         self,
         current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         field_type: Optional[str] = None,
         component: Optional[str] = None,
         **kwargs: Any,

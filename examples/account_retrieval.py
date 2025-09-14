@@ -105,16 +105,21 @@ def get_account_details():
 
     try:
         print(f"Getting details for account {account_id}...")
-        account = client.accounts.get(account_id)
+        account_res = client.accounts.get(account_id)
 
+        if account_res.get("individualAccount"):
+            account = account_res.get("individualAccount")
+        elif account_res.get("companyAccount"):
+            account = account_res.get("companyAccount")
+        else:
+            raise Exception(f"Could not get account details for account {account_id}")
         print("Account Details:")
         print(f"ID: {account.get('accountId')}")
-        print(f"Type: {account.get('userType')}")
 
-        if account.get("userType") == "INDIVIDUAL":
+        if account.get("individualAccount"):
             print(f"Name: {account.get('firstName')} {account.get('lastName')}")
         else:
-            print(f"Company: {account.get('companyName')}")
+            print(f"Company: {account.get('name')}")
 
         print(f"Email: {account.get('email')}")
         print(f"Phone: {account.get('phone')}")
@@ -302,17 +307,17 @@ if __name__ == "__main__":
 
     # Uncomment the examples you want to run:
 
-    print("Listing all accounts...")
-    list_all_accounts()
+    # print("Listing all accounts...")
+    # list_all_accounts()
 
-    print("\nSearching accounts by email...")
-    search_accounts_by_email()
+    # print("\nSearching accounts by email...")
+    # search_accounts_by_email()
 
-    # print("\nPerforming advanced search...")
-    # advanced_account_search()
+    print("\nPerforming advanced search...")
+    advanced_account_search()
 
-    # print("\nGetting account details...")
-    # get_account_details()
+    print("\nGetting account details...")
+    get_account_details()
 
     # print("\nGetting account donations...")
     # get_account_donations()
