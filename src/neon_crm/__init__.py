@@ -13,10 +13,12 @@ from .exceptions import (
     NeonNotFoundError,
     NeonRateLimitError,
 )
+from .types import UserType
 
 __all__ = [
     "__version__",
     "NeonClient",
+    "UserType",
     "NeonError",
     "NeonAPIError",
     "NeonAuthenticationError",

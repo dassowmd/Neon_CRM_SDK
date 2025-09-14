@@ -23,7 +23,7 @@ pip install neon-crm
 ## Quick Start
 
 ```python
-from neon_crm import NeonClient
+from neon_crm import NeonClient, UserType
 
 # Initialize the client
 client = NeonClient(
@@ -32,10 +32,15 @@ client = NeonClient(
     environment="production"  # or "trial"
 )
 
-# Get accounts
-accounts = client.accounts.list(page_size=50)
+# Get accounts (user_type is required)
+accounts = client.accounts.list(page_size=50, user_type=UserType.INDIVIDUAL)
 for account in accounts:
     print(f"{account.firstName} {account.lastName}")
+
+# Get company accounts
+companies = client.accounts.list(page_size=50, user_type=UserType.COMPANY)
+for company in companies:
+    print(f"{company.companyName}")
 
 # Search for accounts
 search_results = client.accounts.search({
@@ -63,14 +68,14 @@ donations = client.accounts.get_donations(account_id=12345)
 
 ```python
 import asyncio
-from neon_crm import AsyncNeonClient
+from neon_crm import AsyncNeonClient, UserType
 
 async def main():
     async with AsyncNeonClient(
         org_id="your_org_id",
         api_key="your_api_key"
     ) as client:
-        accounts = await client.accounts.list(page_size=50)
+        accounts = await client.accounts.list(page_size=50, user_type=UserType.INDIVIDUAL)
         async for account in accounts:
             print(f"{account.firstName} {account.lastName}")
 
@@ -90,6 +95,36 @@ The SDK provides access to all Neon CRM API resources:
 - **Volunteers** - Volunteer management
 - **Campaigns** - Campaign management
 - **And 25+ more resources**
+
+### Account Validation
+
+The `client.accounts.list()` method requires a `user_type` parameter:
+
+```python
+from neon_crm import NeonClient, UserType
+
+# ✅ Correct - specify user type (recommended: use enum)
+individual_accounts = client.accounts.list(user_type=UserType.INDIVIDUAL)
+company_accounts = client.accounts.list(user_type=UserType.COMPANY)
+
+# ✅ Also valid - string values (backward compatible)
+individual_accounts = client.accounts.list(user_type="INDIVIDUAL")
+company_accounts = client.accounts.list(user_type="COMPANY")
+
+# ❌ Will raise ValueError
+accounts = client.accounts.list()  # Missing required user_type
+
+# ❌ Will raise ValueError
+accounts = client.accounts.list(user_type="invalid")  # Invalid value
+```
+
+**Valid user_type values:**
+- `UserType.INDIVIDUAL` or `"INDIVIDUAL"` - Individual/person accounts
+- `UserType.COMPANY` or `"COMPANY"` - Organization/company accounts
+
+**Type Safety**: Using the `UserType` enum provides better IDE support, autocomplete, and type checking compared to string literals.
+
+The SDK validates these parameters client-side before making API requests, providing immediate feedback for invalid values.
 
 ## Authentication
 
@@ -162,7 +197,7 @@ from neon_crm.exceptions import NeonRateLimitError
 
 try:
     # This will automatically retry if rate limited
-    accounts = client.accounts.list(user_type="INDIVIDUAL")
+    accounts = client.accounts.list(user_type=UserType.INDIVIDUAL)
 except NeonRateLimitError as e:
     print(f"Rate limit exceeded after {client.max_retries} retries")
     print(f"Wait {e.retry_after} seconds before trying again")

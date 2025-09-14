@@ -78,9 +78,7 @@ class BaseResource:
                 pagination = response.get("pagination", {})
 
             else:
-                # Assume the response itself is the data
-                items = [response] if isinstance(response, dict) else []
-                pagination = {}
+                raise Exception("Unable to parse response")
 
             # Yield each item
             yield from items

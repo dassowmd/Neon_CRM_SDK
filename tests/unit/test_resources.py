@@ -14,6 +14,7 @@ from neon_crm.resources.pledges import PledgesResource
 from neon_crm.resources.properties import PropertiesResource
 from neon_crm.resources.recurring_donations import RecurringDonationsResource
 from neon_crm.resources.webhooks import WebhooksResource
+from neon_crm.types import UserType
 
 
 @pytest.mark.unit
@@ -35,7 +36,9 @@ class TestAccountsResource:
         resource = AccountsResource(mock_client)
         results = list(
             resource.list(
-                email="test@example.com", first_name="John", user_type="INDIVIDUAL"
+                email="test@example.com",
+                first_name="John",
+                user_type=UserType.INDIVIDUAL,
             )
         )
 
@@ -46,7 +49,7 @@ class TestAccountsResource:
         params = call_args[1]["params"]
         assert params["email"] == "test@example.com"
         assert params["firstName"] == "John"
-        assert params["userType"] == "INDIVIDUAL"
+        assert params["userType"] == UserType.INDIVIDUAL
 
     def test_link_accounts(self, mock_client):
         """Test linking individual account to company."""

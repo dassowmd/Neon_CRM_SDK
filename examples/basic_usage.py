@@ -3,7 +3,7 @@
 
 import os
 
-from neon_crm import NeonClient
+from neon_crm import NeonClient, UserType
 from neon_crm.exceptions import NeonAPIError
 
 
@@ -24,7 +24,9 @@ def main():
         # Example 1: List accounts
         print("=== Listing Accounts ===")
         account_count = 0
-        for account in client.accounts.list(page_size=10, user_type="INDIVIDUAL"):
+        for account in client.accounts.list(
+            page_size=10, user_type=UserType.INDIVIDUAL
+        ):
             account_count += 1
             print(
                 f"Account {account_count}: {account.get('firstName', '')} {account.get('lastName', '')}"

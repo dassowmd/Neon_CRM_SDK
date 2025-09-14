@@ -11,7 +11,7 @@ Environment variables required:
 
 import pytest
 
-from neon_crm.types import SearchRequest
+from neon_crm.types import SearchRequest, UserType
 
 
 @pytest.mark.regression
@@ -48,7 +48,9 @@ class TestReadOnlyOperations:
         """Test basic account listing."""
         try:
             accounts = []
-            for account in regression_client.accounts.list(page_size=5):
+            for account in regression_client.accounts.list(
+                page_size=5, user_type=UserType.INDIVIDUAL
+            ):
                 accounts.append(account)
                 # Only get first few for testing
                 if len(accounts) >= 5:
@@ -69,7 +71,7 @@ class TestReadOnlyOperations:
             # Test filtering by user type
             individual_count = 0
             for account in regression_client.accounts.list(
-                user_type="INDIVIDUAL", page_size=3
+                user_type=UserType.INDIVIDUAL, page_size=3
             ):
                 individual_count += 1
                 assert (
@@ -80,7 +82,7 @@ class TestReadOnlyOperations:
 
             company_count = 0
             for account in regression_client.accounts.list(
-                user_type="COMPANY", page_size=3
+                user_type=UserType.COMPANY, page_size=3
             ):
                 company_count += 1
                 assert account.get("userType") == "COMPANY" or "userType" not in account
@@ -271,7 +273,9 @@ class TestReadOnlyOperations:
             total_count = 0
             page_count = 0
 
-            for _account in regression_client.accounts.list(page_size=10):
+            for _account in regression_client.accounts.list(
+                page_size=10, user_type=UserType.INDIVIDUAL
+            ):
                 total_count += 1
 
                 # Track pages (approximate)
@@ -305,7 +309,9 @@ class TestReadOnlyOperations:
         try:
             # Get the first account ID
             first_account = None
-            for account in regression_client.accounts.list(page_size=1):
+            for account in regression_client.accounts.list(
+                page_size=1, user_type=UserType.INDIVIDUAL
+            ):
                 first_account = account
                 break
 
@@ -327,7 +333,9 @@ class TestReadOnlyOperations:
         try:
             # Get the first account
             first_account = None
-            for account in regression_client.accounts.list(page_size=1):
+            for account in regression_client.accounts.list(
+                page_size=1, user_type=UserType.INDIVIDUAL
+            ):
                 first_account = account
                 break
 

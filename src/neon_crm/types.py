@@ -1,8 +1,16 @@
 """Type definitions for the Neon CRM SDK."""
 
+from enum import Enum
 from typing import Any, Dict, List, Literal, Union
 
 from typing_extensions import TypedDict
+
+
+class UserType(str, Enum):
+    """Account user type enumeration."""
+
+    INDIVIDUAL = "INDIVIDUAL"
+    COMPANY = "COMPANY"
 
 
 class PaginationParams(TypedDict, total=False):

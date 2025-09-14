@@ -1,7 +1,8 @@
 """Accounts resource for the Neon CRM SDK."""
 
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Union
 
+from ..types import UserType
 from .base import RelationshipResource, SearchableResource
 
 if TYPE_CHECKING:
@@ -22,7 +23,7 @@ class AccountsResource(SearchableResource):
         email: Optional[str] = None,
         first_name: Optional[str] = None,
         last_name: Optional[str] = None,
-        user_type: Optional[str] = None,
+        user_type: Optional[Union[UserType, str]] = None,
         **kwargs: Any,
     ) -> Iterator[Dict[str, Any]]:
         """List accounts with optional filtering.
@@ -33,12 +34,33 @@ class AccountsResource(SearchableResource):
             email: Filter by email address
             first_name: Filter by first name
             last_name: Filter by last name
-            user_type: Filter by user type ("INDIVIDUAL" or "COMPANY")
+            user_type: Filter by user type (UserType.INDIVIDUAL, UserType.COMPANY, or string) - REQUIRED by API
             **kwargs: Additional query parameters
 
         Yields:
             Individual account dictionaries
+
+        Raises:
+            ValueError: If user_type is not provided or invalid
         """
+        # Validate required user_type parameter
+        if user_type is None:
+            raise ValueError(
+                "user_type is required. Use UserType.INDIVIDUAL, UserType.COMPANY, or strings 'INDIVIDUAL'/'COMPANY'."
+            )
+
+        # Convert enum to string if needed and validate
+        if isinstance(user_type, UserType):
+            user_type_str = user_type.value
+        else:
+            user_type_str = user_type
+            # Validate string user_type value
+            valid_user_types = {"INDIVIDUAL", "COMPANY"}
+            if user_type_str not in valid_user_types:
+                raise ValueError(
+                    f"Invalid user_type '{user_type_str}'. Use UserType.INDIVIDUAL, UserType.COMPANY, or strings: {', '.join(valid_user_types)}"
+                )
+
         params = {}
         if email is not None:
             params["email"] = email
@@ -46,9 +68,8 @@ class AccountsResource(SearchableResource):
             params["firstName"] = first_name
         if last_name is not None:
             params["lastName"] = last_name
-        if user_type is not None:
-            params["userType"] = user_type
 
+        params["userType"] = user_type_str
         params.update(kwargs)
 
         return super().list(current_page=current_page, page_size=page_size, **params)

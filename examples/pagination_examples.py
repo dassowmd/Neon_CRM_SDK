@@ -5,7 +5,7 @@ This file demonstrates various pagination patterns and best practices
 for working with large datasets in the Neon CRM API.
 """
 
-from neon_crm import NeonClient
+from neon_crm import NeonClient, UserType
 from neon_crm.types import SearchRequest
 
 
@@ -23,7 +23,9 @@ def basic_pagination_example():
         page_count = 1
         items_in_page = 0
 
-        for account in client.accounts.list(page_size=5):  # Small page size for demo
+        for account in client.accounts.list(
+            page_size=5, user_type=UserType.INDIVIDUAL
+        ):  # Small page size for demo
             count += 1
             items_in_page += 1
 
@@ -68,7 +70,9 @@ def manual_pagination_example():
             items_this_page = 0
 
             for account in client.accounts.list(
-                current_page=current_page, page_size=page_size
+                current_page=current_page,
+                page_size=page_size,
+                user_type=UserType.INDIVIDUAL,
             ):
                 page_items.append(account)
                 items_this_page += 1
@@ -153,7 +157,7 @@ def pagination_with_filtering():
         individual_count = 0
 
         # Filter by user type and page through results
-        for account in client.accounts.list(user_type="INDIVIDUAL", page_size=5):
+        for account in client.accounts.list(user_type=UserType.INDIVIDUAL, page_size=5):
             # Additional filtering - only show accounts with email
             if account.get("email"):
                 individual_count += 1
@@ -168,7 +172,7 @@ def pagination_with_filtering():
         print("\nCompany accounts:")
         company_count = 0
 
-        for account in client.accounts.list(user_type="COMPANY", page_size=5):
+        for account in client.accounts.list(user_type=UserType.COMPANY, page_size=5):
             company_count += 1
             company_name = account.get("companyName", "Unknown Company")
             email = account.get("email", "No email")
@@ -198,7 +202,9 @@ def bulk_processing_example():
 
         print(f"Processing accounts in batches of {batch_size}...")
 
-        for account in client.accounts.list(page_size=batch_size):
+        for account in client.accounts.list(
+            page_size=batch_size, user_type=UserType.INDIVIDUAL
+        ):
             total_accounts += 1
 
             if account.get("email"):
@@ -256,13 +262,17 @@ def pagination_performance_tips():
 
     # Efficient pattern
     print("    # EFFICIENT: Process items one at a time")
-    print("    for account in client.accounts.list(page_size=100):")
+    print(
+        "    for account in client.accounts.list(page_size=100, user_type=UserType.INDIVIDUAL):"
+    )
     print("        process_account(account)  # Process immediately")
     print()
 
     # Inefficient pattern
     print("    # INEFFICIENT: Loading all into memory first")
-    print("    all_accounts = list(client.accounts.list())  # Don't do this!")
+    print(
+        "    all_accounts = list(client.accounts.list(user_type=UserType.INDIVIDUAL))  # Don't do this!"
+    )
     print("    for account in all_accounts:")
     print("        process_account(account)")
     print()
