@@ -69,7 +69,7 @@ class TestTypeDefinitions:
                 {"field": "firstName", "operator": "EQUAL", "value": "John"}
             ],
             "outputFields": ["accountId", "firstName", "lastName"],
-            "pagination": {"currentPage": 1, "pageSize": 50},
+            "pagination": {"currentPage": 0, "pageSize": 50},
         }
 
         assert len(search_request["searchFields"]) == 1
@@ -79,9 +79,9 @@ class TestTypeDefinitions:
 
     def test_pagination_params_type(self):
         """Test PaginationParams type structure."""
-        pagination: PaginationParams = {"currentPage": 2, "pageSize": 25}
+        pagination: PaginationParams = {"currentPage": 1, "pageSize": 25}
 
-        assert pagination["currentPage"] == 2
+        assert pagination["currentPage"] == 1
         assert pagination["pageSize"] == 25
 
     def test_create_individual_account_payload(self):
