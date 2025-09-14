@@ -23,6 +23,7 @@ from .exceptions import (
     NeonServerError,
     NeonTimeoutError,
     NeonUnprocessableEntityError,
+    NeonUnsupportedMediaTypeError,
 )
 from .resources import (
     AccountsResource,
@@ -262,6 +263,10 @@ class NeonClient:
             )
         elif response.status_code == 409:
             raise NeonConflictError(
+                message=detailed_message, response_data=response_data
+            )
+        elif response.status_code == 415:
+            raise NeonUnsupportedMediaTypeError(
                 message=detailed_message, response_data=response_data
             )
         elif response.status_code == 422:
@@ -608,6 +613,10 @@ class AsyncNeonClient:
             )
         elif response.status_code == 409:
             raise NeonConflictError(
+                message=detailed_message, response_data=response_data
+            )
+        elif response.status_code == 415:
+            raise NeonUnsupportedMediaTypeError(
                 message=detailed_message, response_data=response_data
             )
         elif response.status_code == 422:

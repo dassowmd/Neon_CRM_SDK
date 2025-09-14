@@ -101,6 +101,18 @@ class NeonConflictError(NeonAPIError):
         super().__init__(message, 409, response_data, details)
 
 
+class NeonUnsupportedMediaTypeError(NeonAPIError):
+    """Exception raised when unsupported media type (415)."""
+
+    def __init__(
+        self,
+        message: str = "Unsupported Media Type. The request content type is not supported.",
+        response_data: Optional[Dict[str, Any]] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super().__init__(message, 415, response_data, details)
+
+
 class NeonUnprocessableEntityError(NeonAPIError):
     """Exception raised when request is unprocessable (422)."""
 

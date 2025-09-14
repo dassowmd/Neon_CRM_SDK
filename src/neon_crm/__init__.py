@@ -17,6 +17,7 @@ from .exceptions import (
     NeonRateLimitError,
     NeonServerError,
     NeonUnprocessableEntityError,
+    NeonUnsupportedMediaTypeError,
 )
 from .types import UserType
 
@@ -34,4 +35,5 @@ __all__ = [
     "NeonRateLimitError",
     "NeonServerError",
     "NeonUnprocessableEntityError",
+    "NeonUnsupportedMediaTypeError",
 ]
