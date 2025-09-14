@@ -17,7 +17,7 @@ class PledgesResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         campaign_id: Optional[int] = None,
         fund_id: Optional[int] = None,
@@ -29,7 +29,7 @@ class PledgesResource(SearchableResource):
         """List pledges with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             campaign_id: Filter by campaign ID
             fund_id: Filter by fund ID

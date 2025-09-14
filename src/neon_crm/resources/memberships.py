@@ -17,7 +17,7 @@ class MembershipsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         membership_status: Optional[str] = None,
         membership_type_id: Optional[int] = None,
@@ -28,7 +28,7 @@ class MembershipsResource(SearchableResource):
         """List memberships with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             membership_status: Filter by membership status
             membership_type_id: Filter by membership type ID

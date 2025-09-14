@@ -17,7 +17,7 @@ class OrdersResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         order_status: Optional[str] = None,
         start_date: Optional[str] = None,
@@ -27,7 +27,7 @@ class OrdersResource(SearchableResource):
         """List orders with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             order_status: Filter by order status
             start_date: Filter by start date (YYYY-MM-DD format)

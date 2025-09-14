@@ -17,7 +17,7 @@ class OnlineStoreResource(BaseResource):
 
     def list_products(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         product_status: Optional[str] = None,
         category: Optional[str] = None,
@@ -26,7 +26,7 @@ class OnlineStoreResource(BaseResource):
         """List online store products.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             product_status: Filter by product status
             category: Filter by product category
@@ -56,7 +56,7 @@ class OnlineStoreResource(BaseResource):
 
     def list_transactions(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
@@ -65,7 +65,7 @@ class OnlineStoreResource(BaseResource):
         """List online store transactions.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             start_date: Filter by start date (YYYY-MM-DD format)
             end_date: Filter by end date (YYYY-MM-DD format)

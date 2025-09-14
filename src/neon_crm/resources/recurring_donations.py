@@ -17,7 +17,7 @@ class RecurringDonationsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         donation_status: Optional[str] = None,
         frequency: Optional[str] = None,
@@ -29,7 +29,7 @@ class RecurringDonationsResource(SearchableResource):
         """List recurring donations with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             donation_status: Filter by donation status
             frequency: Filter by frequency (monthly, quarterly, annually, etc.)

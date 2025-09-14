@@ -17,7 +17,7 @@ class GrantsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         grant_status: Optional[str] = None,
         funder_name: Optional[str] = None,
@@ -28,7 +28,7 @@ class GrantsResource(SearchableResource):
         """List grants with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             grant_status: Filter by grant status
             funder_name: Filter by funder name

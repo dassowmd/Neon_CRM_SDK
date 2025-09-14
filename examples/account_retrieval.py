@@ -46,7 +46,9 @@ def search_accounts_by_email():
     # Search using the list method with email filter
     try:
         print("Searching accounts by email...")
-        for account in client.accounts.list(email="john.doe@example.com"):
+        for account in client.accounts.list(
+            email="john.doe@example.com", user_type=UserType.INDIVIDUAL
+        ):
             account_type = account.get("userType", "Unknown")
             name = f"{account.get('firstName', '')} {account.get('lastName', '')}"
             print(f"Found: [{account_type}] {name} - {account.get('email')}")
@@ -73,7 +75,7 @@ def advanced_account_search():
             "userType",
             "dateCreated",
         ],
-        "pagination": {"currentPage": 1, "pageSize": 25},
+        "pagination": {"currentPage": 0, "pageSize": 25},
     }
 
     try:
@@ -303,8 +305,8 @@ if __name__ == "__main__":
     print("Listing all accounts...")
     list_all_accounts()
 
-    # print("\nSearching accounts by email...")
-    # search_accounts_by_email()
+    print("\nSearching accounts by email...")
+    search_accounts_by_email()
 
     # print("\nPerforming advanced search...")
     # advanced_account_search()

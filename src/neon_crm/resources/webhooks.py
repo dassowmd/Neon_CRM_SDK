@@ -17,7 +17,7 @@ class WebhooksResource(BaseResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         event_type: Optional[str] = None,
         status: Optional[str] = None,
@@ -26,7 +26,7 @@ class WebhooksResource(BaseResource):
         """List webhooks with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             event_type: Filter by event type
             status: Filter by status (active, inactive)

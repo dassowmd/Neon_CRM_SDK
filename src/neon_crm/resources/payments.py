@@ -17,7 +17,7 @@ class PaymentsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         payment_status: Optional[str] = None,
         payment_method: Optional[str] = None,
@@ -28,7 +28,7 @@ class PaymentsResource(SearchableResource):
         """List payments with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             payment_status: Filter by payment status
             payment_method: Filter by payment method

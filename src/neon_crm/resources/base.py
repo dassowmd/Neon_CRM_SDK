@@ -37,14 +37,14 @@ class BaseResource:
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         **kwargs: Any,
     ) -> Iterator[Dict[str, Any]]:
         """List resources with pagination.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             **kwargs: Additional query parameters
 
@@ -87,10 +87,10 @@ class BaseResource:
             if not pagination:
                 break
 
-            current_page_num = pagination.get("currentPage", 1)
+            current_page_num = pagination.get("currentPage", 0)
             total_pages = pagination.get("totalPages", 1)
 
-            if current_page_num >= total_pages:
+            if current_page_num >= total_pages - 1:
                 break
 
             # Update params for next page
@@ -173,7 +173,7 @@ class SearchableResource(BaseResource):
         url = self._build_url("search")
 
         # Start with the first page
-        current_page = 1
+        current_page = 0
         page_size = search_request.get("pagination", {}).get("pageSize", 50)
 
         while True:
@@ -202,10 +202,10 @@ class SearchableResource(BaseResource):
             if not pagination:
                 break
 
-            current_page_num = pagination.get("currentPage", 1)
+            current_page_num = pagination.get("currentPage", 0)
             total_pages = pagination.get("totalPages", 1)
 
-            if current_page_num >= total_pages:
+            if current_page_num >= total_pages - 1:
                 break
 
             current_page += 1

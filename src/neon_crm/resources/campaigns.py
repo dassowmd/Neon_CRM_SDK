@@ -17,7 +17,7 @@ class CampaignsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         campaign_status: Optional[str] = None,
         campaign_type: Optional[str] = None,
@@ -26,7 +26,7 @@ class CampaignsResource(SearchableResource):
         """List campaigns with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             campaign_status: Filter by campaign status
             campaign_type: Filter by campaign type

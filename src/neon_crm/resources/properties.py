@@ -17,7 +17,7 @@ class PropertiesResource(BaseResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         category: Optional[str] = None,
         property_type: Optional[str] = None,
@@ -26,7 +26,7 @@ class PropertiesResource(BaseResource):
         """List system properties with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             category: Filter by property category
             property_type: Filter by property type

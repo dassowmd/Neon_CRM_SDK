@@ -17,7 +17,7 @@ class SoftCreditsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         donation_id: Optional[int] = None,
         account_id: Optional[int] = None,
@@ -29,7 +29,7 @@ class SoftCreditsResource(SearchableResource):
         """List soft credits with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             donation_id: Filter by donation ID
             account_id: Filter by account ID (the credited account)

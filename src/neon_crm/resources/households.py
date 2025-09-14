@@ -17,7 +17,7 @@ class HouseholdsResource(BaseResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
         household_name: Optional[str] = None,
         **kwargs: Any,
@@ -25,7 +25,7 @@ class HouseholdsResource(BaseResource):
         """List households with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             household_name: Filter by household name
             **kwargs: Additional query parameters

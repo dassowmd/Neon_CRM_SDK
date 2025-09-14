@@ -57,12 +57,12 @@ def manual_pagination_example():
     print("Manual Pagination Example")
     print("=" * 30)
 
-    current_page = 1
+    current_page = 0
     page_size = 10
     total_processed = 0
 
     try:
-        while current_page <= 3:  # Process first 3 pages only
+        while current_page <= 2:  # Process first 3 pages (0, 1, 2)
             print(f"\nProcessing page {current_page}...")
 
             # Get one page of results
@@ -120,7 +120,7 @@ def search_pagination_example():
             {"field": "userType", "operator": "EQUAL", "value": "INDIVIDUAL"}
         ],
         "outputFields": ["accountId", "firstName", "lastName", "email", "dateCreated"],
-        "pagination": {"currentPage": 1, "pageSize": 8},  # Small page size for demo
+        "pagination": {"currentPage": 0, "pageSize": 8},  # Small page size for demo
     }
 
     try:
