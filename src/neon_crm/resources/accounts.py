@@ -74,9 +74,21 @@ class AccountsResource(SearchableResource):
         params["userType"] = user_type_str
         params.update(kwargs)
 
-        return super().list(
-            current_page=current_page, page_size=page_size, limit=limit, **params
+        # there is a bug in the API that causes all accounts to be returned when userType == 'INDIVIDUAL'. Workaround
+        results = super().list(
+            current_page=current_page,
+            page_size=page_size,
+            limit=None,  # override limit to ensure that we get enough results before filtering
+            **params,
         )
+        results_returned = 0
+        for result in results:
+            if result["userType"] == user_type_str:
+                if limit is None or results_returned < limit:
+                    yield result
+                    results_returned += 1
+                else:
+                    break
 
     def link(self, individual_id: int, company_id: int) -> Dict[str, Any]:
         """Link an individual account to a company.

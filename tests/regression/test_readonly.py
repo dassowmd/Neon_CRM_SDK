@@ -128,7 +128,8 @@ class TestReadOnlyOperations:
         """Test getting available search fields."""
         try:
             search_fields = regression_client.accounts.get_search_fields()
-            assert isinstance(search_fields, list)
+            assert isinstance(search_fields, dict)
+
             print(f"Available search fields: {len(search_fields)}")
 
             if search_fields:
@@ -141,7 +142,8 @@ class TestReadOnlyOperations:
         """Test getting available output fields."""
         try:
             output_fields = regression_client.accounts.get_output_fields()
-            assert isinstance(output_fields, list)
+            assert isinstance(output_fields, dict)
+
             print(f"Available output fields: {len(output_fields)}")
 
             if output_fields:

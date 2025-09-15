@@ -1,6 +1,5 @@
 """Test configuration and fixtures for the Neon CRM SDK."""
 
-import os
 from typing import Any, Dict
 from unittest.mock import MagicMock
 
@@ -74,17 +73,95 @@ def sample_pagination_response() -> Dict[str, Any]:
 
 @pytest.fixture
 def regression_client():
-    """Create a real client for regression tests (requires environment variables)."""
-    org_id = os.getenv("NEON_ORG_ID")
-    api_key = os.getenv("NEON_API_KEY")
-    environment = os.getenv("NEON_ENVIRONMENT", "trial")
+    """Create a real client for regression tests using standard config loading chain.
 
-    if not org_id or not api_key:
+    Configuration priority: init params > profile config > env vars > defaults
+
+    This fixture will create a client without explicit parameters, allowing it to
+    use the full config chain including profiles.
+    """
+    try:
+        # Let NeonClient use its standard config loading chain
+        client = NeonClient()
+        return client
+    except ValueError as e:
+        # If config loading fails, skip the test with a helpful message
         pytest.skip(
-            "Regression tests require NEON_ORG_ID and NEON_API_KEY environment variables"
+            f"Regression tests require configuration via config file or environment variables. "
+            f"Error: {e}\n"
+            f"Options:\n"
+            f"1. Create ~/.neon/config.json with org_id, api_key, environment\n"
+            f"2. Use profiles in ~/.neon/config.json and set NEON_PROFILE\n"
+            f"3. Set NEON_ORG_ID and NEON_API_KEY environment variables\n"
+            f"4. Optionally set NEON_ENVIRONMENT (defaults to 'production')"
         )
 
-    return NeonClient(org_id=org_id, api_key=api_key, environment=environment)
+
+@pytest.fixture
+def sandbox_client():
+    """Create a client specifically for sandbox environment using profile 'sandbox'.
+
+    This fixture attempts to use the 'sandbox' profile from config file,
+    falling back to environment variables if no profile exists.
+    """
+    try:
+        client = NeonClient(profile="sandbox")
+        return client
+    except ValueError as e:
+        pytest.skip(
+            f"Sandbox tests require 'sandbox' profile configuration. Error: {e}\n"
+            f"Options:\n"
+            f"1. Add 'sandbox' profile to ~/.neon/config.json\n"
+            f"2. Set NEON_ORG_ID, NEON_API_KEY, NEON_ENVIRONMENT=sandbox env vars"
+        )
+
+
+@pytest.fixture
+def production_client():
+    """Create a client specifically for production environment using profile 'prod'.
+
+    This fixture attempts to use the 'prod' profile from config file.
+    Use with extreme caution - only for read-only operations!
+    """
+    try:
+        client = NeonClient(profile="prod")
+        if client.environment != "production":
+            pytest.skip("Production client requires environment='production'")
+        return client
+    except ValueError as e:
+        pytest.skip(
+            f"Production tests require 'prod' profile configuration. Error: {e}\n"
+            f"Add 'prod' profile to ~/.neon/config.json with environment: 'production'"
+        )
+
+
+@pytest.fixture
+def write_regression_client():
+    """Create a real client for write regression tests with safety checks.
+
+    This fixture explicitly sets environment to 'trial' for safety and provides
+    additional validation for write operations.
+    """
+    try:
+        # For write operations, we want to be extra cautious about environment
+        client = NeonClient(environment="trial")
+
+        # Additional safety check - ensure we're not accidentally using production
+        if client.environment == "production":
+            pytest.skip(
+                "Write operations are not allowed in production environment. "
+                "Please set NEON_ENVIRONMENT=trial or configure your config file with 'environment': 'trial'"
+            )
+
+        return client
+    except ValueError as e:
+        pytest.skip(
+            f"Write regression tests require configuration. Error: {e}\n"
+            f"For safety, write tests will use environment='trial'\n"
+            f"Options:\n"
+            f"1. Create ~/.neon/config.json with org_id, api_key, and environment: 'trial'\n"
+            f"2. Set NEON_ORG_ID, NEON_API_KEY, and NEON_ENVIRONMENT=trial environment variables"
+        )
 
 
 @pytest.fixture

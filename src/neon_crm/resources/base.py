@@ -1,6 +1,6 @@
 """Base resource class for all Neon CRM API resources."""
 
-from typing import TYPE_CHECKING, Any, Dict, Iterator, List
+from typing import TYPE_CHECKING, Any, Dict, Iterator
 from urllib.parse import urljoin
 
 from ..types import SearchRequest
@@ -64,22 +64,21 @@ class BaseResource:
             response = self._client.get(self._endpoint, params=params)
 
             # Handle different response structures
-            if "searchResults" in response:
-                # Paginated search results
-                items = response["searchResults"]
-                pagination = response.get("pagination", {})
-            elif isinstance(response, list):
-                # Direct list response
-                items = response
-                pagination = {}
-            elif "data" in response:
-                # Response with data wrapper
-                items = response["data"]
-                pagination = response.get("pagination", {})
-            elif self._endpoint.lstrip("/") in response:
+            if self._endpoint.lstrip("/") in response:
                 items = response[self._endpoint.lstrip("/")]
                 pagination = response.get("pagination", {})
-
+            # elif "searchResults" in response:
+            #     # Paginated search results
+            #     items = response["searchResults"]
+            #     pagination = response.get("pagination", {})
+            # elif isinstance(response, list):
+            #     # Direct list response
+            #     items = response
+            #     pagination = {}
+            # elif "data" in response:
+            #     # Response with data wrapper
+            #     items = response["data"]
+            #     pagination = response.get("pagination", {})
             else:
                 raise Exception("Unable to parse response")
 
@@ -222,43 +221,25 @@ class SearchableResource(BaseResource):
 
             current_page += 1
 
-    def get_search_fields(self) -> List[Dict[str, Any]]:
+    def get_search_fields(self) -> Dict[str, Any]:
         """Get available search fields for this resource.
 
         Returns:
-            List of available search field definitions
+            Dictionary of available search field definitions
         """
         url = self._build_url("search/searchFields")
         response = self._client.get(url)
+        return response
 
-        # Handle different response structures
-        if isinstance(response, list):
-            return response
-        elif "searchFields" in response:
-            return response["searchFields"]
-        elif "data" in response:
-            return response["data"]
-        else:
-            return []
-
-    def get_output_fields(self) -> List[Dict[str, Any]]:
+    def get_output_fields(self) -> Dict[str, Any]:
         """Get available output fields for this resource.
 
         Returns:
-            List of available output field definitions
+            Dictionary of available output field definitions
         """
         url = self._build_url("search/outputFields")
         response = self._client.get(url)
-
-        # Handle different response structures
-        if isinstance(response, list):
-            return response
-        elif "outputFields" in response:
-            return response["outputFields"]
-        elif "data" in response:
-            return response["data"]
-        else:
-            return []
+        return response
 
 
 class RelationshipResource(BaseResource):

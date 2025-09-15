@@ -1,6 +1,6 @@
 # Makefile for Neon CRM Python SDK
 
-.PHONY: help install install-dev test test-verbose lint format type-check clean build publish-test publish docs serve-docs example
+.PHONY: help install install-dev test test-unit test-regression-readonly test-regression-writeops test-regression-all test-verbose test-watch list-regression-resources test-resource test-resource-readonly test-resource-writeops lint format type-check clean build publish-test publish docs serve-docs example
 
 # Default target
 help:
@@ -20,8 +20,15 @@ help:
 	@echo "  test-unit     Run unit tests only (mocked, fast)"
 	@echo "  test-regression-readonly   Run regression tests (read-only, safe for production)"
 	@echo "  test-regression-writeops   Run regression tests (write operations, MODIFIES DATABASE)"
+	@echo "  test-regression-all        Run all regression tests (read-only + write operations)"
 	@echo "  test-verbose  Run tests with verbose output"
 	@echo "  test-watch    Run tests in watch mode"
+	@echo ""
+	@echo "Resource-specific Testing:"
+	@echo "  list-regression-resources  List all available regression test resources"
+	@echo "  test-resource RESOURCE=<name>          Run all tests for specific resource"
+	@echo "  test-resource-readonly RESOURCE=<name> Run read-only tests for specific resource"
+	@echo "  test-resource-writeops RESOURCE=<name> Run write tests for specific resource"
 	@echo ""
 	@echo "Build & Distribution:"
 	@echo "  clean         Clean build artifacts and cache files"
@@ -86,6 +93,8 @@ format:
 lint:
 	@echo "Running ruff linting..."
 	$(PYTHON) -m ruff check src/ tests/ examples/
+	@echo "Running flake8 linting..."
+	$(PYTHON) -m flake8 src/ tests/ examples/
 
 type-check:
 	@echo "Running mypy type checking..."
@@ -112,7 +121,7 @@ test-regression-readonly:
 	@echo "   Set NEON_ORG_ID and NEON_API_KEY environment variables."
 	@echo "   Set NEON_ENVIRONMENT=production for production or leave unset for trial."
 	@echo ""
-	$(PYTHON) -m pytest tests/regression/test_readonly.py -m "regression and readonly" -v -s
+	$(PYTHON) -m pytest tests/regression/resources/ -m "regression and readonly" -v -s
 
 test-regression-writeops:
 	@echo "🚨 WARNING: WRITE OPERATIONS TESTS 🚨"
@@ -125,7 +134,94 @@ test-regression-writeops:
 	@echo ""
 	@echo "Press Ctrl+C now to cancel, or Enter to continue..."
 	@read confirm
-	$(PYTHON) -m pytest tests/regression/test_writeops.py -m "regression and writeops" -v -s
+	$(PYTHON) -m pytest tests/regression/resources/ -m "regression and writeops" -v -s
+
+test-regression-all:
+	@echo "🚨 WARNING: ALL REGRESSION TESTS 🚨"
+	@echo "These tests will connect to the Neon CRM API and may modify data!"
+	@echo "Required environment variables:"
+	@echo "  NEON_ORG_ID=your_org_id"
+	@echo "  NEON_API_KEY=your_api_key"
+	@echo "  NEON_ENVIRONMENT=trial (recommended, NEVER use production for write tests!)"
+	@echo ""
+	@echo "Press Ctrl+C now to cancel, or Enter to continue..."
+	@read confirm
+	$(PYTHON) -m pytest tests/regression/resources/ -m "regression" -v -s
+
+list-regression-resources:
+	@echo "Available regression test resources:"
+	@echo "=================================="
+	@echo "  accounts            - Account management tests"
+	@echo "  activities          - Activity tracking tests"
+	@echo "  base_resource       - Base resource functionality tests"
+	@echo "  campaigns           - Campaign management tests"
+	@echo "  custom_fields       - Custom field configuration tests"
+	@echo "  custom_objects      - Custom object tests"
+	@echo "  donations           - Donation processing tests"
+	@echo "  events              - Event management tests"
+	@echo "  grants              - Grant tracking tests"
+	@echo "  households          - Household management tests"
+	@echo "  memberships         - Membership management tests"
+	@echo "  online_store        - Online store tests"
+	@echo "  orders              - Order processing tests"
+	@echo "  payments            - Payment processing tests"
+	@echo "  pledges             - Pledge management tests"
+	@echo "  properties          - Property management tests"
+	@echo "  recurring_donations - Recurring donation tests"
+	@echo "  soft_credits        - Soft credit tests"
+	@echo "  volunteers          - Volunteer management tests"
+	@echo "  webhooks            - Webhook configuration tests"
+	@echo ""
+	@echo "Usage examples:"
+	@echo "  make test-resource RESOURCE=accounts"
+	@echo "  make test-resource-readonly RESOURCE=donations"
+	@echo "  make test-resource-writeops RESOURCE=webhooks"
+
+test-resource:
+	@if [ -z "$(RESOURCE)" ]; then \
+		echo "❌ Error: RESOURCE parameter is required"; \
+		echo "Usage: make test-resource RESOURCE=accounts"; \
+		echo "Run 'make list-regression-resources' to see available resources"; \
+		exit 1; \
+	fi
+	@if [ ! -f "tests/regression/resources/test_$(RESOURCE).py" ]; then \
+		echo "❌ Error: Resource '$(RESOURCE)' not found"; \
+		echo "Run 'make list-regression-resources' to see available resources"; \
+		exit 1; \
+	fi
+	@echo "Running all tests for resource: $(RESOURCE)"
+	$(PYTHON) -m pytest tests/regression/resources/test_$(RESOURCE).py -m "regression" -v -s
+
+test-resource-readonly:
+	@if [ -z "$(RESOURCE)" ]; then \
+		echo "❌ Error: RESOURCE parameter is required"; \
+		echo "Usage: make test-resource-readonly RESOURCE=accounts"; \
+		exit 1; \
+	fi
+	@if [ ! -f "tests/regression/resources/test_$(RESOURCE).py" ]; then \
+		echo "❌ Error: Resource '$(RESOURCE)' not found"; \
+		echo "Run 'make list-regression-resources' to see available resources"; \
+		exit 1; \
+	fi
+	@echo "Running read-only tests for resource: $(RESOURCE)"
+	$(PYTHON) -m pytest tests/regression/resources/test_$(RESOURCE).py -m "regression and readonly" -v -s
+
+test-resource-writeops:
+	@if [ -z "$(RESOURCE)" ]; then \
+		echo "❌ Error: RESOURCE parameter is required"; \
+		echo "Usage: make test-resource-writeops RESOURCE=accounts"; \
+		exit 1; \
+	fi
+	@if [ ! -f "tests/regression/resources/test_$(RESOURCE).py" ]; then \
+		echo "❌ Error: Resource '$(RESOURCE)' not found"; \
+		echo "Run 'make list-regression-resources' to see available resources"; \
+		exit 1; \
+	fi
+	@echo "🚨 WARNING: WRITE OPERATIONS TEST FOR $(RESOURCE) 🚨"
+	@echo "This will CREATE, UPDATE, and DELETE $(RESOURCE) records!"
+	@echo "Press Ctrl+C now to cancel, or Enter to continue..."
+	@read confirm
+	$(PYTHON) -m pytest tests/regression/resources/test_$(RESOURCE).py -m "regression and writeops" -v -s
 
 test-verbose:
 	@echo "Running tests with verbose output..."
