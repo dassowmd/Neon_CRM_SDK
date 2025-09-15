@@ -13,6 +13,39 @@ class UserType(str, Enum):
     COMPANY = "COMPANY"
 
 
+class CustomFieldCategory(str, Enum):
+    """Custom field category enumeration."""
+
+    ACCOUNT = "Account"
+    DONATION = "Donation"
+    EVENT = "Event"
+    ATTENDEE = "Attendee"
+    INDIVIDUAL = "Individual"
+    COMPANY = "Company"
+    ACTIVITY = "Activity"
+    MEMBERSHIP = "Membership"
+    PRODUCT = "Product"
+    PROSPECT = "Prospect"
+    GRANT = "Grant"
+
+
+class SearchOperator(str, Enum):
+    """Search operator enumeration."""
+
+    EQUAL = "EQUAL"
+    NOT_EQUAL = "NOT_EQUAL"
+    BLANK = "BLANK"
+    NOT_BLANK = "NOT_BLANK"
+    LESS_THAN = "LESS_THAN"
+    GREATER_THAN = "GREATER_THAN"
+    LESS_AND_EQUAL = "LESS_AND_EQUAL"
+    GREATER_AND_EQUAL = "GREATER_AND_EQUAL"
+    IN_RANGE = "IN_RANGE"
+    NOT_IN_RANGE = "NOT_IN_RANGE"
+    CONTAIN = "CONTAIN"
+    NOT_CONTAIN = "NOT_CONTAIN"
+
+
 class PaginationParams(TypedDict, total=False):
     """Parameters for paginated requests."""
 
@@ -24,7 +57,7 @@ class SearchField(TypedDict):
     """A search field specification."""
 
     field: str
-    operator: str
+    operator: Union[SearchOperator, str]
     value: Union[str, int, float, bool, List[Any]]
 
 

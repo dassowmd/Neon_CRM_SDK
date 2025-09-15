@@ -2,6 +2,7 @@
 
 from .accounts import AccountsResource
 from .activities import ActivitiesResource
+from .addresses import AddressesResource
 from .base import BaseResource
 from .campaigns import CampaignsResource
 from .custom_fields import CustomFieldsResource
@@ -24,6 +25,7 @@ from .webhooks import WebhooksResource
 __all__ = [
     "BaseResource",
     "AccountsResource",
+    "AddressesResource",
     "DonationsResource",
     "EventsResource",
     "MembershipsResource",

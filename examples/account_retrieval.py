@@ -64,16 +64,15 @@ def advanced_account_search():
     # Advanced search with multiple criteria
     search_request: SearchRequest = {
         "searchFields": [
-            {"field": "firstName", "operator": "CONTAIN", "value": "John"},
-            {"field": "userType", "operator": "EQUAL", "value": "INDIVIDUAL"},
+            {"field": "First Name", "operator": "CONTAIN", "value": "Testy"},
+            {"field": "Account Type", "operator": "EQUAL", "value": "INDIVIDUAL"},
         ],
         "outputFields": [
-            "accountId",
-            "firstName",
-            "lastName",
-            "email",
-            "userType",
-            "dateCreated",
+            "Account ID",
+            "First Name",
+            "Last Name",
+            "Email 1",
+            "Account Type",
         ],
         "pagination": {"currentPage": 0, "pageSize": 25},
     }
@@ -82,15 +81,11 @@ def advanced_account_search():
         print("Performing advanced search...")
         results = client.accounts.search(search_request)
 
-        if "searchResults" in results:
-            for account in results["searchResults"]:
-                print(f"Account ID: {account.get('accountId')}")
-                print(f"Name: {account.get('firstName')} {account.get('lastName')}")
-                print(f"Email: {account.get('email')}")
-                print(f"Created: {account.get('dateCreated')}")
-                print("-" * 40)
-        else:
-            print("No results found or unexpected response format")
+        for account in results:
+            print(f"Account ID: {account.get('Account ID')}")
+            print(f"Name: {account.get('First Name')} {account.get('Last Name')}")
+            print(f"Email: {account.get('Email 1')}")
+            print("-" * 40)
 
     except Exception as e:
         print(f"Error in advanced search: {e}")

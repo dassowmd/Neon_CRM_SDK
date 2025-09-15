@@ -254,11 +254,11 @@ class TestReadOnlyOperations:
         except Exception as e:
             print(f"Custom fields list test failed: {e}")
 
-    def test_get_custom_fields_by_component(self, regression_client):
-        """Test getting custom fields for a specific component."""
+    def test_get_custom_fields_by_category(self, regression_client):
+        """Test getting custom fields for a specific category."""
         try:
             account_fields = []
-            for field in regression_client.custom_fields.get_by_component("accounts"):
+            for field in regression_client.custom_fields.get_by_category("Account"):
                 account_fields.append(field)
                 if len(account_fields) >= 5:
                     break
@@ -266,7 +266,7 @@ class TestReadOnlyOperations:
             print(f"Retrieved {len(account_fields)} account custom fields")
 
         except Exception as e:
-            print(f"Custom fields by component test failed: {e}")
+            print(f"Custom fields by category test failed: {e}")
 
     @pytest.mark.slow
     def test_pagination_across_multiple_pages(self, regression_client):

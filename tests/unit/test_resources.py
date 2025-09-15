@@ -287,20 +287,20 @@ class TestGrantsResource:
 class TestCustomFieldsResource:
     """Test cases for CustomFieldsResource."""
 
-    def test_get_by_component(self, mock_client):
-        """Test getting custom fields by component."""
+    def test_get_by_category(self, mock_client):
+        """Test getting custom fields by category."""
         mock_client.get.return_value = {
             "searchResults": [{"id": 1}],
             "pagination": {"currentPage": 1, "totalPages": 1},
         }
 
         resource = CustomFieldsResource(mock_client)
-        results = list(resource.get_by_component("accounts"))
+        results = list(resource.get_by_category("Account"))
 
         assert len(results) == 1
         call_args = mock_client.get.call_args
         params = call_args[1]["params"]
-        assert params["component"] == "accounts"
+        assert params["category"] == "Account"
 
 
 @pytest.mark.unit

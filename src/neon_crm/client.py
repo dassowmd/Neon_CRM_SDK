@@ -28,6 +28,7 @@ from .exceptions import (
 from .resources import (
     AccountsResource,
     ActivitiesResource,
+    AddressesResource,
     CampaignsResource,
     CustomFieldsResource,
     CustomObjectsResource,
@@ -124,6 +125,7 @@ class NeonClient:
 
         # Initialize resource managers
         self.accounts = AccountsResource(self)
+        self.addresses = AddressesResource(self)
         self.donations = DonationsResource(self)
         self.events = EventsResource(self)
         self.memberships = MembershipsResource(self)
@@ -352,11 +354,43 @@ class NeonClient:
                 continue
 
             except httpx.TimeoutException as e:
-                raise NeonTimeoutError(
+                last_exception = NeonTimeoutError(
                     timeout=self.timeout, details={"original_error": str(e)}
-                ) from e
+                )
+                if attempt == self.max_retries:
+                    raise last_exception from e
+
+                # Retry on timeout with exponential backoff
+                delay = self._calculate_retry_delay(attempt)
+                time.sleep(delay)
+                continue
+
             except httpx.ConnectError as e:
-                raise NeonConnectionError(original_error=e, details={"url": url}) from e
+                last_exception = NeonConnectionError(
+                    original_error=e, details={"url": url}
+                )
+                if attempt == self.max_retries:
+                    raise last_exception from e
+
+                # Retry on connection error with exponential backoff
+                delay = self._calculate_retry_delay(attempt)
+                time.sleep(delay)
+                continue
+
+            except (httpx.NetworkError, httpx.RemoteProtocolError) as e:
+                # Handle other network-related errors
+                last_exception = NeonConnectionError(
+                    original_error=e,
+                    details={"url": url, "error_type": type(e).__name__},
+                )
+                if attempt == self.max_retries:
+                    raise last_exception from e
+
+                # Retry on network error with exponential backoff
+                delay = self._calculate_retry_delay(attempt)
+                time.sleep(delay)
+                continue
+
             except httpx.HTTPStatusError as e:
                 return self._handle_response(e.response)
             except Exception as e:
@@ -707,11 +741,43 @@ class AsyncNeonClient:
                 continue
 
             except httpx.TimeoutException as e:
-                raise NeonTimeoutError(
+                last_exception = NeonTimeoutError(
                     timeout=self.timeout, details={"original_error": str(e)}
-                ) from e
+                )
+                if attempt == self.max_retries:
+                    raise last_exception from e
+
+                # Retry on timeout with exponential backoff
+                delay = self._calculate_retry_delay(attempt)
+                await asyncio.sleep(delay)
+                continue
+
             except httpx.ConnectError as e:
-                raise NeonConnectionError(original_error=e, details={"url": url}) from e
+                last_exception = NeonConnectionError(
+                    original_error=e, details={"url": url}
+                )
+                if attempt == self.max_retries:
+                    raise last_exception from e
+
+                # Retry on connection error with exponential backoff
+                delay = self._calculate_retry_delay(attempt)
+                await asyncio.sleep(delay)
+                continue
+
+            except (httpx.NetworkError, httpx.RemoteProtocolError) as e:
+                # Handle other network-related errors
+                last_exception = NeonConnectionError(
+                    original_error=e,
+                    details={"url": url, "error_type": type(e).__name__},
+                )
+                if attempt == self.max_retries:
+                    raise last_exception from e
+
+                # Retry on network error with exponential backoff
+                delay = self._calculate_retry_delay(attempt)
+                await asyncio.sleep(delay)
+                continue
+
             except httpx.HTTPStatusError as e:
                 return self._handle_response(e.response)
 
