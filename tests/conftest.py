@@ -98,44 +98,6 @@ def regression_client():
 
 
 @pytest.fixture
-def sandbox_client():
-    """Create a client specifically for sandbox environment using profile 'sandbox'.
-
-    This fixture attempts to use the 'sandbox' profile from config file,
-    falling back to environment variables if no profile exists.
-    """
-    try:
-        client = NeonClient(profile="sandbox")
-        return client
-    except ValueError as e:
-        pytest.skip(
-            f"Sandbox tests require 'sandbox' profile configuration. Error: {e}\n"
-            f"Options:\n"
-            f"1. Add 'sandbox' profile to ~/.neon/config.json\n"
-            f"2. Set NEON_ORG_ID, NEON_API_KEY, NEON_ENVIRONMENT=sandbox env vars"
-        )
-
-
-@pytest.fixture
-def production_client():
-    """Create a client specifically for production environment using profile 'prod'.
-
-    This fixture attempts to use the 'prod' profile from config file.
-    Use with extreme caution - only for read-only operations!
-    """
-    try:
-        client = NeonClient(profile="prod")
-        if client.environment != "production":
-            pytest.skip("Production client requires environment='production'")
-        return client
-    except ValueError as e:
-        pytest.skip(
-            f"Production tests require 'prod' profile configuration. Error: {e}\n"
-            f"Add 'prod' profile to ~/.neon/config.json with environment: 'production'"
-        )
-
-
-@pytest.fixture
 def write_regression_client():
     """Create a real client for write regression tests with safety checks.
 
