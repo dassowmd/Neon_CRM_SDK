@@ -19,12 +19,17 @@ from .exceptions import (
     NeonUnprocessableEntityError,
     NeonUnsupportedMediaTypeError,
 )
-from .types import UserType
+from .types import CustomFieldCategory, SearchOperator, UserType
+from .validation import SearchRequestValidator, validate_search_request
 
 __all__ = [
     "__version__",
     "NeonClient",
     "UserType",
+    "CustomFieldCategory",
+    "SearchOperator",
+    "SearchRequestValidator",
+    "validate_search_request",
     "NeonError",
     "NeonAPIError",
     "NeonAuthenticationError",

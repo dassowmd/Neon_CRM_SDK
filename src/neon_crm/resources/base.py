@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator
 from urllib.parse import urljoin
 
 from ..types import SearchRequest
+from ..validation import SearchRequestValidator
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -71,10 +72,10 @@ class BaseResource:
             #     # Paginated search results
             #     items = response["searchResults"]
             #     pagination = response.get("pagination", {})
-            # elif isinstance(response, list):
-            #     # Direct list response
-            #     items = response
-            #     pagination = {}
+            elif isinstance(response, list):
+                # Direct list response
+                items = response
+                pagination = {}
             # elif "data" in response:
             #     # Response with data wrapper
             #     items = response["data"]
@@ -172,15 +173,36 @@ class BaseResource:
 class SearchableResource(BaseResource):
     """Base class for resources that support search functionality."""
 
-    def search(self, search_request: SearchRequest) -> Iterator[Dict[str, Any]]:
+    def __init__(self, client: "NeonClient", endpoint: str) -> None:
+        """Initialize the searchable resource."""
+        super().__init__(client, endpoint)
+        # Extract resource name from endpoint for validation
+        resource_name = endpoint.lstrip("/").rstrip(
+            "s"
+        )  # Remove leading slash and trailing 's'
+        self._validator = SearchRequestValidator(resource_name)
+
+    def search(
+        self, search_request: SearchRequest, validate: bool = True
+    ) -> Iterator[Dict[str, Any]]:
         """Search for resources.
 
         Args:
             search_request: The search request parameters
+            validate: Whether to validate the search request (default: True)
 
         Yields:
             Individual resource dictionaries from search results
+
+        Raises:
+            ValueError: If validation is enabled and the search request is invalid
         """
+        # Validate search request if requested
+        if validate:
+            errors = self._validator.validate_search_request(search_request)
+            if errors:
+                raise ValueError(f"Invalid search request: {'; '.join(errors)}")
+
         url = self._build_url("search")
 
         # Start with the first page
