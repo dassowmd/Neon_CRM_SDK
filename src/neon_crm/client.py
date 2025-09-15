@@ -54,6 +54,7 @@ class NeonClient:
 
     def __init__(
         self,
+        profile: Optional[str] = None,
         org_id: Optional[str] = None,
         api_key: Optional[str] = None,
         environment: Optional[Environment] = None,
@@ -66,6 +67,7 @@ class NeonClient:
         """Initialize the Neon CRM client.
 
         Args:
+            profile: Profile name to use from config file. If not provided, will look in NEON_PROFILE env var or use 'default'.
             org_id: Your Neon organization ID. If not provided, will look in config file then NEON_ORG_ID env var.
             api_key: Your API key. If not provided, will look in config file then NEON_API_KEY env var.
             environment: "production" or "trial". If not provided, will look in config file then NEON_ENVIRONMENT env var, defaults to "production".
@@ -78,6 +80,7 @@ class NeonClient:
         # Load configuration using config loader
         config_loader = ConfigLoader(config_path)
         config = config_loader.get_config(
+            profile=profile,
             org_id=org_id,
             api_key=api_key,
             environment=environment,
@@ -89,6 +92,7 @@ class NeonClient:
 
         self.org_id = config["org_id"]
         self.api_key = config["api_key"]
+        self.active_profile = config["active_profile"]
 
         if not self.org_id:
             raise ValueError(
@@ -419,6 +423,7 @@ class AsyncNeonClient:
 
     def __init__(
         self,
+        profile: Optional[str] = None,
         org_id: Optional[str] = None,
         api_key: Optional[str] = None,
         environment: Optional[Environment] = None,
@@ -431,6 +436,7 @@ class AsyncNeonClient:
         """Initialize the async Neon CRM client.
 
         Args:
+            profile: Profile name to use from config file. If not provided, will look in NEON_PROFILE env var or use 'default'.
             org_id: Your Neon organization ID. If not provided, will look in config file then NEON_ORG_ID env var.
             api_key: Your API key. If not provided, will look in config file then NEON_API_KEY env var.
             environment: "production" or "trial". If not provided, will look in config file then NEON_ENVIRONMENT env var, defaults to "production".
@@ -443,6 +449,7 @@ class AsyncNeonClient:
         # Load configuration using config loader
         config_loader = ConfigLoader(config_path)
         config = config_loader.get_config(
+            profile=profile,
             org_id=org_id,
             api_key=api_key,
             environment=environment,
@@ -454,6 +461,7 @@ class AsyncNeonClient:
 
         self.org_id = config["org_id"]
         self.api_key = config["api_key"]
+        self.active_profile = config["active_profile"]
 
         if not self.org_id:
             raise ValueError(
