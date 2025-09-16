@@ -42,12 +42,20 @@ companies = client.accounts.list(page_size=50, user_type=UserType.COMPANY)
 for company in companies:
     print(f"{company.companyName}")
 
-# Search for accounts
+# Search for accounts by email
 search_results = client.accounts.search({
     "searchFields": [
-        {"field": "Email", "operator": "EQUAL", "value": "john@example.com"}
+        {"field": "Email 1", "operator": "EQUAL", "value": "john@example.com"}
     ],
-    "outputFields": ["Account ID", "First Name", "Last Name", "Email"]
+    "outputFields": ["Account ID", "First Name", "Last Name", "Email 1"]
+})
+
+# Search by custom field (e.g., custom field ID 123 for "Volunteer Interests")
+custom_search = client.accounts.search({
+    "searchFields": [
+        {"field": 123, "operator": "NOT_BLANK"}  # Custom field ID as integer
+    ],
+    "outputFields": ["Account ID", "First Name", "Last Name", 123]  # Include custom field in output
 })
 
 # Create a new account
@@ -125,6 +133,149 @@ accounts = client.accounts.list(user_type="invalid")  # Invalid value
 **Type Safety**: Using the `UserType` enum provides better IDE support, autocomplete, and type checking compared to string literals.
 
 The SDK validates these parameters client-side before making API requests, providing immediate feedback for invalid values.
+
+### Custom Fields
+
+The SDK provides full support for searching by and retrieving custom field values. Custom fields are referenced by their integer ID.
+
+#### Finding Custom Fields
+
+```python
+# List all custom fields for accounts
+custom_fields = list(client.accounts.list_custom_fields())
+for field in custom_fields:
+    print(f"ID: {field['id']}, Name: {field['name']}, Type: {field['fieldType']}")
+
+# Find a specific custom field by name
+volunteer_field = client.accounts.find_custom_field_by_name('Volunteer Interests')
+if volunteer_field:
+    field_id = volunteer_field['id']
+    print(f"'Volunteer Interests' field has ID: {field_id}")
+```
+
+#### Searching by Custom Fields
+
+```python
+# Search accounts with non-blank values in a custom field
+search_request = {
+    "searchFields": [
+        {
+            "field": 123,  # Custom field ID (integer)
+            "operator": "NOT_BLANK"
+        }
+    ],
+    "outputFields": ["Account ID", "First Name", "Last Name"]
+}
+
+results = client.accounts.search(search_request)
+for account in results:
+    print(f"Account {account['Account ID']}: {account['First Name']} {account['Last Name']}")
+
+# Search for specific custom field values
+search_request = {
+    "searchFields": [
+        {
+            "field": 123,  # Custom field ID
+            "operator": "EQUAL",
+            "value": "Volunteer"  # Value to match
+        }
+    ],
+    "outputFields": ["Account ID", "First Name", "Last Name"]
+}
+```
+
+#### Including Custom Fields in Search Output
+
+```python
+# Include custom field values in search results
+search_request = {
+    "searchFields": [
+        {
+            "field": 123,  # Search by custom field ID
+            "operator": "NOT_BLANK"
+        }
+    ],
+    "outputFields": [
+        "Account ID",
+        "First Name",
+        "Last Name",
+        123  # Include custom field value in output (integer ID)
+    ]
+}
+
+results = client.accounts.search(search_request)
+for account in results:
+    # Custom field values are returned using the field's display name as the key
+    custom_value = account.get('Volunteer Interests', 'N/A')
+    print(f"Account {account['Account ID']}: {account['First Name']} {account['Last Name']}")
+    print(f"  Volunteer Interests: {custom_value}")
+```
+
+#### Multiple Custom Fields
+
+```python
+# Search by multiple custom fields
+search_request = {
+    "searchFields": [
+        {"field": 123, "operator": "NOT_BLANK"},  # Volunteer Interests
+        {"field": 456, "operator": "EQUAL", "value": "Yes"}  # Newsletter Subscription
+    ],
+    "outputFields": [
+        "Account ID",
+        "First Name",
+        "Last Name",
+        123,  # Volunteer Interests
+        456   # Newsletter Subscription
+    ]
+}
+
+results = client.accounts.search(search_request)
+for account in results:
+    print(f"Account {account['Account ID']}: {account['First Name']} {account['Last Name']}")
+    print(f"  Volunteer Interests: {account.get('Volunteer Interests', 'N/A')}")
+    print(f"  Newsletter: {account.get('Newsletter Subscription', 'N/A')}")
+```
+
+#### Working with Custom Field Names
+
+```python
+# Helper function to get field ID by name
+def get_custom_field_id(client, field_name):
+    field = client.accounts.find_custom_field_by_name(field_name)
+    return field['id'] if field else None
+
+# Use field names in your code, convert to IDs automatically
+field_mapping = {
+    'Volunteer Interests': get_custom_field_id(client, 'Volunteer Interests'),
+    'Newsletter Subscription': get_custom_field_id(client, 'Newsletter Subscription'),
+    'Preferred Contact Method': get_custom_field_id(client, 'Preferred Contact Method')
+}
+
+# Build search with mapped IDs
+search_request = {
+    "searchFields": [
+        {
+            "field": field_mapping['Volunteer Interests'],
+            "operator": "CONTAIN",
+            "value": "fundraising"
+        }
+    ],
+    "outputFields": [
+        "Account ID",
+        "First Name",
+        "Last Name",
+        field_mapping['Volunteer Interests'],
+        field_mapping['Preferred Contact Method']
+    ]
+}
+```
+
+**Key Points:**
+- **Search fields**: Use integer custom field ID (`123`)
+- **Output fields**: Use integer custom field ID (`123`)
+- **Result keys**: Custom field values are returned with the field's display name as the key
+- **Validation**: The SDK automatically validates custom field IDs and formats
+- **Performance**: Including custom fields in search output is much more efficient than separate API calls
 
 ## Authentication
 

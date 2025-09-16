@@ -56,7 +56,49 @@ def main():
         for field in search_fields[:5]:  # Show first 5
             print(f"- {field.get('displayName', field.get('name', 'Unknown'))}")
 
-        # Example 4: List donations
+        # Example 4: Custom fields demonstration
+        print("\n=== Custom Fields Example ===")
+        try:
+            # List first few custom fields
+            custom_fields = list(client.accounts.list_custom_fields())
+            if custom_fields:
+                print(f"Found {len(custom_fields)} custom fields. First few:")
+                for field in custom_fields[:3]:
+                    field_id = field.get("id")
+                    field_name = field.get("name", "Unknown")
+                    print(f"  ID: {field_id}, Name: '{field_name}'")
+
+                # Example search by custom field (using first field)
+                first_field = custom_fields[0]
+                field_id = first_field["id"]
+                field_name = first_field["name"]
+
+                print(f"\n  Searching accounts with non-blank '{field_name}' values...")
+                custom_search = {
+                    "searchFields": [{"field": field_id, "operator": "NOT_BLANK"}],
+                    "outputFields": ["Account ID", "First Name", "Last Name", field_id],
+                    "pagination": {"currentPage": 0, "pageSize": 3},
+                }
+
+                results = list(client.accounts.search(custom_search))
+                if results:
+                    print(f"  Found {len(results)} accounts:")
+                    for account in results:
+                        account_id = account.get("Account ID")
+                        first_name = account.get("First Name", "")
+                        last_name = account.get("Last Name", "")
+                        custom_value = account.get(field_name, "N/A")
+                        print(
+                            f"    Account {account_id}: {first_name} {last_name} = '{custom_value}'"
+                        )
+                else:
+                    print("  No accounts found with non-blank values")
+            else:
+                print("No custom fields found for accounts")
+        except Exception as custom_error:
+            print(f"Custom fields example failed: {custom_error}")
+
+        # Example 5: List donations
         print("\n=== Listing Donations ===")
         donation_count = 0
         for donation in client.donations.list(page_size=5):
