@@ -291,7 +291,6 @@ class SearchRequestValidator:
         """
         self.resource_name = resource_name.lower()
         self.client = client
-        self._custom_field_pattern = re.compile(r"^customField\d+$")
         self._custom_field_id_pattern = re.compile(r"^\d+$")
         self._cached_search_fields = None
         self._cached_output_fields = None
@@ -602,17 +601,15 @@ class SearchRequestValidator:
             field_name: The field name to check (string or integer)
 
         Returns:
-            True if it's a custom field pattern (customFieldXXX or integer ID)
+            True if it's a custom field (integer ID or string digits)
         """
         # Accept integers directly as custom field IDs
         if isinstance(field_name, int):
             return True
 
+        # Accept string representations of integers ("123")
         field_str = str(field_name)
-        return bool(
-            self._custom_field_pattern.match(field_str)
-            or self._custom_field_id_pattern.match(field_str)
-        )
+        return bool(self._custom_field_id_pattern.match(field_str))
 
     def _is_valid_search_field(self, field_name: Union[str, int]) -> bool:
         """Check if a field is valid for search in this resource.
