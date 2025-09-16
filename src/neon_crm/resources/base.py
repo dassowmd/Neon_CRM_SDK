@@ -1,9 +1,9 @@
 """Base resource class for all Neon CRM API resources."""
 
-from typing import TYPE_CHECKING, Any, Dict, Iterator
+from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 from urllib.parse import urljoin
 
-from ..types import SearchRequest
+from ..types import CustomFieldCategory, SearchRequest
 from ..validation import SearchRequestValidator
 
 if TYPE_CHECKING:
@@ -169,6 +169,156 @@ class BaseResource:
         url = self._build_url(str(resource_id))
         return self._client.delete(url)
 
+    def _get_resource_category(self) -> Optional[CustomFieldCategory]:
+        """Get the CustomFieldCategory for this resource based on endpoint.
+
+        Returns:
+            The corresponding CustomFieldCategory, or None if not mappable
+        """
+        endpoint_to_category = {
+            "/accounts": CustomFieldCategory.ACCOUNT,
+            "/donations": CustomFieldCategory.DONATION,
+            "/events": CustomFieldCategory.EVENT,
+            "/activities": CustomFieldCategory.ACTIVITY,
+            "/memberships": CustomFieldCategory.MEMBERSHIP,
+            "/attendees": CustomFieldCategory.ATTENDEE,
+            "/individuals": CustomFieldCategory.INDIVIDUAL,
+            "/companies": CustomFieldCategory.COMPANY,
+            "/products": CustomFieldCategory.PRODUCT,
+            "/prospects": CustomFieldCategory.PROSPECT,
+            "/grants": CustomFieldCategory.GRANT,
+        }
+        return endpoint_to_category.get(self._endpoint)
+
+    def list_custom_fields(
+        self,
+        current_page: int = 0,
+        page_size: int = 50,
+        limit: Optional[int] = None,
+        field_type: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Iterator[Dict[str, Any]]:
+        """List custom fields for this resource type.
+
+        Args:
+            current_page: Page number to start from (0-indexed)
+            page_size: Number of items per page
+            limit: Maximum number of items to return
+            field_type: Filter by field type (text, number, date, etc.)
+            **kwargs: Additional query parameters
+
+        Yields:
+            Individual custom field dictionaries for this resource type
+        """
+        category = self._get_resource_category()
+        if not category:
+            raise ValueError(
+                f"Custom fields not supported for endpoint {self._endpoint}"
+            )
+
+        return self._client.custom_fields.list(
+            current_page=current_page,
+            page_size=page_size,
+            limit=limit,
+            field_type=field_type,
+            category=category,
+            **kwargs,
+        )
+
+    def get_custom_field(self, field_id: int) -> Dict[str, Any]:
+        """Get a specific custom field by ID.
+
+        Args:
+            field_id: The custom field ID
+
+        Returns:
+            The custom field data
+        """
+        return self._client.custom_fields.get(field_id)
+
+    def find_custom_field_by_name(self, field_name: str) -> Optional[Dict[str, Any]]:
+        """Find a custom field by name for this resource type.
+
+        Args:
+            field_name: The name of the custom field to find
+
+        Returns:
+            The custom field data if found, None otherwise
+        """
+        category = self._get_resource_category()
+        if not category:
+            raise ValueError(
+                f"Custom fields not supported for endpoint {self._endpoint}"
+            )
+
+        return self._client.custom_fields.find_by_name_and_category(
+            field_name, category
+        )
+
+    def list_custom_field_groups(
+        self,
+        current_page: int = 0,
+        page_size: int = 50,
+        limit: Optional[int] = None,
+        **kwargs: Any,
+    ) -> Iterator[Dict[str, Any]]:
+        """List custom field groups for this resource type.
+
+        Args:
+            current_page: Page number to start from (0-indexed)
+            page_size: Number of items per page
+            limit: Maximum number of items to return
+            **kwargs: Additional query parameters
+
+        Yields:
+            Individual custom field group dictionaries for this resource type
+        """
+        category = self._get_resource_category()
+        if not category:
+            raise ValueError(
+                f"Custom field groups not supported for endpoint {self._endpoint}"
+            )
+
+        return self._client.custom_fields.list_groups(
+            current_page=current_page,
+            page_size=page_size,
+            limit=limit,
+            category=category,
+            **kwargs,
+        )
+
+    def get_custom_field_group(self, group_id: int) -> Dict[str, Any]:
+        """Get a specific custom field group by ID.
+
+        Args:
+            group_id: The custom field group ID
+
+        Returns:
+            The custom field group data
+        """
+        return self._client.custom_fields.get_group(group_id)
+
+    def find_custom_field_group_by_name(
+        self, group_name: str
+    ) -> Optional[Dict[str, Any]]:
+        """Find a custom field group by name for this resource type.
+
+        Args:
+            group_name: The name of the custom field group to find
+
+        Returns:
+            The custom field group data if found, None otherwise
+        """
+        category = self._get_resource_category()
+        if not category:
+            raise ValueError(
+                f"Custom field groups not supported for endpoint {self._endpoint}"
+            )
+
+        return self._client.custom_fields.find_group_by_name_and_category(
+            group_name, category
+        )
+
 
 class SearchableResource(BaseResource):
     """Base class for resources that support search functionality."""
@@ -180,7 +330,7 @@ class SearchableResource(BaseResource):
         resource_name = endpoint.lstrip("/").rstrip(
             "s"
         )  # Remove leading slash and trailing 's'
-        self._validator = SearchRequestValidator(resource_name)
+        self._validator = SearchRequestValidator(resource_name, client)
 
     def search(
         self, search_request: SearchRequest, validate: bool = True
