@@ -8,11 +8,32 @@ A comprehensive, high-quality Python SDK for the Neon CRM API v2.
 - **Type Safety**: Built with Pydantic models for full type safety and validation
 - **Async/Await Support**: Both synchronous and asynchronous clients
 - **Automatic Pagination**: Easy iteration over paginated results
-- **Advanced Search**: Support for Neon's flexible search capabilities
+- **Advanced Search**: Support for Neon's flexible search capabilities with comprehensive validation
 - **Custom Objects**: Full support for Neon's custom object framework
 - **Error Handling**: Comprehensive error handling with specific exception types
 - **Rate Limiting**: Built-in rate limit handling and retries
+- **Smart Caching**: Intelligent caching system for improved performance
+- **Comprehensive Logging**: Configurable logging for debugging and monitoring
+- **Server Error Retry**: Automatic retry logic for server errors (502, 503, 504)
 - **Modern Python**: Supports Python 3.8+
+
+## Recent Improvements
+
+### Performance & Reliability Enhancements
+- **🚀 Smart Caching**: TTL-based caching for custom fields and search metadata (5-10 minute TTL) - significantly improves performance for repeated operations
+- **🔧 Comprehensive Logging**: Configurable logging with `NEON_LOG_LEVEL` environment variable support for debugging and monitoring
+- **🛡️ Server Error Retry**: Automatic retry logic for server errors (502, 503, 504) with exponential backoff
+- **✅ Enhanced Search Validation**: Improved custom field support with dynamic field validation and better error messages
+- **🔍 Fuzzy & Semantic Search**: Find fields even with typos or related terms (e.g., "address" finds "location")
+- **📚 Documentation Framework**: MkDocs integration for maintainable, searchable documentation
+
+### Developer Experience
+- **🧪 Comprehensive Test Coverage**: 68% overall coverage with 80%+ in core modules for improved reliability
+- **⚡ Performance Optimization**: Caching reduces API load and improves response times for custom field operations
+- **🐛 Better Debugging**: Detailed logging with performance tracking and request/response monitoring
+- **🔍 Improved Error Messages**: More helpful validation errors for search operations and custom fields
+
+These improvements make the SDK more reliable, performant, and easier to debug in production environments.
 
 ## Installation
 
@@ -315,6 +336,117 @@ except NeonAPIError as e:
     print(f"API error: {e.message}")
 ```
 
+## Smart Caching
+
+The SDK includes an intelligent caching system to improve performance and reduce API load:
+
+### Features:
+- **TTL-based caching** with automatic expiration (5 minutes for custom fields, 10 minutes for search metadata)
+- **Thread-safe operation** for concurrent usage
+- **Automatic cleanup** of expired entries
+- **Performance optimization** for expensive lookups like custom field metadata
+- **Configurable caching** - can be disabled if needed
+
+### Configuration:
+
+```python
+# Enable caching (default: True)
+client = NeonClient(
+    org_id="your_org_id",
+    api_key="your_api_key",
+    enable_caching=True
+)
+
+# Disable caching if needed
+client = NeonClient(
+    org_id="your_org_id",
+    api_key="your_api_key",
+    enable_caching=False
+)
+```
+
+### What Gets Cached:
+- **Custom field metadata**: Field definitions, names, types (5-minute TTL)
+- **Search and output fields**: Valid field names for search operations (10-minute TTL)
+- **Resource metadata**: Field validation data for improved search performance
+
+The caching system significantly improves performance for applications that frequently work with custom fields or perform multiple search operations.
+
+## Comprehensive Logging
+
+The SDK provides extensive logging capabilities for debugging and monitoring:
+
+### Features:
+- **Configurable log levels** via environment variable or programmatic setting
+- **Performance tracking** for API calls and operations
+- **Detailed request/response logging** for debugging
+- **Separate test logger** for development
+- **Thread-safe operation** with logger caching
+
+### Configuration:
+
+```python
+# Set log level via environment variable
+export NEON_LOG_LEVEL=DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# Or configure programmatically
+import logging
+from neon_crm.logging import NeonLogger
+
+logger = NeonLogger.get_logger("my_app")
+logger.set_level_from_string("DEBUG")
+```
+
+### Usage Examples:
+
+```python
+from neon_crm.logging import NeonLogger
+
+# Get a logger for your application
+logger = NeonLogger.get_logger("my_app")
+
+# Use standard logging methods
+logger.info("Starting account sync")
+logger.debug(f"Processing account {account_id}")
+logger.error("Failed to sync account", exc_info=True)
+
+# For tests (separate logger to avoid interference)
+test_logger = NeonLogger.get_test_logger("test_accounts")
+```
+
+### What Gets Logged:
+- **API requests and responses** with timing information
+- **Cache hits and misses** for performance monitoring
+- **Validation operations** and field lookups
+- **Error conditions** with full context
+- **Performance metrics** for optimization
+
+## Server Error Retry Logic
+
+The SDK automatically handles server errors with intelligent retry logic:
+
+### Features:
+- **Automatic retries** for server errors (502, 503, 504) and rate limits (429)
+- **Exponential backoff** with jitter to prevent thundering herd
+- **Honors Retry-After headers** from the server
+- **Configurable retry attempts** (default: 3)
+- **Maximum delay cap** of 60 seconds
+
+### Server Error Handling:
+The SDK now automatically retries failed requests due to temporary server issues:
+
+```python
+from neon_crm.exceptions import NeonServerError, NeonRateLimitError
+
+try:
+    # This will automatically retry server errors (502, 503, 504)
+    accounts = client.accounts.list(user_type=UserType.INDIVIDUAL)
+except NeonServerError as e:
+    print(f"Server error after {client.max_retries} retries: {e}")
+except NeonRateLimitError as e:
+    print(f"Rate limit exceeded: wait {e.retry_after} seconds")
+```
+
 ## Rate Limiting
 
 The SDK automatically handles rate limiting with intelligent retry logic:
@@ -448,6 +580,241 @@ loader.save_config(
     api_key="your_api_key",
     environment="production"
 )
+```
+
+## Enhanced Search Validation
+
+The SDK now includes comprehensive search validation with improved custom field support:
+
+### Features:
+- **Dynamic field validation** with automatic API discovery
+- **Custom field support** with integer ID validation
+- **Operator compatibility checking** for different field types
+- **Performance optimization** through field metadata caching
+- **Comprehensive error messages** for invalid search requests
+
+### Custom Field Integration:
+```python
+# Find custom fields by name
+volunteer_field = client.accounts.find_custom_field_by_name('Volunteer Interests')
+field_id = volunteer_field['id'] if volunteer_field else None
+
+# Use in search with automatic validation
+if field_id:
+    search_request = {
+        "searchFields": [
+            {"field": field_id, "operator": "NOT_BLANK"}
+        ],
+        "outputFields": ["Account ID", "First Name", "Last Name", field_id]
+    }
+    results = client.accounts.search(search_request)
+```
+
+### Validation Improvements:
+- **Field existence checking** against live API metadata
+- **Operator validation** based on field types and capabilities
+- **Value format validation** for different operators (IN_RANGE, etc.)
+- **Output field validation** to prevent API errors
+- **Custom field ID validation** with helpful error messages
+
+## Documentation Framework
+
+The SDK now uses MkDocs for comprehensive, maintainable documentation:
+
+### Features:
+- **Automatic API documentation** generated from docstrings
+- **Material Design theme** for professional appearance
+- **Easy maintenance** with markdown files
+- **Searchable documentation** with built-in search
+- **Mobile-responsive design** for all devices
+
+### Building Documentation:
+```bash
+# Install documentation dependencies
+pip install mkdocs mkdocs-material mkdocstrings[python]
+
+# Serve documentation locally
+mkdocs serve
+
+# Build static documentation
+mkdocs build
+```
+
+The documentation framework ensures that SDK improvements are automatically reflected in user-facing documentation without manual maintenance.
+
+## Fuzzy & Semantic Field Search
+
+The SDK includes powerful fuzzy and semantic search capabilities to help find fields even when you don't know the exact name or have typos.
+
+### Features:
+- **Fuzzy Matching**: Find fields with typos, abbreviations, or partial names
+- **Semantic Search**: Find conceptually related fields (e.g., "address" finds "location", "residence")
+- **Combined Search**: Automatically combines both fuzzy and semantic results
+- **Helpful Suggestions**: Get suggestions when field lookups fail
+- **Performance Optimized**: Efficient algorithms for large field lists
+
+### Custom Field Fuzzy Search
+
+```python
+from neon_crm import NeonClient
+
+client = NeonClient(org_id="your_org", api_key="your_key")
+
+# Basic fuzzy search - finds fields with similar names
+results = client.custom_fields.fuzzy_search_by_name("volunter")  # Note the typo
+for field, score in results:
+    print(f"{field['name']} (ID: {field['id']}) - Score: {score:.2f}")
+# Output: "Volunteer Interests (ID: 123) - Score: 0.85"
+
+# Semantic search - finds conceptually related fields
+results = client.custom_fields.semantic_search_by_name("address")
+for field, score in results:
+    print(f"{field['name']} (ID: {field['id']}) - Score: {score:.2f}")
+# Output: "Home Location (ID: 124) - Score: 0.75"
+#         "Residence Info (ID: 125) - Score: 0.65"
+
+# Get suggestions when field not found
+result = client.custom_fields.find_with_suggestions("volunter", "Account")
+if result['found']:
+    field = result['field']
+    print(f"Found: {field['name']}")
+else:
+    print("Field not found. Did you mean:")
+    for suggestion in result['fuzzy_suggestions']:
+        print(f"  - {suggestion}")
+    print("Or perhaps you meant:")
+    for suggestion in result['semantic_suggestions']:
+        print(f"  - {suggestion}")
+```
+
+### Standard Field Fuzzy Search
+
+```python
+# Search for standard API fields with fuzzy matching
+results = client.accounts.fuzzy_search_fields("frist_name")  # Note the typo
+for field_name, score, match_type in results:
+    print(f"{field_name} - Score: {score:.2f} ({match_type})")
+# Output: "first_name - Score: 0.90 (fuzzy)"
+
+# Get suggestions for invalid field names
+suggestions = client.accounts.suggest_field_corrections("emaill")
+if suggestions['fuzzy_suggestions']:
+    print("Did you mean:")
+    for suggestion in suggestions['fuzzy_suggestions']:
+        print(f"  - {suggestion}")
+# Output: "email_address", "email_1", "email_2"
+
+if suggestions['semantic_suggestions']:
+    print("Or perhaps you meant:")
+    for suggestion in suggestions['semantic_suggestions']:
+        print(f"  - {suggestion}")
+# Output: "contact_email", "electronic_mail"
+```
+
+### Field Lookup with Automatic Suggestions
+
+The SDK can automatically provide helpful suggestions when field lookups fail:
+
+```python
+from neon_crm.resources.custom_fields import FieldNotFoundError
+
+try:
+    # This will raise an exception with suggestions if field not found
+    field = client.custom_fields.find_by_name_and_category(
+        "volunter", "Account", raise_on_not_found=True
+    )
+    print(f"Found field: {field['name']}")
+except FieldNotFoundError as e:
+    print(e)  # Automatically includes suggestions in the error message
+```
+
+Output when field not found:
+```
+Field 'volunter' not found in category 'Account'.
+
+Did you mean one of these similar field names?
+  - volunteer_interests
+  - volunteer_hours
+  - volunteer_skills
+
+Or perhaps you're looking for one of these related fields?
+  - member_activities
+  - service_history
+  - help_preferences
+```
+
+### Advanced Search Options
+
+```python
+# Search with custom thresholds and limits
+results = client.custom_fields.fuzzy_search_by_name(
+    "contact",
+    category="Account",
+    threshold=0.4,          # Minimum similarity score
+    max_results=5,          # Limit results
+    case_sensitive=False    # Case insensitive matching
+)
+
+# Combined fuzzy and semantic search
+results = client.accounts.fuzzy_search_fields(
+    "addr",
+    field_type="search",    # 'search', 'output', or 'all'
+    include_semantic=True,  # Include semantic matches
+    threshold=0.3
+)
+
+# Search specific field types
+search_field_results = client.accounts.fuzzy_search_fields("email", field_type="search")
+output_field_results = client.accounts.fuzzy_search_fields("address", field_type="output")
+all_field_results = client.accounts.fuzzy_search_fields("phone", field_type="all")
+```
+
+### Use Cases
+
+**1. Handling User Input**: When users enter field names in forms or configuration
+```python
+user_field = input("Enter field name: ")  # User types "volunter"
+result = client.custom_fields.find_with_suggestions(user_field, "Account")
+if not result['found']:
+    print("Field not found. Suggestions:")
+    for suggestion in result['fuzzy_suggestions'][:3]:
+        print(f"  - {suggestion}")
+```
+
+**2. Field Discovery**: Finding fields when you know the concept but not exact name
+```python
+# Find all address-related fields
+address_fields = client.custom_fields.semantic_search_by_name("address")
+location_fields = client.custom_fields.semantic_search_by_name("location")
+```
+
+**3. API Integration**: Robust field mapping in integrations
+```python
+def get_field_id(field_name, category):
+    """Get field ID with automatic fallback to similar fields."""
+    field = client.custom_fields.find_by_name_and_category(field_name, category)
+    if field:
+        return field['id']
+
+    # Try fuzzy search as fallback
+    results = client.custom_fields.fuzzy_search_by_name(field_name, category, threshold=0.7)
+    if results:
+        return results[0][0]['id']  # Return best match
+
+    return None
+```
+
+**4. Search Request Validation**: Better error messages
+```python
+def validate_search_field(field_name):
+    """Validate search field with helpful suggestions."""
+    available_fields = client.accounts._validator._get_available_search_fields()
+    if field_name not in available_fields:
+        suggestions = client.accounts.suggest_field_corrections(field_name)
+        if suggestions['fuzzy_suggestions']:
+            raise ValueError(f"Invalid field '{field_name}'. Did you mean: {', '.join(suggestions['fuzzy_suggestions'][:3])}")
+        else:
+            raise ValueError(f"Invalid field '{field_name}'. No similar fields found.")
 ```
 
 ## Development

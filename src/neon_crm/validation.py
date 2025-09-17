@@ -3,6 +3,7 @@
 import re
 from typing import TYPE_CHECKING, Any, Dict, List, Union
 
+from .logging import NeonLogger
 from .types import SearchField, SearchOperator, SearchRequest
 
 if TYPE_CHECKING:
@@ -294,6 +295,7 @@ class SearchRequestValidator:
         self._custom_field_id_pattern = re.compile(r"^\d+$")
         self._cached_search_fields = None
         self._cached_output_fields = None
+        self._logger = NeonLogger.get_logger(f"validation.{self.resource_name}")
 
     def validate_search_request(self, search_request: SearchRequest) -> List[str]:
         """Validate a complete search request.
@@ -304,6 +306,10 @@ class SearchRequestValidator:
         Returns:
             List of validation error messages (empty if valid)
         """
+        self._logger.debug(
+            f"Validating search request: fields={len(search_request.get('searchFields', []))}, outputs={len(search_request.get('outputFields', []))}"
+        )
+
         errors = []
 
         # Validate search fields
@@ -321,6 +327,13 @@ class SearchRequestValidator:
         if "pagination" in search_request:
             pagination_errors = self.validate_pagination(search_request["pagination"])
             errors.extend(pagination_errors)
+
+        if errors:
+            self._logger.warning(
+                f"Search request validation failed with {len(errors)} errors: {'; '.join(errors)}"
+            )
+        else:
+            self._logger.debug("Search request validation passed")
 
         return errors
 
@@ -347,6 +360,7 @@ class SearchRequestValidator:
         # Check if field is valid for this resource
         if not self._is_valid_search_field(field_name):
             valid_fields = self._get_available_search_fields()
+            self._log_field_suggestions(field_name, valid_fields, "search")
             errors.append(
                 f"Field '{field_name}' is not valid for resource '{self.resource_name}'. Valid fields: {sorted(valid_fields)}"
             )
@@ -564,6 +578,7 @@ class SearchRequestValidator:
         for field_name in output_fields:
             if not self._is_valid_output_field(field_name):
                 valid_fields = self._get_available_output_fields()
+                self._log_field_suggestions(field_name, valid_fields, "output")
                 errors.append(
                     f"Output field '{field_name}' is not valid for resource '{self.resource_name}'. Valid fields: {sorted(valid_fields)}"
                 )
@@ -720,6 +735,10 @@ class SearchRequestValidator:
             List of search field names from the API
         """
         if self._cached_search_fields is None:
+            self._logger.debug(
+                f"Fetching dynamic search fields for {self.resource_name}"
+            )
+
             resource_map = {
                 "account": "accounts",
                 "donation": "donations",
@@ -730,28 +749,43 @@ class SearchRequestValidator:
 
             resource_attr = resource_map.get(self.resource_name)
             if not resource_attr:
+                self._logger.debug(
+                    f"No resource mapping found for {self.resource_name}"
+                )
                 return []
 
             resource = getattr(self.client, resource_attr, None)
             if not resource or not hasattr(resource, "get_search_fields"):
+                self._logger.debug(
+                    f"Resource {resource_attr} doesn't support search fields"
+                )
                 return []
 
-            response = resource.get_search_fields()
-            fields = []
+            try:
+                response = resource.get_search_fields()
+                fields = []
 
-            # Add standard fields
-            for field in response.get("standardFields", []):
-                field_name = field.get("fieldName")
-                if field_name:
-                    fields.append(field_name)
+                # Add standard fields
+                for field in response.get("standardFields", []):
+                    field_name = field.get("fieldName")
+                    if field_name:
+                        fields.append(field_name)
 
-            # Add custom fields
-            for field in response.get("customFields", []):
-                field_name = field.get("fieldName")
-                if field_name:
-                    fields.append(field_name)
+                # Add custom fields
+                for field in response.get("customFields", []):
+                    field_name = field.get("fieldName")
+                    if field_name:
+                        fields.append(field_name)
 
-            self._cached_search_fields = fields
+                self._cached_search_fields = fields
+                self._logger.debug(
+                    f"Retrieved {len(fields)} search fields for {self.resource_name}"
+                )
+            except Exception as e:
+                self._logger.warning(
+                    f"Failed to fetch search fields for {self.resource_name}: {e}"
+                )
+                return []
 
         return self._cached_search_fields
 
@@ -762,6 +796,10 @@ class SearchRequestValidator:
             List of output field names from the API
         """
         if self._cached_output_fields is None:
+            self._logger.debug(
+                f"Fetching dynamic output fields for {self.resource_name}"
+            )
+
             resource_map = {
                 "account": "accounts",
                 "donation": "donations",
@@ -772,28 +810,43 @@ class SearchRequestValidator:
 
             resource_attr = resource_map.get(self.resource_name)
             if not resource_attr:
+                self._logger.debug(
+                    f"No resource mapping found for {self.resource_name}"
+                )
                 return []
 
             resource = getattr(self.client, resource_attr, None)
             if not resource or not hasattr(resource, "get_output_fields"):
+                self._logger.debug(
+                    f"Resource {resource_attr} doesn't support output fields"
+                )
                 return []
 
-            response = resource.get_output_fields()
-            fields = []
+            try:
+                response = resource.get_output_fields()
+                fields = []
 
-            # Add standard fields
-            for field in response.get("standardFields", []):
-                field_name = field.get("fieldName")
-                if field_name:
-                    fields.append(field_name)
+                # Add standard fields
+                for field in response.get("standardFields", []):
+                    field_name = field.get("fieldName")
+                    if field_name:
+                        fields.append(field_name)
 
-            # Add custom fields
-            for field in response.get("customFields", []):
-                field_name = field.get("fieldName")
-                if field_name:
-                    fields.append(field_name)
+                # Add custom fields
+                for field in response.get("customFields", []):
+                    field_name = field.get("fieldName")
+                    if field_name:
+                        fields.append(field_name)
 
-            self._cached_output_fields = fields
+                self._cached_output_fields = fields
+                self._logger.debug(
+                    f"Retrieved {len(fields)} output fields for {self.resource_name}"
+                )
+            except Exception as e:
+                self._logger.warning(
+                    f"Failed to fetch output fields for {self.resource_name}: {e}"
+                )
+                return []
 
         return self._cached_output_fields
 
@@ -813,6 +866,60 @@ class SearchRequestValidator:
         # Check static field type mappings
         field_str = str(field_name)
         return self.FIELD_TYPES.get(field_str, "string")
+
+    def _log_field_suggestions(
+        self, field_name: str, available_fields: List[str], field_type: str
+    ) -> None:
+        """Log helpful field suggestions when a field is not found.
+
+        Args:
+            field_name: The invalid field name
+            available_fields: List of available field names
+            field_type: Type of field ('search' or 'output')
+        """
+        try:
+            from .fuzzy_search import FieldFuzzySearch
+
+            if not available_fields:
+                return
+
+            # Generate fuzzy suggestions (typos, similar names)
+            fuzzy_search = FieldFuzzySearch(case_sensitive=False)
+            fuzzy_suggestions = fuzzy_search.suggest_corrections(
+                field_name, available_fields, threshold=0.3, max_suggestions=3
+            )
+
+            # Generate semantic suggestions (related meaning)
+            semantic_matches = (
+                fuzzy_search.semantic_matcher.find_semantically_similar_fields(
+                    field_name, available_fields, threshold=0.1, max_results=3
+                )
+            )
+            semantic_suggestions = [match[0] for match in semantic_matches]
+
+            # Remove duplicates between fuzzy and semantic suggestions
+            semantic_suggestions = [
+                s for s in semantic_suggestions if s not in fuzzy_suggestions
+            ]
+
+            # Log suggestions at INFO level
+            if fuzzy_suggestions or semantic_suggestions:
+                suggestion_msg = f"{field_type.title()} field '{field_name}' not found for resource '{self.resource_name}'."
+
+                if fuzzy_suggestions:
+                    suggestion_msg += f" Did you mean: {', '.join(fuzzy_suggestions)}?"
+
+                if semantic_suggestions:
+                    if fuzzy_suggestions:
+                        suggestion_msg += f" Or perhaps you were looking for: {', '.join(semantic_suggestions)}?"
+                    else:
+                        suggestion_msg += f" Maybe you were looking for: {', '.join(semantic_suggestions)}?"
+
+                self._logger.info(suggestion_msg)
+
+        except Exception as e:
+            # Don't let suggestion generation break the main functionality
+            self._logger.debug(f"Failed to generate field suggestions: {e}")
 
 
 def validate_search_request(

@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 
 import httpx
 
+from .cache import NeonCache
 from .config import ConfigLoader
 from .exceptions import (
     NeonAPIError,
@@ -25,6 +26,7 @@ from .exceptions import (
     NeonUnprocessableEntityError,
     NeonUnsupportedMediaTypeError,
 )
+from .logging import NeonLogger
 from .resources import (
     AccountsResource,
     ActivitiesResource,
@@ -64,6 +66,8 @@ class NeonClient:
         max_retries: Optional[int] = None,
         base_url: Optional[str] = None,
         config_path: Optional[Union[str, Path]] = None,
+        log_level: Optional[str] = None,
+        enable_caching: bool = True,
     ) -> None:
         """Initialize the Neon CRM client.
 
@@ -77,7 +81,17 @@ class NeonClient:
             max_retries: Number of retries for failed requests. If not provided, will look in config file then NEON_MAX_RETRIES env var, defaults to 3.
             base_url: Custom base URL. If provided, overrides environment setting. Can also be set in config file or NEON_BASE_URL env var.
             config_path: Path to configuration file. Defaults to ~/.neon/config.json.
+            log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). If not provided, will look in NEON_LOG_LEVEL env var, defaults to INFO.
+            enable_caching: Whether to enable caching for custom fields, objects, etc. (default: True).
         """
+        # Setup logging first
+        if log_level:
+            NeonLogger.set_level_from_string(log_level)
+        self._logger = NeonLogger.get_logger("client")
+
+        # Setup caching
+        self._cache = NeonCache() if enable_caching else None
+
         # Load configuration using config loader
         config_loader = ConfigLoader(config_path)
         config = config_loader.get_config(
@@ -391,6 +405,27 @@ class NeonClient:
                 time.sleep(delay)
                 continue
 
+            except NeonServerError as e:
+                # Retry on certain server errors (502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout)
+                if e.status_code in (502, 503, 504):
+                    last_exception = e
+                    if attempt == self.max_retries:
+                        self._logger.error(
+                            f"Server error {e.status_code} after {self.max_retries} retries: {url}"
+                        )
+                        raise
+
+                    # Retry on server error with exponential backoff
+                    delay = self._calculate_retry_delay(attempt)
+                    self._logger.warning(
+                        f"Server error {e.status_code}, retrying in {delay:.2f}s (attempt {attempt + 1}/{self.max_retries + 1}): {url}"
+                    )
+                    time.sleep(delay)
+                    continue
+                else:
+                    # Don't retry on other server errors (500, 501, etc.)
+                    raise
+
             except httpx.HTTPStatusError as e:
                 return self._handle_response(e.response)
             except Exception as e:
@@ -439,6 +474,20 @@ class NeonClient:
         """Make a DELETE request."""
         return self.request("DELETE", endpoint, params=params)
 
+    def clear_cache(self) -> None:
+        """Clear all cached data."""
+        if self._cache:
+            self._cache.clear_all()
+            self._logger.debug("Cache cleared")
+
+    def get_cache_stats(self) -> Dict[str, int]:
+        """Get cache statistics.
+
+        Returns:
+            Dictionary with cache names and their sizes, empty dict if caching disabled
+        """
+        return self._cache.get_cache_stats() if self._cache else {}
+
     def close(self) -> None:
         """Close the HTTP client."""
         self._client.close()
@@ -466,6 +515,8 @@ class AsyncNeonClient:
         max_retries: Optional[int] = None,
         base_url: Optional[str] = None,
         config_path: Optional[Union[str, Path]] = None,
+        log_level: Optional[str] = None,
+        enable_caching: bool = True,
     ) -> None:
         """Initialize the async Neon CRM client.
 
@@ -479,7 +530,17 @@ class AsyncNeonClient:
             max_retries: Number of retries for failed requests. If not provided, will look in config file then NEON_MAX_RETRIES env var, defaults to 3.
             base_url: Custom base URL. If provided, overrides environment setting. Can also be set in config file or NEON_BASE_URL env var.
             config_path: Path to configuration file. Defaults to ~/.neon/config.json.
+            log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). If not provided, will look in NEON_LOG_LEVEL env var, defaults to INFO.
+            enable_caching: Whether to enable caching for custom fields, objects, etc. (default: True).
         """
+        # Setup logging first
+        if log_level:
+            NeonLogger.set_level_from_string(log_level)
+        self._logger = NeonLogger.get_logger("async_client")
+
+        # Setup caching
+        self._cache = NeonCache() if enable_caching else None
+
         # Load configuration using config loader
         config_loader = ConfigLoader(config_path)
         config = config_loader.get_config(
@@ -777,6 +838,21 @@ class AsyncNeonClient:
                 delay = self._calculate_retry_delay(attempt)
                 await asyncio.sleep(delay)
                 continue
+
+            except NeonServerError as e:
+                # Retry on certain server errors (502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout)
+                if e.status_code in (502, 503, 504):
+                    last_exception = e
+                    if attempt == self.max_retries:
+                        raise
+
+                    # Retry on server error with exponential backoff
+                    delay = self._calculate_retry_delay(attempt)
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    # Don't retry on other server errors (500, 501, etc.)
+                    raise
 
             except httpx.HTTPStatusError as e:
                 return self._handle_response(e.response)

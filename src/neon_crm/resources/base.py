@@ -1,8 +1,10 @@
 """Base resource class for all Neon CRM API resources."""
 
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple
 from urllib.parse import urljoin
 
+from ..fuzzy_search import FieldFuzzySearch
+from ..logging import NeonLogger
 from ..types import CustomFieldCategory, SearchRequest
 from ..validation import SearchRequestValidator
 
@@ -22,6 +24,7 @@ class BaseResource:
         """
         self._client = client
         self._endpoint = endpoint.rstrip("/")
+        self._logger = NeonLogger.get_logger(f"resource.{endpoint.strip('/')}")
 
     def _build_url(self, path: str = "") -> str:
         """Build a full URL for the resource.
@@ -54,6 +57,9 @@ class BaseResource:
         Yields:
             Individual resource dictionaries
         """
+        self._logger.debug(
+            f"Starting list operation: page_size={page_size}, limit={limit}, kwargs={kwargs}"
+        )
         params = {
             "currentPage": current_page,
             "pageSize": page_size,
@@ -319,6 +325,163 @@ class BaseResource:
             group_name, category
         )
 
+    def fuzzy_search_fields(
+        self,
+        query: str,
+        field_type: str = "search",
+        threshold: float = 0.3,
+        max_results: int = 10,
+        include_semantic: bool = True,
+    ) -> List[Tuple[str, float, str]]:
+        """Search for available fields using fuzzy and semantic matching.
+
+        Args:
+            query: The search query for field names
+            field_type: Type of fields to search ('search', 'output', or 'all')
+            threshold: Minimum similarity score (0.0-1.0) to include in results
+            max_results: Maximum number of results to return
+            include_semantic: Whether to include semantic similarity matching
+
+        Returns:
+            List of (field_name, score, match_type) tuples sorted by score
+
+        Example:
+            # Search for fields similar to "email"
+            results = client.accounts.fuzzy_search_fields("email")
+            for field_name, score, match_type in results:
+                print(f"{field_name} - Score: {score:.2f} ({match_type})")
+
+            # Search only output fields similar to "address"
+            results = client.accounts.fuzzy_search_fields("address", field_type="output")
+        """
+        if not query:
+            return []
+
+        self._logger.debug(f"Fuzzy searching {field_type} fields for '{query}'")
+
+        # Get available field names based on type
+        try:
+            if field_type == "search":
+                available_fields = self._validator._get_available_search_fields()
+            elif field_type == "output":
+                available_fields = self._validator._get_available_output_fields()
+            else:  # field_type == "all"
+                search_fields = self._validator._get_available_search_fields()
+                output_fields = self._validator._get_available_output_fields()
+                available_fields = list(set(search_fields + output_fields))
+        except Exception as e:
+            self._logger.warning(f"Could not fetch available fields: {e}")
+            return []
+
+        if not available_fields:
+            self._logger.debug("No available fields found for fuzzy search")
+            return []
+
+        # Perform fuzzy and semantic search
+        fuzzy_search = FieldFuzzySearch(case_sensitive=False)
+
+        if include_semantic:
+            results = fuzzy_search.search_fields_combined(
+                query,
+                available_fields,
+                fuzzy_threshold=threshold,
+                semantic_threshold=0.1,
+                max_results=max_results,
+            )
+        else:
+            # Fuzzy only
+            fuzzy_matches = fuzzy_search.search_standard_fields(
+                query, available_fields, threshold, max_results
+            )
+            results = [(field, score, "fuzzy") for field, score in fuzzy_matches]
+
+        self._logger.debug(f"Found {len(results)} field matches for '{query}'")
+        return results
+
+    def suggest_field_corrections(
+        self, invalid_field: str, field_type: str = "search", max_suggestions: int = 5
+    ) -> Dict[str, List[str]]:
+        """Suggest corrections for an invalid field name.
+
+        Args:
+            invalid_field: The invalid field name
+            field_type: Type of fields to search ('search', 'output', or 'all')
+            max_suggestions: Maximum number of suggestions to return
+
+        Returns:
+            Dictionary with 'fuzzy_suggestions' and 'semantic_suggestions' keys
+
+        Example:
+            suggestions = client.accounts.suggest_field_corrections("frist_name")
+            if suggestions['fuzzy_suggestions']:
+                print("Did you mean:")
+                for suggestion in suggestions['fuzzy_suggestions']:
+                    print(f"  - {suggestion}")
+
+            if suggestions['semantic_suggestions']:
+                print("Or perhaps you meant:")
+                for suggestion in suggestions['semantic_suggestions']:
+                    print(f"  - {suggestion}")
+        """
+        if not invalid_field:
+            return {"fuzzy_suggestions": [], "semantic_suggestions": []}
+
+        self._logger.debug(f"Generating field suggestions for '{invalid_field}'")
+
+        # Get available field names
+        try:
+            if field_type == "search":
+                available_fields = self._validator._get_available_search_fields()
+            elif field_type == "output":
+                available_fields = self._validator._get_available_output_fields()
+            else:  # field_type == "all"
+                search_fields = self._validator._get_available_search_fields()
+                output_fields = self._validator._get_available_output_fields()
+                available_fields = list(set(search_fields + output_fields))
+        except Exception as e:
+            self._logger.warning(f"Could not fetch available fields: {e}")
+            return {"fuzzy_suggestions": [], "semantic_suggestions": []}
+
+        if not available_fields:
+            return {"fuzzy_suggestions": [], "semantic_suggestions": []}
+
+        # Generate suggestions
+        fuzzy_search = FieldFuzzySearch(case_sensitive=False)
+
+        # Fuzzy suggestions (typos, similar names)
+        fuzzy_suggestions = fuzzy_search.suggest_corrections(
+            invalid_field,
+            available_fields,
+            threshold=0.3,
+            max_suggestions=max_suggestions,
+        )
+
+        # Semantic suggestions (related meaning)
+        semantic_matches = (
+            fuzzy_search.semantic_matcher.find_semantically_similar_fields(
+                invalid_field,
+                available_fields,
+                threshold=0.1,
+                max_results=max_suggestions,
+            )
+        )
+        semantic_suggestions = [match[0] for match in semantic_matches]
+
+        # Remove duplicates between fuzzy and semantic suggestions
+        semantic_suggestions = [
+            s for s in semantic_suggestions if s not in fuzzy_suggestions
+        ]
+
+        result = {
+            "fuzzy_suggestions": fuzzy_suggestions,
+            "semantic_suggestions": semantic_suggestions,
+        }
+
+        self._logger.debug(
+            f"Generated {len(fuzzy_suggestions)} fuzzy and {len(semantic_suggestions)} semantic suggestions"
+        )
+        return result
+
 
 class SearchableResource(BaseResource):
     """Base class for resources that support search functionality."""
@@ -347,11 +510,25 @@ class SearchableResource(BaseResource):
         Raises:
             ValueError: If validation is enabled and the search request is invalid
         """
+        import time
+
+        self._logger.debug(
+            f"Starting search operation: fields={len(search_request.get('searchFields', []))}, validate={validate}"
+        )
+
         # Validate search request if requested
         if validate:
+            validation_start = time.time()
             errors = self._validator.validate_search_request(search_request)
+            validation_time = time.time() - validation_start
+
             if errors:
+                self._logger.warning(
+                    f"Search validation failed in {validation_time:.3f}s: {'; '.join(errors)}"
+                )
                 raise ValueError(f"Invalid search request: {'; '.join(errors)}")
+
+            self._logger.debug(f"Search validation passed in {validation_time:.3f}s")
 
         url = self._build_url("search")
 
@@ -399,6 +576,21 @@ class SearchableResource(BaseResource):
         Returns:
             Dictionary of available search field definitions
         """
+        # Use caching if available
+        if self._client._cache:
+            cache_key = self._client._cache.create_cache_key(
+                "search_fields", self._endpoint
+            )
+
+            def _fetch_search_fields():
+                url = self._build_url("search/searchFields")
+                return self._client.get(url)
+
+            return self._client._cache.search_fields.cache_get_or_set(
+                cache_key, _fetch_search_fields
+            )
+
+        # Fallback to non-cached version
         url = self._build_url("search/searchFields")
         response = self._client.get(url)
         return response
@@ -409,6 +601,21 @@ class SearchableResource(BaseResource):
         Returns:
             Dictionary of available output field definitions
         """
+        # Use caching if available
+        if self._client._cache:
+            cache_key = self._client._cache.create_cache_key(
+                "output_fields", self._endpoint
+            )
+
+            def _fetch_output_fields():
+                url = self._build_url("search/outputFields")
+                return self._client.get(url)
+
+            return self._client._cache.output_fields.cache_get_or_set(
+                cache_key, _fetch_output_fields
+            )
+
+        # Fallback to non-cached version
         url = self._build_url("search/outputFields")
         response = self._client.get(url)
         return response
