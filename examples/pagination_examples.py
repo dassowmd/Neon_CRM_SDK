@@ -225,7 +225,9 @@ def bulk_processing_example():
         print(f"Total accounts processed: {total_accounts}")
         print(f"Accounts with email: {accounts_with_email}")
         print(f"Accounts without email: {accounts_without_email}")
-        print(f"Percentage with email: {(accounts_with_email/total_accounts)*100:.1f}%")
+        print(
+            f"Percentage with email: {(accounts_with_email / total_accounts) * 100:.1f}%"
+        )
 
     except Exception as e:
         print(f"Error in bulk processing: {e}")

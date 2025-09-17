@@ -57,6 +57,9 @@ docs = [
     "mkdocs-section-index>=0.3.0",
     "mkdocstrings[python]>=0.24.0",
 ]
+semantic = [
+    "spacy>=3.4.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/your-username/neon-crm-python"

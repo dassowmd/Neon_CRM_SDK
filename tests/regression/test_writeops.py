@@ -467,7 +467,7 @@ class TestBulkOperations:
                 result = write_regression_client.accounts.create(payload)
                 account_id = result["accountId"]
                 created_accounts.append(account_id)
-                print(f"✓ Created bulk account {i+1}/5: {account_id}")
+                print(f"✓ Created bulk account {i + 1}/5: {account_id}")
 
                 # Small delay to avoid rate limiting
                 time.sleep(0.5)
