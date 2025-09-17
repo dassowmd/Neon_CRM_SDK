@@ -35,12 +35,9 @@ class NeonLogger:
 
         logger.setLevel(cls._default_level)
 
-        # Prevent duplicate handlers
-        if not logger.handlers:
-            # Use the root neon_crm logger's handler
-            neon_root = logging.getLogger("neon_crm")
-            if neon_root.handlers:
-                logger.addHandler(neon_root.handlers[0])
+        # Don't add handlers to child loggers - let them inherit from parent
+        # This prevents duplicate log messages
+        logger.propagate = True
 
     @classmethod
     def _setup_logging(cls) -> None:
