@@ -773,7 +773,7 @@ class SearchRequestValidator:
 
                 # Add custom fields
                 for field in response.get("customFields", []):
-                    field_name = field.get("fieldName")
+                    field_name = field.get("displayName")
                     if field_name:
                         fields.append(field_name)
 
@@ -827,14 +827,11 @@ class SearchRequestValidator:
                 fields = []
 
                 # Add standard fields
-                for field in response.get("standardFields", []):
-                    field_name = field.get("fieldName")
-                    if field_name:
-                        fields.append(field_name)
+                fields.extend(response.get("standardFields", []))
 
                 # Add custom fields
                 for field in response.get("customFields", []):
-                    field_name = field.get("fieldName")
+                    field_name = field.get("displayName")
                     if field_name:
                         fields.append(field_name)
 
