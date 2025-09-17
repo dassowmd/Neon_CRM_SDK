@@ -1,0 +1,406 @@
+{
+  "version": "1.0.0",
+  "sdk_capabilities": {
+    "fuzzy_search": true,
+    "semantic_search": true,
+    "custom_fields": true,
+    "relationship_traversal": true,
+    "intelligent_validation": true,
+    "auto_suggestion": true,
+    "caching": true
+  },
+  "resources": {
+    "accounts": {
+      "type": "specialized",
+      "endpoint": "/accounts",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [
+        "get_contacts",
+        "get_donations",
+        "get_event_registrations",
+        "get_memberships",
+        "get_orders",
+        "get_pledges"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": [
+        "link",
+        "unlink"
+      ]
+    },
+    "activities": {
+      "type": "searchable",
+      "endpoint": "/activities",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "addresses": {
+      "type": "crud",
+      "endpoint": "/addresses",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "campaigns": {
+      "type": "searchable",
+      "endpoint": "/campaigns",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "custom_fields": {
+      "type": "specialized",
+      "endpoint": "/customFields",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_by_category",
+        "get_group",
+        "get_groups_by_category"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": [
+        "find_by_name_and_category",
+        "find_group_by_name",
+        "find_group_by_name_and_category",
+        "fuzzy_search_by_name",
+        "list_all_categories",
+        "list_groups",
+        "semantic_search_by_name"
+      ]
+    },
+    "custom_objects": {
+      "type": "searchable",
+      "endpoint": "/customObjects",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [
+        "get_by_type"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "donations": {
+      "type": "searchable",
+      "endpoint": "/donations",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "events": {
+      "type": "searchable",
+      "endpoint": "/events",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "grants": {
+      "type": "searchable",
+      "endpoint": "/grants",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [
+        "get_active",
+        "get_by_funder"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "households": {
+      "type": "specialized",
+      "endpoint": "/households",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": [
+        "add_member",
+        "remove_member"
+      ]
+    },
+    "memberships": {
+      "type": "searchable",
+      "endpoint": "/memberships",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "online_store": {
+      "type": "specialized",
+      "endpoint": "/store",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_order",
+        "get_product",
+        "get_transaction"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": [
+        "list_catalogs",
+        "list_categories",
+        "list_orders",
+        "list_products",
+        "list_transactions"
+      ]
+    },
+    "orders": {
+      "type": "searchable",
+      "endpoint": "/orders",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "payments": {
+      "type": "searchable",
+      "endpoint": "/payments",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "pledges": {
+      "type": "searchable",
+      "endpoint": "/pledges",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "properties": {
+      "type": "crud",
+      "endpoint": "/properties",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_by_category",
+        "get_organization_info",
+        "get_system_info"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "recurring_donations": {
+      "type": "specialized",
+      "endpoint": "/recurringDonations",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [
+        "get_active",
+        "get_by_frequency"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": [
+        "cancel"
+      ]
+    },
+    "soft_credits": {
+      "type": "searchable",
+      "endpoint": "/softCredits",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [
+        "get_by_account",
+        "get_by_donation"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "volunteers": {
+      "type": "searchable",
+      "endpoint": "/volunteers",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": []
+    },
+    "webhooks": {
+      "type": "specialized",
+      "endpoint": "/webhooks",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_event_types"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": [
+        "create_webhook",
+        "test_webhook",
+        "update_webhook"
+      ]
+    }
+  }
+}
