@@ -1,5 +1,7 @@
 """Search request validation for the Neon CRM SDK."""
 
+import json
+import os
 import re
 from typing import TYPE_CHECKING, Any, Dict, List, Union
 
@@ -13,167 +15,53 @@ if TYPE_CHECKING:
 class SearchRequestValidator:
     """Validator for search requests."""
 
-    # Define valid search fields for each resource
-    VALID_SEARCH_FIELDS = {
-        "accounts": {
-            "Account ID",
-            "First Name",
-            "Last Name",
-            "Email 1",
-            "Email 2",
-            "Email 3",
-            "Phone 1",
-            "Phone 2",
-            "Phone 3",
-            "Account Type",
-            "Company Name",
-            "Date Created",
-            "Date Modified",
-            "Source",
-            "Login Name",
-            "City",
-            "State",
-            "Zip Code",
-            "Country",
-        },
-        "donations": {
-            "Donation ID",
-            "Account ID",
-            "Amount",
-            "Date",
-            "Campaign",
-            "Fund",
-            "Purpose",
-            "Source",
-            "Payment Method",
-            "Check Number",
-            "Transaction Fee",
-            "Anonymous Type",
-            "Tribute Type",
-        },
-        "events": {
-            "Event ID",
-            "Event Name",
-            "Start Date",
-            "End Date",
-            "Category",
-            "Status",
-            "Published",
-            "Archived",
-            "Registration Start Date",
-            "Registration End Date",
-            "Maximum Attendees",
-        },
-        "activities": {
-            "Activity ID",
-            "Account ID",
-            "Activity Type",
-            "Subject",
-            "Note",
-            "Date",
-            "Status",
-            "Priority",
-            "Assigned To",
-        },
-        "memberships": {
-            "Membership ID",
-            "Account ID",
-            "Membership Type",
-            "Status",
-            "Enrollment Date",
-            "Expiration Date",
-            "Auto Renew",
-            "Term",
-        },
-    }
+    # Class-level cache for field definitions loaded from JSON
+    _field_definitions = None
 
-    # Define valid output fields for each resource
-    VALID_OUTPUT_FIELDS = {
-        "accounts": {
-            "Account ID",
-            "First Name",
-            "Last Name",
-            "Email 1",
-            "Email 2",
-            "Email 3",
-            "Phone 1",
-            "Phone 2",
-            "Phone 3",
-            "Account Type",
-            "Company Name",
-            "Date Created",
-            "Date Modified",
-            "Source",
-            "Login Name",
-            "Address Line 1",
-            "Address Line 2",
-            "City",
-            "State",
-            "Zip Code",
-            "Country",
-            "Gender",
-            "Date of Birth",
-            "Preferred Name",
-        },
-        "donations": {
-            "Donation ID",
-            "Account ID",
-            "Amount",
-            "Date",
-            "Campaign",
-            "Fund",
-            "Purpose",
-            "Source",
-            "Payment Method",
-            "Check Number",
-            "Transaction Fee",
-            "Anonymous Type",
-            "Tribute Type",
-            "Acknowledgee",
-            "Note",
-        },
-        "events": {
-            "Event ID",
-            "Event Name",
-            "Start Date",
-            "End Date",
-            "Category",
-            "Status",
-            "Published",
-            "Archived",
-            "Registration Start Date",
-            "Registration End Date",
-            "Maximum Attendees",
-            "Current Attendees",
-            "Summary",
-            "Description",
-        },
-        "activities": {
-            "Activity ID",
-            "Account ID",
-            "Activity Type",
-            "Subject",
-            "Note",
-            "Date",
-            "Status",
-            "Priority",
-            "Assigned To",
-            "Created By",
-            "Date Created",
-        },
-        "memberships": {
-            "Membership ID",
-            "Account ID",
-            "Membership Type",
-            "Status",
-            "Enrollment Date",
-            "Expiration Date",
-            "Auto Renew",
-            "Term",
-            "Amount",
-            "Transaction ID",
-        },
-    }
+    @classmethod
+    def _load_field_definitions(cls) -> Dict[str, Any]:
+        """Load field definitions from JSON file."""
+        if cls._field_definitions is None:
+            try:
+                # Get path to JSON file relative to this module
+                current_dir = os.path.dirname(__file__)
+                json_path = os.path.join(current_dir, "field_definitions.json")
+
+                with open(json_path) as f:
+                    cls._field_definitions = json.load(f)
+            except Exception:
+                # Fallback to empty definitions if file loading fails
+                cls._field_definitions = {
+                    "valid_search_fields": {},
+                    "valid_output_fields": {},
+                    "field_types": {},
+                }
+
+        return cls._field_definitions
+
+    @property
+    def VALID_SEARCH_FIELDS(self) -> Dict[str, set]:
+        """Get valid search fields, converting from JSON lists to sets."""
+        definitions = self._load_field_definitions()
+        return {
+            resource: set(fields)
+            for resource, fields in definitions.get("valid_search_fields", {}).items()
+        }
+
+    @property
+    def VALID_OUTPUT_FIELDS(self) -> Dict[str, set]:
+        """Get valid output fields, converting from JSON lists to sets."""
+        definitions = self._load_field_definitions()
+        return {
+            resource: set(fields)
+            for resource, fields in definitions.get("valid_output_fields", {}).items()
+        }
+
+    @property
+    def FIELD_TYPES(self) -> Dict[str, str]:
+        """Get field type mappings from JSON."""
+        definitions = self._load_field_definitions()
+        return definitions.get("field_types", {})
 
     # Define which operators are valid for different field types
     FIELD_TYPE_OPERATORS = {
@@ -219,68 +107,6 @@ class SearchRequestValidator:
             SearchOperator.BLANK,
             SearchOperator.NOT_BLANK,
         },
-    }
-
-    # Define field types for common fields
-    FIELD_TYPES = {
-        # ID fields are numbers
-        "Account ID": "number",
-        "Donation ID": "number",
-        "Event ID": "number",
-        "Activity ID": "number",
-        "Membership ID": "number",
-        # Name/text fields are strings
-        "First Name": "string",
-        "Last Name": "string",
-        "Company Name": "string",
-        "Event Name": "string",
-        "Subject": "string",
-        "Note": "string",
-        # Email/contact fields are strings
-        "Email 1": "string",
-        "Email 2": "string",
-        "Email 3": "string",
-        "Phone 1": "string",
-        "Phone 2": "string",
-        "Phone 3": "string",
-        # Address fields are strings
-        "Address Line 1": "string",
-        "Address Line 2": "string",
-        "City": "string",
-        "State": "string",
-        "Zip Code": "string",
-        "Country": "string",
-        # Amount/numeric fields
-        "Amount": "number",
-        "Transaction Fee": "number",
-        "Maximum Attendees": "number",
-        "Current Attendees": "number",
-        # Date fields
-        "Date": "date",
-        "Date Created": "date",
-        "Date Modified": "date",
-        "Start Date": "date",
-        "End Date": "date",
-        "Registration Start Date": "date",
-        "Registration End Date": "date",
-        "Enrollment Date": "date",
-        "Expiration Date": "date",
-        "Date of Birth": "date",
-        # Enum/categorical fields
-        "Account Type": "enum",
-        "Status": "enum",
-        "Priority": "enum",
-        "Payment Method": "enum",
-        "Anonymous Type": "enum",
-        "Tribute Type": "enum",
-        "Gender": "enum",
-        "Category": "enum",
-        "Membership Type": "enum",
-        "Activity Type": "enum",
-        # Boolean fields
-        "Published": "boolean",
-        "Archived": "boolean",
-        "Auto Renew": "boolean",
     }
 
     def __init__(self, resource_name: str, client: "NeonClient" = None):
@@ -405,10 +231,17 @@ class SearchRequestValidator:
                 )
                 return errors
 
-        # Get field type
-        field_type = self._get_field_type(field_name)
+        # First try to get actual valid operators from API
+        valid_operators_from_api = self._get_field_operators_from_api(field_name)
+        if valid_operators_from_api:
+            if operator.value not in valid_operators_from_api:
+                errors.append(
+                    f"Operator '{operator.value}' is not valid for field '{field_name}'. Valid operators: {valid_operators_from_api}"
+                )
+            return errors
 
-        # Check if operator is valid for this field type
+        # Fallback to static field type validation if API info not available
+        field_type = self._get_field_type(field_name)
         valid_operators = self.FIELD_TYPE_OPERATORS.get(field_type, set())
         if operator not in valid_operators:
             valid_ops = [op.value for op in valid_operators]
@@ -642,21 +475,23 @@ class SearchRequestValidator:
         # Convert to string for standard field checks
         field_str = str(field_name)
 
-        # Check standard fields
+        # Step 1: Check exact match in static fields from JSON definitions
         valid_fields = self.VALID_SEARCH_FIELDS.get(self.resource_name, set())
         if field_str in valid_fields:
             return True
 
-        # If we have a client, try to get dynamic field list
+        # Step 2: Check exact match in dynamic fields from API
         if self.client:
             try:
                 available_fields = self._get_dynamic_search_fields()
-                return field_str in available_fields
-            except Exception:
-                # Fall back to static validation
+                if field_str in available_fields:
+                    return True
+            except (Exception, NotImplementedError):
+                # Fall back to static validation if API doesn't support field discovery
                 pass
 
-        return False
+        # Step 3: Only now try fuzzy/semantic matching as a last resort
+        return self._try_fuzzy_field_match(field_str, "search")
 
     def _is_valid_output_field(self, field_name: Union[str, int]) -> bool:
         """Check if a field is valid for output in this resource.
@@ -674,35 +509,95 @@ class SearchRequestValidator:
         # Convert to string for standard field checks
         field_str = str(field_name)
 
-        # Check standard fields
+        # Step 1: Check exact match in static fields from JSON definitions
         valid_fields = self.VALID_OUTPUT_FIELDS.get(self.resource_name, set())
         if field_str in valid_fields:
             return True
 
-        # If we have a client, try to get dynamic field list
+        # Step 2: Check exact match in dynamic fields from API
         if self.client:
             try:
                 available_fields = self._get_dynamic_output_fields()
-                return field_str in available_fields
-            except Exception:
-                # Fall back to static validation
+                if field_str in available_fields:
+                    return True
+            except (Exception, NotImplementedError):
+                # Fall back to static validation if API doesn't support field discovery
                 pass
 
-        return False
+        # Step 3: Only now try fuzzy/semantic matching as a last resort
+        return self._try_fuzzy_field_match(field_str, "output")
+
+    def _try_fuzzy_field_match(self, field_name: str, field_type: str) -> bool:
+        """Try fuzzy/semantic matching as a fallback when exact matches fail.
+
+        Args:
+            field_name: The field name to match
+            field_type: Type of field ('search' or 'output')
+
+        Returns:
+            True if a fuzzy/semantic match is found
+        """
+        try:
+            from .fuzzy_search import FieldFuzzySearch
+
+            # Get the appropriate field list for this field type
+            if field_type == "search":
+                available_fields = self._get_available_search_fields()
+            else:  # output
+                available_fields = self._get_available_output_fields()
+
+            if not available_fields:
+                return False
+
+            # Try fuzzy matching first (typos, abbreviations)
+            fuzzy_search = FieldFuzzySearch(case_sensitive=False)
+            fuzzy_suggestions = fuzzy_search.suggest_corrections(
+                field_name, available_fields, threshold=0.7, max_suggestions=1
+            )
+
+            if fuzzy_suggestions:
+                self._logger.debug(
+                    f"Found fuzzy match for '{field_name}': {fuzzy_suggestions[0]}"
+                )
+                return True
+
+            # Try semantic matching (similar meaning)
+            semantic_matches = (
+                fuzzy_search.semantic_matcher.find_semantically_similar_fields(
+                    field_name, available_fields, threshold=0.3, max_results=1
+                )
+            )
+
+            if semantic_matches:
+                self._logger.debug(
+                    f"Found semantic match for '{field_name}': {semantic_matches[0][0]}"
+                )
+                return True
+
+            return False
+
+        except Exception as e:
+            # Don't let fuzzy matching break the main functionality
+            self._logger.debug(
+                f"Fuzzy/semantic matching failed for '{field_name}': {e}"
+            )
+            return False
 
     def _get_available_search_fields(self) -> List[str]:
         """Get all available search fields for this resource.
 
         Returns:
-            List of available search field names
+            List of available search field names (standard fields only, no custom fields)
         """
+        # Start with JSON-defined standard fields
         static_fields = list(self.VALID_SEARCH_FIELDS.get(self.resource_name, set()))
 
         if self.client:
             try:
-                dynamic_fields = self._get_dynamic_search_fields()
+                # Get dynamic fields but only include standard fields, not custom fields
+                dynamic_standard_fields = self._get_dynamic_standard_search_fields()
                 # Combine static and dynamic, removing duplicates
-                all_fields = list(set(static_fields) | set(dynamic_fields))
+                all_fields = list(set(static_fields) | set(dynamic_standard_fields))
                 return sorted(all_fields)
             except Exception:
                 pass
@@ -713,20 +608,79 @@ class SearchRequestValidator:
         """Get all available output fields for this resource.
 
         Returns:
-            List of available output field names
+            List of available output field names (standard fields only, no custom fields)
         """
+        # Start with JSON-defined standard fields
         static_fields = list(self.VALID_OUTPUT_FIELDS.get(self.resource_name, set()))
 
         if self.client:
             try:
-                dynamic_fields = self._get_dynamic_output_fields()
+                # Get dynamic fields but only include standard fields, not custom fields
+                dynamic_standard_fields = self._get_dynamic_standard_output_fields()
                 # Combine static and dynamic, removing duplicates
-                all_fields = list(set(static_fields) | set(dynamic_fields))
+                all_fields = list(set(static_fields) | set(dynamic_standard_fields))
                 return sorted(all_fields)
             except Exception:
                 pass
 
         return sorted(static_fields)
+
+    def _get_dynamic_standard_search_fields(self) -> List[str]:
+        """Get only standard search fields from the API (excludes custom fields).
+
+        Returns:
+            List of standard search field names from the API
+        """
+        try:
+            dynamic_fields = self._get_dynamic_search_fields()
+            return [
+                field
+                for field in dynamic_fields
+                if not self._is_custom_field_name(field)
+            ]
+        except Exception:
+            return []
+
+    def _get_dynamic_standard_output_fields(self) -> List[str]:
+        """Get only standard output fields from the API (excludes custom fields).
+
+        Returns:
+            List of standard output field names from the API
+        """
+        try:
+            dynamic_fields = self._get_dynamic_output_fields()
+            return [
+                field
+                for field in dynamic_fields
+                if not self._is_custom_field_name(field)
+            ]
+        except Exception:
+            return []
+
+    def _is_custom_field_name(self, field_name: str) -> bool:
+        """Check if a field name appears to be a custom field.
+
+        Args:
+            field_name: The field name to check
+
+        Returns:
+            True if this appears to be a custom field name
+        """
+        # Custom fields often have organization-specific naming patterns
+        # This is a heuristic approach - can be refined based on actual API responses
+        if not field_name:
+            return False
+
+        # Common custom field patterns (these are heuristics)
+        custom_indicators = [
+            field_name.startswith("V-"),  # Common prefix pattern
+            field_name.startswith("C-"),  # Another common prefix
+            field_name.startswith("Custom"),  # Explicit custom prefix
+            " - " in field_name,  # Custom fields often have dashes
+            len(field_name) > 50,  # Very long field names are often custom
+        ]
+
+        return any(custom_indicators)
 
     def _get_dynamic_search_fields(self) -> List[str]:
         """Get search fields from the API dynamically.
@@ -739,25 +693,11 @@ class SearchRequestValidator:
                 f"Fetching dynamic search fields for {self.resource_name}"
             )
 
-            resource_map = {
-                "account": "accounts",
-                "donation": "donations",
-                "event": "events",
-                "activity": "activities",
-                "membership": "memberships",
-            }
-
-            resource_attr = resource_map.get(self.resource_name)
-            if not resource_attr:
-                self._logger.debug(
-                    f"No resource mapping found for {self.resource_name}"
-                )
-                return []
-
-            resource = getattr(self.client, resource_attr, None)
+            # The resource_name now matches client attribute names directly
+            resource = getattr(self.client, self.resource_name, None)
             if not resource or not hasattr(resource, "get_search_fields"):
                 self._logger.debug(
-                    f"Resource {resource_attr} doesn't support search fields"
+                    f"Resource {self.resource_name} doesn't support search fields"
                 )
                 return []
 
@@ -781,6 +721,11 @@ class SearchRequestValidator:
                 self._logger.debug(
                     f"Retrieved {len(fields)} search fields for {self.resource_name}"
                 )
+            except NotImplementedError as e:
+                self._logger.debug(
+                    f"Resource {self.resource_name} doesn't support search field discovery: {e}"
+                )
+                self._cached_search_fields = []
             except Exception as e:
                 self._logger.warning(
                     f"Failed to fetch search fields for {self.resource_name}: {e}"
@@ -800,25 +745,11 @@ class SearchRequestValidator:
                 f"Fetching dynamic output fields for {self.resource_name}"
             )
 
-            resource_map = {
-                "account": "accounts",
-                "donation": "donations",
-                "event": "events",
-                "activity": "activities",
-                "membership": "memberships",
-            }
-
-            resource_attr = resource_map.get(self.resource_name)
-            if not resource_attr:
-                self._logger.debug(
-                    f"No resource mapping found for {self.resource_name}"
-                )
-                return []
-
-            resource = getattr(self.client, resource_attr, None)
+            # The resource_name now matches client attribute names directly
+            resource = getattr(self.client, self.resource_name, None)
             if not resource or not hasattr(resource, "get_output_fields"):
                 self._logger.debug(
-                    f"Resource {resource_attr} doesn't support output fields"
+                    f"Resource {self.resource_name} doesn't support output fields"
                 )
                 return []
 
@@ -839,6 +770,11 @@ class SearchRequestValidator:
                 self._logger.debug(
                     f"Retrieved {len(fields)} output fields for {self.resource_name}"
                 )
+            except NotImplementedError as e:
+                self._logger.debug(
+                    f"Resource {self.resource_name} doesn't support output field discovery: {e}"
+                )
+                self._cached_output_fields = []
             except Exception as e:
                 self._logger.warning(
                     f"Failed to fetch output fields for {self.resource_name}: {e}"
@@ -846,6 +782,58 @@ class SearchRequestValidator:
                 return []
 
         return self._cached_output_fields
+
+    def _get_field_operators_from_api(self, field_name: str) -> List[str]:
+        """Get valid operators for a field from the API.
+
+        Args:
+            field_name: The field name to get operators for
+
+        Returns:
+            List of valid operator strings from the API, or empty list if not found
+        """
+        try:
+            # Get the search fields from API
+            search_fields_data = self._get_dynamic_search_fields_with_operators()
+
+            # Look for the field in the API response
+            for field_data in search_fields_data:
+                if field_data.get("fieldName") == field_name:
+                    return field_data.get("operators", [])
+
+            return []
+        except Exception as e:
+            self._logger.debug(
+                f"Could not get operators for field '{field_name}' from API: {e}"
+            )
+            return []
+
+    def _get_dynamic_search_fields_with_operators(self) -> List[Dict[str, Any]]:
+        """Get search fields from API with full field data including operators.
+
+        Returns:
+            List of field dictionaries with operators information
+        """
+        if not self.client:
+            return []
+
+        try:
+            # Get the resource
+            resource = getattr(self.client, self.resource_name, None)
+            if not resource or not hasattr(resource, "get_search_fields"):
+                return []
+
+            # Get the full API response
+            response = resource.get_search_fields()
+
+            # Return the standard fields with their operator information
+            return response.get("standardFields", [])
+
+        except (Exception, NotImplementedError) as e:
+            self._logger.debug(
+                f"Could not get search fields with operators for {self.resource_name}: {e}"
+            )
+            return []
 
     def _get_field_type(self, field_name: Union[str, int]) -> str:
         """Get the type of a field for validation.
