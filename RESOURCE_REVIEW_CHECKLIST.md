@@ -13,17 +13,17 @@ This checklist tracks manual review status for all resources in the SDK. Each re
 
 | Resource | Read-Only Review | Full CRUD Review | Validated Tests | Notes |
 |----------|-----------------|-----------------|-----------------|-------|
-| **Accounts** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
-| **Activities** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
+| **Accounts** | ✅ Completed | ❌ Not Started | ❌ Not Started | Field discovery verified, search examples working |
+| **Activities** | ✅ Completed | ❌ Not Started | ❌ Not Started | Field discovery verified |
 | **Addresses** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
 | **Campaigns** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
 | **Custom Fields** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
 | **Custom Objects** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
-| **Donations** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
-| **Events** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
+| **Donations** | ✅ Completed | ❌ Not Started | ❌ Not Started | Field discovery verified, search examples working, validation fixed |
+| **Events** | ✅ Completed | ❌ Not Started | ❌ Not Started | Field discovery verified |
 | **Grants** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
 | **Households** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
-| **Memberships** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
+| **Memberships** | ⚠️ Issues Found | ❌ Not Started | ❌ Not Started | Field discovery not supported |
 | **Online Store** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
 | **Orders** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
 | **Payments** | ❌ Not Started | ❌ Not Started | ❌ Not Started | |
@@ -78,10 +78,10 @@ When reviewing test coverage, verify:
 
 | Review Type | Completed | Total | Percentage |
 |-------------|-----------|-------|------------|
-| **Read-Only Reviews** | 0 | 20 | 0% |
+| **Read-Only Reviews** | 4 | 20 | 20% |
 | **Full CRUD Reviews** | 0 | 20 | 0% |
 | **Validated Tests** | 0 | 20 | 0% |
-| **Overall Progress** | 0 | 60 | 0% |
+| **Overall Progress** | 4 | 60 | 7% |
 
 ## Quick Status Overview
 
@@ -90,7 +90,7 @@ When reviewing test coverage, verify:
 - **Total Review Items**: 60 (20 resources × 3 review types)
 
 ### By Review Type
-- **Read-Only**: 0/20 complete
+- **Read-Only**: 4/20 complete
 - **CRUD**: 0/20 complete
 - **Tests**: 0/20 complete
 
@@ -98,11 +98,20 @@ When reviewing test coverage, verify:
 
 ### Issues Identified
 <!-- Add notes about specific issues found during reviews -->
-- No issues identified yet
+- **Memberships**: Field discovery endpoints `/memberships/search/searchFields` and `/memberships/search/outputFields` return HTTP 404 - resource doesn't support field discovery
+
+### Issues Fixed
+- **Validation System**: Fixed field type detection to use actual API operator data instead of guessing field types from static mappings
+- **Base Resource Error Handling**: Added proper NotImplementedError handling for resources that don't support field discovery
+- **Search Examples**: Fixed notebook examples to use correct field names and proper generator handling
+- **Operator Validation**: Now uses real operator lists from API instead of static field type assumptions
 
 ### Completed Reviews
 <!-- Add notes about successfully completed reviews -->
-- No reviews completed yet
+- **Accounts**: Read-only review completed - field discovery working, search examples fixed and tested
+- **Activities**: Read-only review completed - field discovery verified working
+- **Donations**: Read-only review completed - field discovery working, validation system fixed to use API operator data, search examples working
+- **Events**: Read-only review completed - field discovery verified working
 
 ### Next Steps
 1. Start with core resources (Accounts, Donations, Events)

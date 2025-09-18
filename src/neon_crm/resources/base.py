@@ -490,10 +490,71 @@ class SearchableResource(BaseResource):
         """Initialize the searchable resource."""
         super().__init__(client, endpoint)
         # Extract resource name from endpoint for validation
-        resource_name = endpoint.lstrip("/").rstrip(
-            "s"
-        )  # Remove leading slash and trailing 's'
+        # Use the endpoint directly without stripping 's' to match client attributes
+        resource_name = endpoint.lstrip("/")  # Remove leading slash only
         self._validator = SearchRequestValidator(resource_name, client)
+
+    def _prepare_search_request(self, search_request: SearchRequest) -> SearchRequest:
+        """Prepare search request by handling missing or wildcard output_fields.
+
+        Args:
+            search_request: The original search request
+
+        Returns:
+            Modified search request with proper output_fields
+        """
+        # Make a copy to avoid modifying the original
+        prepared_request = search_request.copy()
+
+        output_fields = prepared_request.get("outputFields", [])
+
+        # Handle missing output_fields or wildcard '*'
+        if not output_fields or (len(output_fields) == 1 and output_fields[0] == "*"):
+            self._logger.debug(
+                "Output fields missing or wildcard detected, fetching available fields"
+            )
+
+            try:
+                # Get all available output fields
+                available_fields = self.get_output_fields()
+
+                all_fields = []
+
+                # Add standard fields
+                standard_fields = available_fields.get("standardFields", [])
+                if isinstance(standard_fields, list):
+                    all_fields.extend(standard_fields)
+
+                # Add custom fields (use display names)
+                custom_fields = available_fields.get("customFields", [])
+                for field in custom_fields:
+                    if isinstance(field, dict) and "displayName" in field:
+                        all_fields.append(field["displayName"])
+                    elif isinstance(field, str):
+                        all_fields.append(field)
+
+                if all_fields:
+                    # Limit to first 300 fields for performance
+                    if len(all_fields) > 300:
+                        limited_fields = all_fields[:300]
+                        prepared_request["outputFields"] = limited_fields
+                        self._logger.info(
+                            f"Limited output fields to 300 (from {len(all_fields)} available) for performance. "
+                            f"Specify explicit outputFields to get different fields."
+                        )
+                    else:
+                        prepared_request["outputFields"] = all_fields
+                        self._logger.debug(
+                            f"Auto-populated {len(all_fields)} output fields"
+                        )
+                else:
+                    self._logger.warning("No output fields available for this resource")
+
+            except Exception as e:
+                self._logger.warning(f"Failed to fetch output fields: {e}")
+                # Fall back to original request if field discovery fails
+
+        return prepared_request
 
     def search(
         self, search_request: SearchRequest, validate: bool = True
@@ -515,6 +576,9 @@ class SearchableResource(BaseResource):
         self._logger.debug(
             f"Starting search operation: fields={len(search_request.get('searchFields', []))}, validate={validate}"
         )
+
+        # Handle missing or wildcard output_fields
+        search_request = self._prepare_search_request(search_request)
 
         # Validate search request if requested
         if validate:
@@ -575,50 +639,92 @@ class SearchableResource(BaseResource):
 
         Returns:
             Dictionary of available search field definitions
+
+        Raises:
+            NotImplementedError: If this resource doesn't support field discovery
         """
-        # Use caching if available
-        if self._client._cache:
-            cache_key = self._client._cache.create_cache_key(
-                "search_fields", self._endpoint
-            )
+        try:
+            # Use caching if available
+            if self._client._cache:
+                cache_key = self._client._cache.create_cache_key(
+                    "search_fields", self._endpoint
+                )
 
-            def _fetch_search_fields():
-                url = self._build_url("search/searchFields")
-                return self._client.get(url)
+                def _fetch_search_fields():
+                    url = self._build_url("search/searchFields")
+                    return self._client.get(url)
 
-            return self._client._cache.search_fields.cache_get_or_set(
-                cache_key, _fetch_search_fields
-            )
+                return self._client._cache.search_fields.cache_get_or_set(
+                    cache_key, _fetch_search_fields
+                )
 
-        # Fallback to non-cached version
-        url = self._build_url("search/searchFields")
-        response = self._client.get(url)
-        return response
+            # Fallback to non-cached version
+            url = self._build_url("search/searchFields")
+            response = self._client.get(url)
+            return response
+        except Exception as e:
+            # Check if this is a 404 error indicating the endpoint doesn't exist
+            if (
+                hasattr(e, "response")
+                and hasattr(e.response, "status_code")
+                and e.response.status_code == 404
+            ):
+                raise NotImplementedError(
+                    f"Resource {self._endpoint} does not support search field discovery"
+                )
+            elif "404" in str(e):
+                raise NotImplementedError(
+                    f"Resource {self._endpoint} does not support search field discovery"
+                )
+            else:
+                # Re-raise other errors
+                raise
 
     def get_output_fields(self) -> Dict[str, Any]:
         """Get available output fields for this resource.
 
         Returns:
             Dictionary of available output field definitions
+
+        Raises:
+            NotImplementedError: If this resource doesn't support field discovery
         """
-        # Use caching if available
-        if self._client._cache:
-            cache_key = self._client._cache.create_cache_key(
-                "output_fields", self._endpoint
-            )
+        try:
+            # Use caching if available
+            if self._client._cache:
+                cache_key = self._client._cache.create_cache_key(
+                    "output_fields", self._endpoint
+                )
 
-            def _fetch_output_fields():
-                url = self._build_url("search/outputFields")
-                return self._client.get(url)
+                def _fetch_output_fields():
+                    url = self._build_url("search/outputFields")
+                    return self._client.get(url)
 
-            return self._client._cache.output_fields.cache_get_or_set(
-                cache_key, _fetch_output_fields
-            )
+                return self._client._cache.output_fields.cache_get_or_set(
+                    cache_key, _fetch_output_fields
+                )
 
-        # Fallback to non-cached version
-        url = self._build_url("search/outputFields")
-        response = self._client.get(url)
-        return response
+            # Fallback to non-cached version
+            url = self._build_url("search/outputFields")
+            response = self._client.get(url)
+            return response
+        except Exception as e:
+            # Check if this is a 404 error indicating the endpoint doesn't exist
+            if (
+                hasattr(e, "response")
+                and hasattr(e.response, "status_code")
+                and e.response.status_code == 404
+            ):
+                raise NotImplementedError(
+                    f"Resource {self._endpoint} does not support output field discovery"
+                )
+            elif "404" in str(e):
+                raise NotImplementedError(
+                    f"Resource {self._endpoint} does not support output field discovery"
+                )
+            else:
+                # Re-raise other errors
+                raise
 
 
 class RelationshipResource(BaseResource):
