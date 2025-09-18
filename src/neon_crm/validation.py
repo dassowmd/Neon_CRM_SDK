@@ -121,6 +121,7 @@ class SearchRequestValidator:
         self._custom_field_id_pattern = re.compile(r"^\d+$")
         self._cached_search_fields = None
         self._cached_output_fields = None
+        self._resource_cache_loaded = False  # Track if this resource cache is loaded
         self._logger = NeonLogger.get_logger(f"validation.{self.resource_name}")
 
     def validate_search_request(self, search_request: SearchRequest) -> List[str]:
@@ -527,6 +528,113 @@ class SearchRequestValidator:
         # Step 3: Only now try fuzzy/semantic matching as a last resort
         return self._try_fuzzy_field_match(field_str, "output")
 
+    def _ensure_resource_cache_loaded(self) -> None:
+        """Ensure field cache is loaded for this resource using lazy loading.
+
+        This method loads both search and output fields for THIS resource only,
+        and only on first access. Respects client field cache settings.
+        """
+        if (
+            self._resource_cache_loaded
+            or not self.client
+            or not self.client.field_cache_enabled
+        ):
+            return
+
+        self._logger.debug(f"Lazy loading field cache for {self.resource_name}")
+
+        try:
+            # Get the resource
+            resource = getattr(self.client, self.resource_name, None)
+            if not resource:
+                self._logger.debug(f"Resource {self.resource_name} not found on client")
+                self._resource_cache_loaded = True
+                return
+
+            # Check if this resource cache already exists in client
+            if self.resource_name in self.client._field_caches:
+                # Use existing cache
+                cache_data = self.client._field_caches[self.resource_name]
+                self._cached_search_fields = cache_data.get("search_fields", [])
+                self._cached_output_fields = cache_data.get("output_fields", [])
+                self._logger.debug(
+                    f"Using existing field cache for {self.resource_name}"
+                )
+            else:
+                # Load both search and output fields for this resource
+                self._load_resource_fields_batch(resource)
+
+        except Exception as e:
+            self._logger.warning(
+                f"Failed to load field cache for {self.resource_name}: {e}"
+            )
+        finally:
+            self._resource_cache_loaded = True
+
+    def _load_resource_fields_batch(self, resource) -> None:
+        """Load both search and output fields for this resource in a batch operation."""
+        search_fields = []
+        output_fields = []
+        search_fields_with_operators = []
+
+        # Load search fields
+        if hasattr(resource, "get_search_fields"):
+            try:
+                search_response = resource.get_search_fields()
+                # Store the full response for search_fields_with_operators
+                search_fields_with_operators = search_response.get("standardFields", [])
+                # Extract field names
+                for field in search_response.get("standardFields", []):
+                    field_name = field.get("fieldName")
+                    if field_name:
+                        search_fields.append(field_name)
+                # Add custom fields
+                for field in search_response.get("customFields", []):
+                    field_name = field.get("displayName")
+                    if field_name:
+                        search_fields.append(field_name)
+                self._logger.debug(f"Loaded {len(search_fields)} search fields")
+            except NotImplementedError:
+                self._logger.debug(
+                    f"Resource {self.resource_name} doesn't support search field discovery"
+                )
+            except Exception as e:
+                self._logger.warning(f"Failed to load search fields: {e}")
+
+        # Load output fields
+        if hasattr(resource, "get_output_fields"):
+            try:
+                output_response = resource.get_output_fields()
+                # Extract field names
+                output_fields.extend(output_response.get("standardFields", []))
+                # Add custom fields
+                for field in output_response.get("customFields", []):
+                    field_name = field.get("displayName")
+                    if field_name:
+                        output_fields.append(field_name)
+                self._logger.debug(f"Loaded {len(output_fields)} output fields")
+            except NotImplementedError:
+                self._logger.debug(
+                    f"Resource {self.resource_name} doesn't support output field discovery"
+                )
+            except Exception as e:
+                self._logger.warning(f"Failed to load output fields: {e}")
+
+        # Cache the results both locally and in the client
+        self._cached_search_fields = search_fields
+        self._cached_output_fields = output_fields
+
+        # Store in client's field cache for reuse
+        self.client._field_caches[self.resource_name] = {
+            "search_fields": search_fields,
+            "output_fields": output_fields,
+            "search_fields_with_operators": search_fields_with_operators,
+        }
+
+        self._logger.info(
+            f"Cached {len(search_fields)} search and {len(output_fields)} output fields for {self.resource_name}"
+        )
+
     def _try_fuzzy_field_match(self, field_name: str, field_type: str) -> bool:
         """Try fuzzy/semantic matching as a fallback when exact matches fail.
 
@@ -683,14 +791,20 @@ class SearchRequestValidator:
         return any(custom_indicators)
 
     def _get_dynamic_search_fields(self) -> List[str]:
-        """Get search fields from the API dynamically.
+        """Get search fields from the API dynamically using lazy loading.
 
         Returns:
             List of search field names from the API
         """
+        # Use lazy loading if field cache is enabled
+        if self.client and self.client.field_cache_enabled:
+            self._ensure_resource_cache_loaded()
+            return self._cached_search_fields or []
+
+        # Fall back to individual API call if caching disabled
         if self._cached_search_fields is None:
             self._logger.debug(
-                f"Fetching dynamic search fields for {self.resource_name}"
+                f"Fetching dynamic search fields for {self.resource_name} (cache disabled)"
             )
 
             # The resource_name now matches client attribute names directly
@@ -740,6 +854,18 @@ class SearchRequestValidator:
         Returns:
             List of output field names from the API
         """
+        # Use lazy loading from client cache if enabled
+        if (
+            self.client
+            and hasattr(self.client, "field_cache_enabled")
+            and self.client.field_cache_enabled
+        ):
+            self._ensure_resource_cache_loaded()
+            cache = self.client._field_caches.get(self.resource_name, {})
+            output_fields = cache.get("output_fields")
+            if output_fields is not None:
+                return output_fields
+
         if self._cached_output_fields is None:
             self._logger.debug(
                 f"Fetching dynamic output fields for {self.resource_name}"
@@ -816,6 +942,17 @@ class SearchRequestValidator:
         """
         if not self.client:
             return []
+
+        # Use lazy loading from client cache if enabled
+        if (
+            hasattr(self.client, "field_cache_enabled")
+            and self.client.field_cache_enabled
+        ):
+            self._ensure_resource_cache_loaded()
+            cache = self.client._field_caches.get(self.resource_name, {})
+            search_fields_with_operators = cache.get("search_fields_with_operators")
+            if search_fields_with_operators is not None:
+                return search_fields_with_operators
 
         try:
             # Get the resource

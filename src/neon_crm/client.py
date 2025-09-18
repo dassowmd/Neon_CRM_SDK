@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import os
 import random
 import time
 from pathlib import Path
@@ -68,6 +69,7 @@ class NeonClient:
         config_path: Optional[Union[str, Path]] = None,
         log_level: Optional[str] = None,
         enable_caching: bool = True,
+        enable_field_cache: Optional[bool] = None,
     ) -> None:
         """Initialize the Neon CRM client.
 
@@ -91,6 +93,14 @@ class NeonClient:
 
         # Setup caching
         self._cache = NeonCache() if enable_caching else None
+
+        # Setup field cache control - check environment variable if not explicitly set
+        if enable_field_cache is None:
+            enable_field_cache = (
+                os.getenv("NEON_DISABLE_FIELD_CACHE", "false").lower() != "true"
+            )
+        self.field_cache_enabled = enable_field_cache
+        self._field_caches = {}  # Per-resource field caches
 
         # Load configuration using config loader
         config_loader = ConfigLoader(config_path)
@@ -491,6 +501,45 @@ class NeonClient:
     def close(self) -> None:
         """Close the HTTP client."""
         self._client.close()
+
+    def clear_field_cache(self, resource: Optional[str] = None) -> None:
+        """Clear field discovery cache.
+
+        Args:
+            resource: Specific resource to clear cache for. If None, clears all.
+        """
+        if resource:
+            self._field_caches.pop(resource, None)
+            self._logger.debug(f"Cleared field cache for {resource}")
+        else:
+            self._field_caches.clear()
+            self._logger.debug("Cleared all field caches")
+
+    def refresh_field_cache(self, resource: Optional[str] = None) -> None:
+        """Force refresh field discovery cache.
+
+        Args:
+            resource: Specific resource to refresh cache for. If None, refreshes all.
+        """
+        if resource:
+            # Clear the cache for this resource so it gets reloaded
+            self._field_caches.pop(resource, None)
+            self._logger.debug(f"Refreshed field cache for {resource}")
+        else:
+            # Clear all caches so they get reloaded
+            self._field_caches.clear()
+            self._logger.debug("Refreshed all field caches")
+
+    def get_field_cache_status(self) -> Dict[str, bool]:
+        """Get field cache status for all resources.
+
+        Returns:
+            Dictionary mapping resource names to cache status (True if cached).
+        """
+        return {
+            resource: bool(cache_data)
+            for resource, cache_data in self._field_caches.items()
+        }
 
     def __enter__(self) -> "NeonClient":
         """Context manager entry."""
