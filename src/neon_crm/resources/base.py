@@ -557,13 +557,17 @@ class SearchableResource(BaseResource):
         return prepared_request
 
     def search(
-        self, search_request: SearchRequest, validate: bool = True
+        self,
+        search_request: SearchRequest,
+        validate: bool = True,
+        limit: Optional[int] = None,
     ) -> Iterator[Dict[str, Any]]:
         """Search for resources.
 
         Args:
             search_request: The search request parameters
             validate: Whether to validate the search request (default: True)
+            limit: Maximum number of results to return (overrides pagination)
 
         Yields:
             Individual resource dictionaries from search results
@@ -574,7 +578,7 @@ class SearchableResource(BaseResource):
         import time
 
         self._logger.debug(
-            f"Starting search operation: fields={len(search_request.get('searchFields', []))}, validate={validate}"
+            f"Starting search operation: fields={len(search_request.get('searchFields', []))}, validate={validate}, limit={limit}"
         )
 
         # Handle missing or wildcard output_fields
@@ -599,6 +603,7 @@ class SearchableResource(BaseResource):
         # Start with the first page
         current_page = 0
         page_size = search_request.get("pagination", {}).get("pageSize", 50)
+        results_returned = 0
 
         while True:
             # Add pagination to the search request
@@ -619,8 +624,13 @@ class SearchableResource(BaseResource):
                 items = response if isinstance(response, list) else [response]
                 pagination = {}
 
-            # Yield each item
-            yield from items
+            # Yield each item with limit checking
+            for item in items:
+                if limit is None or results_returned < limit:
+                    yield item
+                    results_returned += 1
+                else:
+                    return  # Stop iteration when limit is reached
 
             # Check if there are more pages
             if not pagination:
@@ -633,6 +643,39 @@ class SearchableResource(BaseResource):
                 break
 
             current_page += 1
+
+    def search_paginated(
+        self,
+        search_request: SearchRequest,
+        page_size: int = 50,
+        max_pages: Optional[int] = None,
+        validate: bool = True,
+    ) -> Iterator[Dict[str, Any]]:
+        """Search with explicit pagination control.
+
+        Args:
+            search_request: The search request parameters
+            page_size: Number of results per page
+            max_pages: Maximum number of pages to retrieve (None for all)
+            validate: Whether to validate the search request
+
+        Yields:
+            Individual resource dictionaries from search results
+        """
+        # Calculate limit from page constraints
+        limit = None
+        if max_pages is not None:
+            limit = max_pages * page_size
+
+        # Set pagination in the search request
+        search_request = search_request.copy()
+        search_request["pagination"] = {
+            "pageSize": page_size,
+            "currentPage": 0,
+        }
+
+        # Use the search method with limit
+        yield from self.search(search_request, validate=validate, limit=limit)
 
     def get_search_fields(self) -> Dict[str, Any]:
         """Get available search fields for this resource.
