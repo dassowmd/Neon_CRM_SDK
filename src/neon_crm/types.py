@@ -30,7 +30,21 @@ class CustomFieldCategory(str, Enum):
 
 
 class SearchOperator(str, Enum):
-    """Search operator enumeration."""
+    """Search operator enumeration.
+
+    Note about IN_RANGE and NOT_IN_RANGE operators:
+    Despite the name, these operators behave like IN_ARRAY/NOT_IN_ARRAY operations.
+    They check if a field value matches any value in a provided list, rather than
+    checking if a value falls within a numeric range.
+
+    Example:
+        # This checks if Status is "Active" OR "Pending" (not a range)
+        {"field": "Status", "operator": "IN_RANGE", "value": ["Active", "Pending"]}
+
+        # For actual numeric ranges, use comparison operators instead:
+        {"field": "Amount", "operator": "GREATER_THAN", "value": 100}
+        {"field": "Amount", "operator": "LESS_THAN", "value": 500}
+    """
 
     EQUAL = "EQUAL"
     NOT_EQUAL = "NOT_EQUAL"
@@ -40,8 +54,11 @@ class SearchOperator(str, Enum):
     GREATER_THAN = "GREATER_THAN"
     LESS_AND_EQUAL = "LESS_AND_EQUAL"
     GREATER_AND_EQUAL = "GREATER_AND_EQUAL"
+
+    # Note: These operators function as IN_ARRAY/NOT_IN_ARRAY despite the "RANGE" name
     IN_RANGE = "IN_RANGE"
     NOT_IN_RANGE = "NOT_IN_RANGE"
+
     CONTAIN = "CONTAIN"
     NOT_CONTAIN = "NOT_CONTAIN"
 
