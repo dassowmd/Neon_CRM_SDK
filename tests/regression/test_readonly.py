@@ -154,20 +154,13 @@ class TestReadOnlyOperations:
 
     def test_list_donations(self, regression_client):
         """Test listing donations."""
-        try:
-            donations = []
-            for donation in regression_client.donations.list(page_size=3):
-                donations.append(donation)
-                if len(donations) >= 3:
-                    break
-
-            print(f"Retrieved {len(donations)} donations")
-            if donations:
-                first_donation = donations[0]
-                print(f"First donation keys: {list(first_donation.keys())}")
-
-        except Exception as e:
-            print(f"Donations list test failed: {e}")
+        # NOTE: Donations resource only supports search operations, not list operations
+        # The SDK architecture was refactored to prevent invalid method calls
+        # Use donations.search() instead of donations.list()
+        print(
+            "⚠ SKIPPED: donations.list() is not supported - use donations.search() instead"
+        )
+        pytest.skip("Donations resource only supports search operations")
 
     def test_list_events(self, regression_client):
         """Test listing events."""
@@ -222,20 +215,13 @@ class TestReadOnlyOperations:
 
     def test_list_activities(self, regression_client):
         """Test listing activities."""
-        try:
-            activities = []
-            for activity in regression_client.activities.list(page_size=3):
-                activities.append(activity)
-                if len(activities) >= 3:
-                    break
-
-            print(f"Retrieved {len(activities)} activities")
-            if activities:
-                first_activity = activities[0]
-                print(f"First activity keys: {list(first_activity.keys())}")
-
-        except Exception as e:
-            print(f"Activities list test failed: {e}")
+        # NOTE: Activities resource only supports search operations, not list operations
+        # The SDK architecture was refactored to prevent invalid method calls
+        # Use activities.search() instead of activities.list()
+        print(
+            "⚠ SKIPPED: activities.list() is not supported - use activities.search() instead"
+        )
+        pytest.skip("Activities resource only supports search operations")
 
     def test_list_custom_fields(self, regression_client):
         """Test listing custom fields."""
