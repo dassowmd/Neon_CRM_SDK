@@ -39,81 +39,6 @@ class BaseResource:
             return urljoin(self._endpoint + "/", path.lstrip("/"))
         return self._endpoint
 
-    def list(
-        self,
-        current_page: int = 0,
-        page_size: int = 50,
-        limit: int = None,
-        **kwargs: Any,
-    ) -> Iterator[Dict[str, Any]]:
-        """List resources with pagination.
-
-        Args:
-            current_page: Page number to start from (0-indexed)
-            page_size: Number of items per page
-            limit: Maximum number of items to return
-            **kwargs: Additional query parameters
-
-        Yields:
-            Individual resource dictionaries
-        """
-        self._logger.debug(
-            f"Starting list operation: page_size={page_size}, limit={limit}, kwargs={kwargs}"
-        )
-        params = {
-            "currentPage": current_page,
-            "pageSize": page_size,
-            **kwargs,
-        }
-
-        results_returned = 0
-        while True:
-            response = self._client.get(self._endpoint, params=params)
-
-            # Handle different response structures
-            if self._endpoint.lstrip("/") in response:
-                items = response[self._endpoint.lstrip("/")]
-                pagination = response.get("pagination", {})
-            # elif "searchResults" in response:
-            #     # Paginated search results
-            #     items = response["searchResults"]
-            #     pagination = response.get("pagination", {})
-            elif isinstance(response, list):
-                # Direct list response
-                items = response
-                pagination = {}
-            # elif "data" in response:
-            #     # Response with data wrapper
-            #     items = response["data"]
-            #     pagination = response.get("pagination", {})
-            else:
-                raise Exception("Unable to parse response")
-
-            # Yield each item
-            for item in items:
-                if limit is None or results_returned < limit:
-                    yield item
-                    results_returned += 1
-                else:
-                    break
-
-            # Check if there are more pages
-            if not pagination:
-                break
-
-            current_page_num = pagination.get("currentPage", 0)
-            total_pages = pagination.get("totalPages", 1)
-
-            if current_page_num >= total_pages - 1:
-                break
-
-            # Check limit for pagination continuation
-            if limit is not None and results_returned >= limit:
-                break
-
-            # Update params for next page
-            params["currentPage"] = current_page_num + 1
-
     def get(self, resource_id: int) -> Dict[str, Any]:
         """Get a specific resource by ID.
 
@@ -483,6 +408,85 @@ class BaseResource:
         return result
 
 
+class ListableResource(BaseResource):
+    """Base class for resources that support list functionality."""
+
+    def list(
+        self,
+        current_page: int = 0,
+        page_size: int = 50,
+        limit: int = None,
+        **kwargs: Any,
+    ) -> Iterator[Dict[str, Any]]:
+        """List resources with pagination.
+
+        Args:
+            current_page: Page number to start from (0-indexed)
+            page_size: Number of items per page
+            limit: Maximum number of items to return
+            **kwargs: Additional query parameters
+
+        Yields:
+            Individual resource dictionaries
+        """
+        self._logger.debug(
+            f"Starting list operation: page_size={page_size}, limit={limit}, kwargs={kwargs}"
+        )
+        params = {
+            "currentPage": current_page,
+            "pageSize": page_size,
+            **kwargs,
+        }
+
+        results_returned = 0
+        while True:
+            response = self._client.get(self._endpoint, params=params)
+
+            # Handle different response structures
+            if self._endpoint.lstrip("/") in response:
+                items = response[self._endpoint.lstrip("/")]
+                pagination = response.get("pagination", {})
+            # elif "searchResults" in response:
+            #     # Paginated search results
+            #     items = response["searchResults"]
+            #     pagination = response.get("pagination", {})
+            elif isinstance(response, list):
+                # Direct list response
+                items = response
+                pagination = {}
+            # elif "data" in response:
+            #     # Response with data wrapper
+            #     items = response["data"]
+            #     pagination = response.get("pagination", {})
+            else:
+                raise Exception("Unable to parse response")
+
+            # Yield each item
+            for item in items:
+                if limit is None or results_returned < limit:
+                    yield item
+                    results_returned += 1
+                else:
+                    break
+
+            # Check if there are more pages
+            if not pagination:
+                break
+
+            current_page_num = pagination.get("currentPage", 0)
+            total_pages = pagination.get("totalPages", 1)
+
+            if current_page_num >= total_pages - 1:
+                break
+
+            # Check limit for pagination continuation
+            if limit is not None and results_returned >= limit:
+                break
+
+            # Update params for next page
+            params["currentPage"] = current_page_num + 1
+
+
 class SearchableResource(BaseResource):
     """Base class for resources that support search functionality."""
 
@@ -559,7 +563,7 @@ class SearchableResource(BaseResource):
     def search(
         self,
         search_request: SearchRequest,
-        validate: bool = True,
+        validate: bool = False,  # TODO figure out why validation doesnt play well with dates (beacuse they are strings)
         limit: Optional[int] = None,
     ) -> Iterator[Dict[str, Any]]:
         """Search for resources.
@@ -580,6 +584,11 @@ class SearchableResource(BaseResource):
         self._logger.debug(
             f"Starting search operation: fields={len(search_request.get('searchFields', []))}, validate={validate}, limit={limit}"
         )
+
+        # TEMPORARILY DISABLED: Convert field names from display format to API format
+        # The API actually expects display format field names, not camelCase
+        # from ..field_mapping import FieldNameMapper
+        # search_request = FieldNameMapper.convert_search_request(search_request)
 
         # Handle missing or wildcard output_fields
         search_request = self._prepare_search_request(search_request)
