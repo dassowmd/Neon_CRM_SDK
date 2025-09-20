@@ -188,9 +188,17 @@ class SearchRequestValidator:
         if not self._is_valid_search_field(field_name):
             valid_fields = self._get_available_search_fields()
             self._log_field_suggestions(field_name, valid_fields, "search")
-            errors.append(
-                f"Field '{field_name}' is not valid for resource '{self.resource_name}'. Valid fields: {sorted(valid_fields)}"
-            )
+
+            # Get field suggestions using the field mapper
+            from .field_mapping import FieldNameMapper
+
+            suggestions = FieldNameMapper.get_suggested_fields(field_name, valid_fields)
+
+            error_msg = f"Field '{field_name}' is not valid for resource '{self.resource_name}'. Valid fields: {sorted(valid_fields)}"
+            if suggestions:
+                error_msg += f". Did you mean: {', '.join(suggestions[:3])}?"
+
+            errors.append(error_msg)
 
         # Check if operator is provided
         if not operator:
@@ -413,9 +421,19 @@ class SearchRequestValidator:
             if not self._is_valid_output_field(field_name):
                 valid_fields = self._get_available_output_fields()
                 self._log_field_suggestions(field_name, valid_fields, "output")
-                errors.append(
-                    f"Output field '{field_name}' is not valid for resource '{self.resource_name}'. Valid fields: {sorted(valid_fields)}"
+
+                # Get field suggestions using the field mapper
+                from .field_mapping import FieldNameMapper
+
+                suggestions = FieldNameMapper.get_suggested_fields(
+                    field_name, valid_fields
                 )
+
+                error_msg = f"Output field '{field_name}' is not valid for resource '{self.resource_name}'. Valid fields: {sorted(valid_fields)}"
+                if suggestions:
+                    error_msg += f". Did you mean: {', '.join(suggestions[:3])}?"
+
+                errors.append(error_msg)
 
         return errors
 
