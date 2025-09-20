@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Un
 
 from ..fuzzy_search import FieldFuzzySearch
 from ..types import CustomFieldCategory
-from .base import BaseResource
+from .base import ListableResource
 
 
 class FieldNotFoundError(Exception):
@@ -54,7 +54,7 @@ if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class CustomFieldsResource(BaseResource):
+class CustomFieldsResource(ListableResource):
     """Resource for managing custom fields."""
 
     def __init__(self, client: "NeonClient") -> None:
