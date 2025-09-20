@@ -2,13 +2,13 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import SearchableResource
+from .base import BaseResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class CampaignsResource(SearchableResource):
+class CampaignsResource(BaseResource):
     """Resource for managing campaigns."""
 
     def __init__(self, client: "NeonClient") -> None:

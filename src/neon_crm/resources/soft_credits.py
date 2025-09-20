@@ -2,13 +2,13 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import SearchableResource
+from .base import BaseResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class SoftCreditsResource(SearchableResource):
+class SoftCreditsResource(BaseResource):
     """Resource for managing soft credits."""
 
     def __init__(self, client: "NeonClient") -> None:
