@@ -2,13 +2,13 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import SearchableResource
+from .base import ListableResource, SearchableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class EventsResource(SearchableResource):
+class EventsResource(ListableResource, SearchableResource):
     """Resource for managing events (legacy events only)."""
 
     def __init__(self, client: "NeonClient") -> None:
