@@ -3,7 +3,7 @@
 from .accounts import AccountsResource
 from .activities import ActivitiesResource
 from .addresses import AddressesResource
-from .base import BaseResource
+from .base import BaseResource, ListableResource, SearchableResource
 from .campaigns import CampaignsResource
 from .custom_fields import CustomFieldsResource
 from .custom_objects import CustomObjectsResource
@@ -24,6 +24,8 @@ from .webhooks import WebhooksResource
 
 __all__ = [
     "BaseResource",
+    "ListableResource",
+    "SearchableResource",
     "AccountsResource",
     "AddressesResource",
     "DonationsResource",
