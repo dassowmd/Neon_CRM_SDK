@@ -63,6 +63,87 @@ class SearchOperator(str, Enum):
     NOT_CONTAIN = "NOT_CONTAIN"
 
 
+class PhoneType(str, Enum):
+    """Phone number type enumeration."""
+
+    HOME = "Home"
+    WORK = "Work"
+    MOBILE = "Mobile"
+    OTHER = "Other"
+
+
+class AddressType(str, Enum):
+    """Address type enumeration (common values from Swagger)."""
+
+    HOME = "Home"
+    WORK = "Work"
+    BILLING = "Billing"
+    MAILING = "Mailing"
+    SHIPPING = "Shipping"
+    OTHER = "Other"
+
+
+class AnonymousType(str, Enum):
+    """Anonymous donation type enumeration."""
+
+    FALSE = "false"  # Not anonymous
+    DONOR_NAME_ANONYMOUS = "DonorNameAnonymous"
+    DONATION_AMOUNT_ANONYMOUS = "DonationAmountAnonymous"
+
+
+class DonationStatus(str, Enum):
+    """Donation status enumeration."""
+
+    PENDING = "Pending"
+    SUCCEEDED = "Succeeded"
+    FAILED = "Failed"
+    CANCELED = "Canceled"
+    DEFERRED = "Deferred"
+    REFUNDED = "Refunded"
+
+
+class EventStatus(str, Enum):
+    """Event status enumeration (common values)."""
+
+    DRAFT = "Draft"
+    PUBLISHED = "Published"
+    CANCELED = "Canceled"
+    COMPLETED = "Completed"
+
+
+class PaymentStatus(str, Enum):
+    """Payment status enumeration."""
+
+    PENDING = "Pending"
+    PROCESSING = "Processing"
+    SUCCEEDED = "Succeeded"
+    FAILED = "Failed"
+    ERROR = "Error"
+    SCHEDULED = "Scheduled"
+    CANCELED = "Canceled"
+    DEFERRED = "Deferred"
+    REFUNDED = "Refunded"
+    PARTIALLY_REFUNDED = "Partially_Refunded"
+    DISPUTE_LOST = "Dispute_Lost"
+    HELD_FOR_REVIEW = "Held_for_Review"
+
+
+class SortDirection(str, Enum):
+    """Sort direction enumeration."""
+
+    ASC = "ASC"
+    DESC = "DESC"
+
+
+class Gender(str, Enum):
+    """Gender enumeration (common values)."""
+
+    MALE = "Male"
+    FEMALE = "Female"
+    OTHER = "Other"
+    PREFER_NOT_TO_SAY = "Prefer not to say"
+
+
 class PaginationParams(TypedDict, total=False):
     """Parameters for paginated requests."""
 
@@ -173,7 +254,7 @@ class PaginationInfo(TypedDict):
     currentPage: int
     pageSize: int
     sortColumn: str
-    sortDirection: str  # "ASC" or "DESC"
+    sortDirection: Union[SortDirection, str]  # "ASC" or "DESC"
     totalPages: int
     totalResults: int
 
@@ -304,3 +385,47 @@ class CompleteAccountPayload(TypedDict, total=False):
     loginName: str
     consent: Dict[str, Any]
     customFields: List[Dict[str, Any]]
+
+
+class IdNamePair(TypedDict, total=False):
+    """Common structure for ID/Name pairs used throughout the API."""
+
+    id: Union[int, str]
+    name: str
+
+
+class CodeNamePair(TypedDict, total=False):
+    """Common structure for Code/Name pairs (e.g., state/province)."""
+
+    code: str
+    name: str
+
+
+class DonationRequest(TypedDict, total=False):
+    """Donation creation request structure."""
+
+    accountId: str
+    amount: float
+    date: str  # ISO format: "YYYY-MM-DD"
+    campaign: IdNamePair
+    fund: IdNamePair
+    purpose: IdNamePair
+    anonymousType: Union[AnonymousType, str]
+    note: str
+    sendAcknowledgeEmail: bool
+    sendAcknowledgeLetter: bool
+    payLater: bool
+    payments: List[Dict[str, Any]]  # Payment objects
+
+
+class EventRequest(TypedDict, total=False):
+    """Event creation request structure."""
+
+    name: str
+    summary: str
+    description: str
+    eventDates: Dict[str, str]  # startDate, endDate, etc.
+    publishEvent: bool
+    archived: bool
+    category: IdNamePair
+    status: Union[EventStatus, str]
