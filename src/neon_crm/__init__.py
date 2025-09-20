@@ -21,6 +21,7 @@ from .exceptions import (
 )
 from .types import CustomFieldCategory, SearchOperator, UserType
 from .validation import SearchRequestValidator, validate_search_request
+from .custom_field_types import CustomFieldTypeMapper
 
 __all__ = [
     "__version__",
@@ -30,6 +31,7 @@ __all__ = [
     "SearchOperator",
     "SearchRequestValidator",
     "validate_search_request",
+    "CustomFieldTypeMapper",
     "NeonError",
     "NeonAPIError",
     "NeonAuthenticationError",
