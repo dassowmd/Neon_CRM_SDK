@@ -3,13 +3,13 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Union
 
 from ..types import UserType
-from .base import RelationshipResource, SearchableResource
+from .base import ListableResource, RelationshipResource, SearchableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class AccountsResource(SearchableResource):
+class AccountsResource(ListableResource, SearchableResource):
     """Resource for managing accounts (contacts and organizations)."""
 
     def __init__(self, client: "NeonClient") -> None:
