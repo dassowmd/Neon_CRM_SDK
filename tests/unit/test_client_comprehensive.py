@@ -547,3 +547,115 @@ class TestNeonClientIntegration:
 
         assert len(accounts) == 1
         assert accounts[0]["accountId"] == 123
+
+
+class TestNeonClientReconnection:
+    """Test NeonClient reconnection and retry logic for closed connections."""
+
+    @patch("httpx.Client")
+    def test_recreate_client_if_closed(self, mock_client_class):
+        """Test that client is recreated if it has been closed."""
+        # Setup mock client
+        mock_client_instance = Mock()
+        mock_client_instance.is_closed = True
+        mock_client_class.return_value = mock_client_instance
+
+        client = NeonClient(org_id="test", api_key="test")
+
+        # Replace with our mock
+        client._client = mock_client_instance
+
+        # Call the recreate method
+        client._recreate_client_if_needed()
+
+        # Should have created a new client instance
+        assert mock_client_class.call_count >= 2  # Once in __init__, once in recreate
+
+    @patch("httpx.Client")
+    def test_no_recreate_if_client_open(self, mock_client_class):
+        """Test that client is not recreated if it's still open."""
+        # Setup mock client
+        mock_client_instance = Mock()
+        mock_client_instance.is_closed = False
+        mock_client_class.return_value = mock_client_instance
+
+        client = NeonClient(org_id="test", api_key="test")
+
+        # Replace with our mock
+        client._client = mock_client_instance
+        initial_call_count = mock_client_class.call_count
+
+        # Call the recreate method
+        client._recreate_client_if_needed()
+
+        # Should not have created a new client instance
+        assert mock_client_class.call_count == initial_call_count
+
+    @patch("time.sleep")  # Mock sleep to speed up tests
+    @patch("httpx.Client")
+    def test_request_with_client_closed_error(self, mock_client_class, mock_sleep):
+        """Test handling of RuntimeError when client is closed during request."""
+        # Setup first client instance that will fail
+        mock_client_1 = Mock()
+        mock_client_1.is_closed = False
+        mock_client_1.request.side_effect = RuntimeError("client has been closed")
+        mock_client_1.close.return_value = None
+
+        # Setup second client instance that will succeed
+        mock_client_2 = Mock()
+        mock_client_2.is_closed = False
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"test": "success"}
+        mock_client_2.request.return_value = mock_response
+
+        # Configure mock to return different instances
+        mock_client_class.side_effect = [mock_client_1, mock_client_2]
+
+        client = NeonClient(org_id="test", api_key="test")
+
+        result = client.request("GET", "/test")
+
+        assert result == {"test": "success"}
+        assert mock_client_class.call_count == 2  # Original + recreated
+        assert mock_client_1.close.called
+
+    @patch("time.sleep")  # Mock sleep to speed up tests
+    @patch("httpx.Client")
+    def test_request_with_client_closed_error_max_retries(
+        self, mock_client_class, mock_sleep
+    ):
+        """Test that client closed errors respect max_retries limit."""
+        # Setup client instance that always fails
+        mock_client = Mock()
+        mock_client.is_closed = False
+        mock_client.request.side_effect = RuntimeError("client has been closed")
+        mock_client.close.return_value = None
+
+        # All client creations return the same failing instance
+        mock_client_class.return_value = mock_client
+
+        client = NeonClient(org_id="test", api_key="test", max_retries=1)
+
+        with pytest.raises(NeonConnectionError) as exc_info:
+            client.request("GET", "/test")
+
+        assert "HTTP client was closed during request" in str(exc_info.value)
+        assert exc_info.value.original_error is not None
+
+        # Should have tried max_retries + 1 times = 2 attempts
+        assert mock_client.request.call_count == 2
+
+    @patch("httpx.Client.request")
+    def test_request_with_other_runtime_error(self, mock_request):
+        """Test that non-client-closed RuntimeErrors are not caught."""
+        client = NeonClient(org_id="test", api_key="test")
+
+        # Mock the request to raise a different RuntimeError
+        mock_request.side_effect = RuntimeError("some other error")
+
+        with pytest.raises(RuntimeError) as exc_info:
+            client.request("GET", "/test")
+
+        assert "some other error" in str(exc_info.value)
+        assert mock_request.call_count == 1  # Should not retry
