@@ -2,13 +2,13 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import BaseResource
+from .base import ListableResource, CalculationResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class MembershipsResource(BaseResource):
+class MembershipsResource(ListableResource, CalculationResource):
     """Resource for managing memberships."""
 
     def __init__(self, client: "NeonClient") -> None:
@@ -55,3 +55,25 @@ class MembershipsResource(BaseResource):
         return super().list(
             current_page=current_page, page_size=page_size, limit=limit, **params
         )
+
+    def calculate_dates(self, calculation_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate membership term start and end dates.
+
+        Args:
+            calculation_data: The membership data for date calculation
+
+        Returns:
+            The calculated dates
+        """
+        return self.calculate(calculation_data, "Dates")
+
+    def calculate_fee(self, calculation_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate the cost of a membership.
+
+        Args:
+            calculation_data: The membership data for fee calculation
+
+        Returns:
+            The calculated fee
+        """
+        return self.calculate(calculation_data, "Fee")

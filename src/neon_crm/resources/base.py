@@ -499,18 +499,45 @@ class SearchableResource(BaseResource):
         self._validator = SearchRequestValidator(resource_name, client)
 
     def _prepare_search_request(self, search_request: SearchRequest) -> SearchRequest:
-        """Prepare search request by handling missing or wildcard output_fields.
+        """Prepare search request by handling missing or wildcard output_fields and type conversions.
 
         Args:
             search_request: The original search request
 
         Returns:
-            Modified search request with proper output_fields
+            Modified search request with proper output_fields and field type conversions
         """
         # Make a copy to avoid modifying the original
         prepared_request = search_request.copy()
 
+        # Fix integer conversions in searchFields: integers should be strings
+        search_fields = prepared_request.get("searchFields", [])
+        if search_fields:
+            for field in search_fields:
+                if isinstance(field, dict) and "value" in field:
+                    # Convert integer values to strings (API expects strings)
+                    if isinstance(field["value"], int):
+                        field["value"] = str(field["value"])
+                        self._logger.debug(
+                            f"Converted integer search value to string: {field['field']} = '{field['value']}'"
+                        )
+
+        # Fix integer conversions in outputFields: all-digit strings should be integers
         output_fields = prepared_request.get("outputFields", [])
+        if output_fields:
+            converted_fields = []
+            for field in output_fields:
+                if isinstance(field, str) and field.isdigit():
+                    # Convert all-digit strings to integers
+                    converted_field = int(field)
+                    converted_fields.append(converted_field)
+                    self._logger.debug(
+                        f"Converted all-digit string to integer in outputFields: '{field}' -> {converted_field}"
+                    )
+                else:
+                    converted_fields.append(field)
+            prepared_request["outputFields"] = converted_fields
+            output_fields = converted_fields
 
         # Handle missing output_fields or wildcard '*'
         if not output_fields or (len(output_fields) == 1 and output_fields[0] == "*"):
@@ -529,11 +556,22 @@ class SearchableResource(BaseResource):
                 if isinstance(standard_fields, list):
                     all_fields.extend(standard_fields)
 
-                # Add custom fields (use display names)
+                # Add custom fields (use display names with type inference)
                 custom_fields = available_fields.get("customFields", [])
                 for field in custom_fields:
                     if isinstance(field, dict) and "displayName" in field:
                         all_fields.append(field["displayName"])
+
+                        # Log type information for debugging
+                        from ..custom_field_types import CustomFieldTypeMapper
+
+                        field_info = CustomFieldTypeMapper.get_field_info(field)
+                        self._logger.debug(
+                            f"Custom field '{field['displayName']}': "
+                            f"dataType={field_info['dataType']}, "
+                            f"displayType={field_info['displayType']}, "
+                            f"inferredType={field_info['pythonTypeName']}"
+                        )
                     elif isinstance(field, str):
                         all_fields.append(field)
 
@@ -865,3 +903,266 @@ class RelationshipResource(BaseResource):
             The deletion response
         """
         return super().delete(resource_id)
+
+
+class CalculationResource(BaseResource):
+    """Base class for resources that provide calculation functionality."""
+
+    def calculate(
+        self, calculation_data: Dict[str, Any], calculation_type: str = ""
+    ) -> Dict[str, Any]:
+        """Perform a calculation using the resource's calculation endpoint.
+
+        Args:
+            calculation_data: The data to use for the calculation
+            calculation_type: Optional calculation type suffix (e.g., "Fee", "Dates")
+
+        Returns:
+            The calculation result data
+        """
+        # Build the calculation endpoint URL
+        if calculation_type:
+            url = self._build_url(f"calculate{calculation_type}")
+        else:
+            url = self._build_url("calculate")
+
+        self._logger.debug(f"Performing calculation via {url}")
+        return self._client.post(url, json_data=calculation_data)
+
+
+class PropertiesResource(BaseResource):
+    """Base class for read-only properties and configuration resources."""
+
+    def __init__(self, client: "NeonClient", endpoint: str = "/properties") -> None:
+        """Initialize the properties resource.
+
+        Args:
+            client: The Neon client instance
+            endpoint: The base endpoint for properties (default: "/properties")
+        """
+        super().__init__(client, endpoint)
+
+    def get_property(self, property_name: str) -> Dict[str, Any]:
+        """Get a specific property by name.
+
+        Args:
+            property_name: The property name (e.g., "countries", "genders")
+
+        Returns:
+            The property data
+        """
+        url = self._build_url(property_name)
+        self._logger.debug(f"Fetching property: {property_name}")
+        return self._client.get(url)
+
+    def get_activity_statuses(self) -> Dict[str, Any]:
+        """Get available activity statuses."""
+        return self.get_property("activityStatuses")
+
+    def get_address_types(self) -> Dict[str, Any]:
+        """Get available address types."""
+        return self.get_property("addressTypes")
+
+    def get_company_types(self) -> Dict[str, Any]:
+        """Get available company types."""
+        return self.get_property("companyTypes")
+
+    def get_countries(self) -> Dict[str, Any]:
+        """Get available countries."""
+        return self.get_property("countries")
+
+    def get_current_system_user(self) -> Dict[str, Any]:
+        """Get current system user information."""
+        return self.get_property("currentSystemUser")
+
+    def get_event_categories(self) -> Dict[str, Any]:
+        """Get available event categories."""
+        return self.get_property("eventCategories")
+
+    def get_event_topics(self) -> Dict[str, Any]:
+        """Get available event topics."""
+        return self.get_property("eventTopics")
+
+    def get_funds(self) -> Dict[str, Any]:
+        """Get available funds."""
+        return self.get_property("funds")
+
+    def get_genders(self) -> Dict[str, Any]:
+        """Get available genders."""
+        return self.get_property("genders")
+
+    def get_individual_types(self) -> Dict[str, Any]:
+        """Get available individual types."""
+        return self.get_property("individualTypes")
+
+    def get_organization_profile(self) -> Dict[str, Any]:
+        """Get organization profile information."""
+        return self.get_property("organizationProfile")
+
+    def get_prefixes(self) -> Dict[str, Any]:
+        """Get available name prefixes."""
+        return self.get_property("prefixes")
+
+    def get_purposes(self) -> Dict[str, Any]:
+        """Get available purposes."""
+        return self.get_property("purposes")
+
+    def get_relation_types(self) -> Dict[str, Any]:
+        """Get available relation types."""
+        return self.get_property("relationTypes")
+
+    def get_solicitation_methods(self) -> Dict[str, Any]:
+        """Get available solicitation methods."""
+        return self.get_property("solicitationMethods")
+
+    def get_sources(self) -> Dict[str, Any]:
+        """Get available sources."""
+        return self.get_property("sources")
+
+    def get_state_provinces(self) -> Dict[str, Any]:
+        """Get available states and provinces."""
+        return self.get_property("stateProvinces")
+
+    def get_system_timezones(self) -> Dict[str, Any]:
+        """Get available system timezones."""
+        return self.get_property("systemTimezones")
+
+    def get_system_users(self) -> Dict[str, Any]:
+        """Get available system users."""
+        return self.get_property("systemUsers")
+
+
+class NestedResource(BaseResource):
+    """Base class for resources that are nested under other resources.
+
+    This is similar to RelationshipResource but more general-purpose
+    for any nested resource pattern like /parent/{parentId}/child/{childId}.
+    """
+
+    def __init__(
+        self,
+        client: "NeonClient",
+        parent_endpoint: str,
+        parent_id: int,
+        child_resource: str,
+        child_id: Optional[int] = None,
+    ) -> None:
+        """Initialize the nested resource.
+
+        Args:
+            client: The Neon client instance
+            parent_endpoint: The parent resource endpoint
+            parent_id: The ID of the parent resource
+            child_resource: The child resource name
+            child_id: Optional child resource ID for specific resource operations
+        """
+        self._parent_endpoint = parent_endpoint.rstrip("/")
+        self.parent_id = parent_id
+        self.child_resource = child_resource
+        self.child_id = child_id
+
+        # Build the nested endpoint
+        if child_id is not None:
+            endpoint = (
+                f"{self._parent_endpoint}/{parent_id}/{child_resource}/{child_id}"
+            )
+        else:
+            endpoint = f"{self._parent_endpoint}/{parent_id}/{child_resource}"
+
+        super().__init__(client, endpoint)
+
+    def list(self, **kwargs: Any) -> Iterator[Dict[str, Any]]:
+        """List nested resources.
+
+        Args:
+            **kwargs: Additional query parameters
+
+        Yields:
+            Individual nested resource dictionaries
+        """
+        if self.child_id is not None:
+            raise ValueError(
+                "Cannot list when child_id is specified. Use get() instead."
+            )
+
+        # For nested resources, we may need to handle different response structures
+        response = self._client.get(self._endpoint, params=kwargs)
+
+        # Handle different response structures
+        if isinstance(response, list):
+            yield from response
+        elif self.child_resource in response:
+            yield from response[self.child_resource]
+        else:
+            # Single item response
+            yield response
+
+    def get_child(self, child_id: int) -> Dict[str, Any]:
+        """Get a specific child resource.
+
+        Args:
+            child_id: The child resource ID
+
+        Returns:
+            The child resource data
+        """
+        url = (
+            f"{self._parent_endpoint}/{self.parent_id}/{self.child_resource}/{child_id}"
+        )
+        return self._client.get(url)
+
+    def create_child(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Create a new child resource.
+
+        Args:
+            data: The child resource data
+
+        Returns:
+            The created child resource data
+        """
+        url = f"{self._parent_endpoint}/{self.parent_id}/{self.child_resource}"
+        return self._client.post(url, json_data=data)
+
+    def update_child(self, child_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update a child resource.
+
+        Args:
+            child_id: The child resource ID
+            data: The updated resource data
+
+        Returns:
+            The updated resource data
+        """
+        url = (
+            f"{self._parent_endpoint}/{self.parent_id}/{self.child_resource}/{child_id}"
+        )
+        return self._client.put(url, json_data=data)
+
+    def patch_child(self, child_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Partially update a child resource.
+
+        Args:
+            child_id: The child resource ID
+            data: The partial resource data
+
+        Returns:
+            The updated resource data
+        """
+        url = (
+            f"{self._parent_endpoint}/{self.parent_id}/{self.child_resource}/{child_id}"
+        )
+        return self._client.patch(url, json_data=data)
+
+    def delete_child(self, child_id: int) -> Dict[str, Any]:
+        """Delete a child resource.
+
+        Args:
+            child_id: The child resource ID
+
+        Returns:
+            The deletion response
+        """
+        url = (
+            f"{self._parent_endpoint}/{self.parent_id}/{self.child_resource}/{child_id}"
+        )
+        return self._client.delete(url)

@@ -2,13 +2,13 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import SearchableResource
+from .base import SearchableResource, CalculationResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class OrdersResource(SearchableResource):
+class OrdersResource(SearchableResource, CalculationResource):
     """Resource for managing orders."""
 
     def __init__(self, client: "NeonClient") -> None:
@@ -51,3 +51,14 @@ class OrdersResource(SearchableResource):
         return super().list(
             current_page=current_page, page_size=page_size, limit=limit, **params
         )
+
+    def calculate_order_total(self, order_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate the total cost of an order.
+
+        Args:
+            order_data: The order data for calculation
+
+        Returns:
+            The calculated order totals
+        """
+        return self.calculate(order_data)

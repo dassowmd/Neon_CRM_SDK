@@ -320,6 +320,15 @@ class NeonClient:
         else:
             raise NeonAPIError(detailed_message, response.status_code, response_data)
 
+    def _recreate_client_if_needed(self) -> None:
+        """Recreate the HTTP client if it has been closed."""
+        if self._client.is_closed:
+            self._logger.warning("HTTP client was closed, recreating connection")
+            self._client = httpx.Client(
+                timeout=self.timeout,
+                headers=self._get_default_headers(),
+            )
+
     def request(
         self,
         method: str,
@@ -357,6 +366,9 @@ class NeonClient:
 
         for attempt in range(self.max_retries + 1):
             try:
+                # Check if client is closed and recreate if needed
+                self._recreate_client_if_needed()
+
                 response = self._client.request(
                     method=method,
                     url=url,
@@ -438,6 +450,38 @@ class NeonClient:
 
             except httpx.HTTPStatusError as e:
                 return self._handle_response(e.response)
+            except RuntimeError as e:
+                # Handle "client has been closed" errors
+                if (
+                    "client has been closed" in str(e).lower()
+                    or "closed" in str(e).lower()
+                ):
+                    last_exception = NeonConnectionError(
+                        message="HTTP client was closed during request",
+                        original_error=e,
+                        details={"url": url, "attempt": attempt + 1},
+                    )
+                    if attempt == self.max_retries:
+                        self._logger.error(
+                            f"Client closed error after {self.max_retries} retries: {url}"
+                        )
+                        raise last_exception from e
+
+                    # Force recreation of client and retry
+                    self._logger.warning(
+                        f"Client closed during request, recreating and retrying (attempt {attempt + 1}/{self.max_retries + 1}): {url}"
+                    )
+                    self._client.close()  # Ensure properly closed first
+                    self._client = httpx.Client(
+                        timeout=self.timeout,
+                        headers=self._get_default_headers(),
+                    )
+
+                    delay = self._calculate_retry_delay(attempt)
+                    time.sleep(delay)
+                    continue
+                else:
+                    raise e
             except Exception as e:
                 raise e
 
@@ -727,6 +771,15 @@ class AsyncNeonClient:
             )
         return self._client
 
+    async def _recreate_client_if_needed(self) -> None:
+        """Recreate the async HTTP client if it has been closed."""
+        if self._client is not None and self._client.is_closed:
+            self._logger.warning("Async HTTP client was closed, recreating connection")
+            self._client = httpx.AsyncClient(
+                timeout=self.timeout,
+                headers=self._get_default_headers(),
+            )
+
     def _handle_response(self, response: httpx.Response) -> Dict[str, Any]:
         """Handle API response and raise appropriate exceptions."""
         if response.status_code == 200:
@@ -830,6 +883,10 @@ class AsyncNeonClient:
 
         for attempt in range(self.max_retries + 1):
             try:
+                # Check if client is closed and recreate if needed
+                await self._recreate_client_if_needed()
+                client = self._get_client()
+
                 response = await client.request(
                     method=method,
                     url=url,
@@ -905,6 +962,39 @@ class AsyncNeonClient:
 
             except httpx.HTTPStatusError as e:
                 return self._handle_response(e.response)
+            except RuntimeError as e:
+                # Handle "client has been closed" errors
+                if (
+                    "client has been closed" in str(e).lower()
+                    or "closed" in str(e).lower()
+                ):
+                    last_exception = NeonConnectionError(
+                        message="Async HTTP client was closed during request",
+                        original_error=e,
+                        details={"url": url, "attempt": attempt + 1},
+                    )
+                    if attempt == self.max_retries:
+                        self._logger.error(
+                            f"Async client closed error after {self.max_retries} retries: {url}"
+                        )
+                        raise last_exception from e
+
+                    # Force recreation of client and retry
+                    self._logger.warning(
+                        f"Async client closed during request, recreating and retrying (attempt {attempt + 1}/{self.max_retries + 1}): {url}"
+                    )
+                    if self._client:
+                        await self._client.aclose()  # Ensure properly closed first
+                    self._client = httpx.AsyncClient(
+                        timeout=self.timeout,
+                        headers=self._get_default_headers(),
+                    )
+
+                    delay = self._calculate_retry_delay(attempt)
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    raise e
 
         # This shouldn't be reached, but just in case
         if last_exception:
