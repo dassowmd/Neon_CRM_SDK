@@ -1,6 +1,6 @@
 """Memberships resource for the Neon CRM SDK."""
 
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional
 
 from .base import ListableResource, CalculationResource
 
@@ -77,3 +77,21 @@ class MembershipsResource(ListableResource, CalculationResource):
             The calculated fee
         """
         return self.calculate(calculation_data, "Fee")
+
+    def get_levels(self) -> List[Dict[str, Any]]:
+        """Get all membership levels.
+
+        Returns:
+            List of membership level dictionaries
+        """
+        response = self.client.get("/memberships/levels")
+        return response.get("membershipLevels", []) if response else []
+
+    def get_terms(self) -> List[Dict[str, Any]]:
+        """Get all membership terms.
+
+        Returns:
+            List of membership term dictionaries
+        """
+        response = self.client.get("/memberships/terms")
+        return response.get("membershipTerms", []) if response else []
