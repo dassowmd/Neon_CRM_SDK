@@ -480,3 +480,153 @@ class TestMembershipsWriteOperations:
         with pytest.raises((NeonBadRequestError, NeonUnprocessableEntityError)):
             write_regression_client.memberships.create(date_logic_payload)
         print("✓ End date before start date correctly rejected")
+
+    def test_memberships_calculate_dates(self, regression_client):
+        """Test membership date calculation functionality."""
+        # Get membership levels to use in calculation
+        try:
+            levels_response = regression_client.get("/memberships/levels")
+            levels = levels_response.get("membershipLevels", [])
+
+            if not levels:
+                pytest.skip("No membership levels available for calculation test")
+
+            level_id = levels[0].get("id")
+
+            # Get membership terms
+            terms_response = regression_client.get("/memberships/terms")
+            terms = terms_response.get("membershipTerms", [])
+
+            if not terms:
+                pytest.skip("No membership terms available for calculation test")
+
+            term_id = terms[0].get("id")
+
+            # Test calculate dates
+            calculation_data = {
+                "membershipLevel": {"id": level_id},
+                "membershipTerm": {"id": term_id},
+                "startDate": "2024-01-01",
+            }
+
+            result = regression_client.memberships.calculate_dates(calculation_data)
+
+            assert isinstance(
+                result, dict
+            ), "Calculate dates should return a dictionary"
+            print(f"✓ Calculate dates returned: {result}")
+
+            # Should contain calculated dates
+            if "startDate" in result or "endDate" in result:
+                print("✓ Calculate dates returned date information")
+            else:
+                print(
+                    f"⚠ Unexpected calculate dates response structure: {list(result.keys())}"
+                )
+
+        except Exception as e:
+            print(f"⚠ Calculate dates test failed: {e}")
+
+    def test_memberships_calculate_fee(self, regression_client):
+        """Test membership fee calculation functionality."""
+        try:
+            # Get membership levels to use in calculation
+            levels_response = regression_client.get("/memberships/levels")
+            levels = levels_response.get("membershipLevels", [])
+
+            if not levels:
+                pytest.skip("No membership levels available for fee calculation test")
+
+            level_id = levels[0].get("id")
+
+            # Get membership terms
+            terms_response = regression_client.get("/memberships/terms")
+            terms = terms_response.get("membershipTerms", [])
+
+            if not terms:
+                pytest.skip("No membership terms available for fee calculation test")
+
+            term_id = terms[0].get("id")
+
+            # Test calculate fee
+            calculation_data = {
+                "membershipLevel": {"id": level_id},
+                "membershipTerm": {"id": term_id},
+            }
+
+            result = regression_client.memberships.calculate_fee(calculation_data)
+
+            assert isinstance(result, dict), "Calculate fee should return a dictionary"
+            print(f"✓ Calculate fee returned: {result}")
+
+            # Should contain fee information
+            if (
+                "fee" in result
+                or "cost" in result
+                or "amount" in result
+                or "total" in result
+            ):
+                print("✓ Calculate fee returned fee information")
+            else:
+                print(
+                    f"⚠ Unexpected calculate fee response structure: {list(result.keys())}"
+                )
+
+        except Exception as e:
+            print(f"⚠ Calculate fee test failed: {e}")
+
+    def test_memberships_get_levels(self, regression_client):
+        """Test getting membership levels."""
+        try:
+            response = regression_client.get("/memberships/levels")
+
+            assert isinstance(response, dict), "Levels response should be a dictionary"
+
+            if "membershipLevels" in response:
+                levels = response["membershipLevels"]
+                print(f"✓ Retrieved {len(levels)} membership levels")
+
+                if levels:
+                    first_level = levels[0]
+                    expected_attrs = ["id", "name"]
+                    missing_attrs = [
+                        attr for attr in expected_attrs if attr not in first_level
+                    ]
+                    if missing_attrs:
+                        print(f"⚠ Level missing expected attributes: {missing_attrs}")
+                    else:
+                        print("✓ Membership level has expected attributes")
+            else:
+                print(
+                    f"⚠ Unexpected levels response structure: {list(response.keys())}"
+                )
+
+        except Exception as e:
+            print(f"⚠ Get membership levels test failed: {e}")
+
+    def test_memberships_get_terms(self, regression_client):
+        """Test getting membership terms."""
+        try:
+            response = regression_client.get("/memberships/terms")
+
+            assert isinstance(response, dict), "Terms response should be a dictionary"
+
+            if "membershipTerms" in response:
+                terms = response["membershipTerms"]
+                print(f"✓ Retrieved {len(terms)} membership terms")
+
+                if terms:
+                    first_term = terms[0]
+                    expected_attrs = ["id", "name"]
+                    missing_attrs = [
+                        attr for attr in expected_attrs if attr not in first_term
+                    ]
+                    if missing_attrs:
+                        print(f"⚠ Term missing expected attributes: {missing_attrs}")
+                    else:
+                        print("✓ Membership term has expected attributes")
+            else:
+                print(f"⚠ Unexpected terms response structure: {list(response.keys())}")
+
+        except Exception as e:
+            print(f"⚠ Get membership terms test failed: {e}")

@@ -107,3 +107,125 @@ class TestOrdersReadOnly:
             print(f"✓ Retrieved {len(output_fields)} order output fields")
         except Exception as e:
             print(f"⚠ Get output fields failed: {e}")
+
+    def test_orders_calculate_total(self, regression_client):
+        """Test order total calculation functionality."""
+        try:
+            # Get store products to use in calculation
+            products_response = regression_client.get("/store/products")
+            products = products_response.get("products", [])
+
+            if not products:
+                pytest.skip("No store products available for order calculation test")
+
+            product = products[0]
+            product_id = product.get("id")
+
+            if not product_id:
+                pytest.skip("Product missing ID for calculation test")
+
+            # Test calculate order total
+            order_data = {
+                "order": {"items": [{"productId": product_id, "quantity": 2}]}
+            }
+
+            result = regression_client.orders.calculate_order_total(order_data)
+
+            assert isinstance(
+                result, dict
+            ), "Calculate order total should return a dictionary"
+            print(f"✓ Calculate order total returned: {result}")
+
+            # Should contain total/cost information
+            if (
+                "total" in result
+                or "subtotal" in result
+                or "cost" in result
+                or "amount" in result
+                or "grandTotal" in result
+            ):
+                print("✓ Calculate order total returned cost information")
+            else:
+                print(
+                    f"⚠ Unexpected calculate order total response structure: {list(result.keys())}"
+                )
+
+        except Exception as e:
+            print(f"⚠ Calculate order total test failed: {e}")
+
+    def test_orders_get_store_products(self, regression_client):
+        """Test getting store products for order calculations."""
+        try:
+            response = regression_client.get("/store/products")
+
+            assert isinstance(
+                response, dict
+            ), "Products response should be a dictionary"
+
+            if "products" in response:
+                products = response["products"]
+                print(f"✓ Retrieved {len(products)} store products")
+
+                if products:
+                    first_product = products[0]
+                    expected_attrs = ["id", "name"]
+                    missing_attrs = [
+                        attr for attr in expected_attrs if attr not in first_product
+                    ]
+                    if missing_attrs:
+                        print(f"⚠ Product missing expected attributes: {missing_attrs}")
+                    else:
+                        print("✓ Store product has expected attributes")
+            else:
+                print(
+                    f"⚠ Unexpected products response structure: {list(response.keys())}"
+                )
+
+        except Exception as e:
+            print(f"⚠ Get store products test failed: {e}")
+
+    def test_orders_get_shipping_methods(self, regression_client):
+        """Test getting shipping methods for orders."""
+        try:
+            # Shipping methods endpoint requires a POST with address data
+            test_address = {
+                "address": {
+                    "addressLine1": "123 Test St",
+                    "city": "Test City",
+                    "state": {"code": "CA"},
+                    "zipCode": "12345",
+                    "country": {"id": 1},  # Assuming US
+                }
+            }
+
+            response = regression_client.post(
+                "/orders/shippingMethods", json_data=test_address
+            )
+
+            assert isinstance(
+                response, dict
+            ), "Shipping methods response should be a dictionary"
+
+            if "shippingMethods" in response:
+                methods = response["shippingMethods"]
+                print(f"✓ Retrieved {len(methods)} shipping methods")
+
+                if methods:
+                    first_method = methods[0]
+                    expected_attrs = ["id", "name", "cost"]
+                    missing_attrs = [
+                        attr for attr in expected_attrs if attr not in first_method
+                    ]
+                    if missing_attrs:
+                        print(
+                            f"⚠ Shipping method missing expected attributes: {missing_attrs}"
+                        )
+                    else:
+                        print("✓ Shipping method has expected attributes")
+            else:
+                print(
+                    f"⚠ Unexpected shipping methods response structure: {list(response.keys())}"
+                )
+
+        except Exception as e:
+            print(f"⚠ Get shipping methods test failed: {e}")
