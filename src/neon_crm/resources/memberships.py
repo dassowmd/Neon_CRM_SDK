@@ -84,7 +84,7 @@ class MembershipsResource(ListableResource, CalculationResource):
         Returns:
             List of membership level dictionaries
         """
-        response = self.client.get("/memberships/levels")
+        response = self._client.get("/memberships/levels")
         return response.get("membershipLevels", []) if response else []
 
     def get_terms(self) -> List[Dict[str, Any]]:
@@ -93,5 +93,5 @@ class MembershipsResource(ListableResource, CalculationResource):
         Returns:
             List of membership term dictionaries
         """
-        response = self.client.get("/memberships/terms")
+        response = self._client.get("/memberships/terms")
         return response.get("membershipTerms", []) if response else []
