@@ -1,6 +1,6 @@
 # Makefile for Neon CRM Python SDK
 
-.PHONY: help install install-dev test test-unit test-regression-readonly test-regression-writeops test-regression-all test-verbose test-watch list-regression-resources test-resource test-resource-readonly test-resource-writeops lint format type-check clean build publish-test publish docs serve-docs example
+.PHONY: help install install-dev test test-unit test-regression-readonly test-regression-writeops test-regression-all test-verbose test-watch list-regression-resources test-resource test-resource-readonly test-resource-writeops lint format type-check clean build publish-test publish docs serve-docs example clean-notebooks
 
 # Default target
 help:
@@ -48,6 +48,7 @@ help:
 	@echo ""
 	@echo "Utilities:"
 	@echo "  check-all     Run all checks (format, lint, type-check, test)"
+	@echo "  clean-notebooks Clear all output from Jupyter notebooks"
 
 # Development environment setup
 setup-dev:
@@ -367,3 +368,28 @@ check-env:
 	@if [ -f "pyproject.toml" ]; then echo "✓ pyproject.toml found"; else echo "✗ pyproject.toml missing"; fi
 	@if [ -d "src/neon_crm" ]; then echo "✓ Source directory found"; else echo "✗ Source directory missing"; fi
 	@if [ -d "tests" ]; then echo "✓ Tests directory found"; else echo "✗ Tests directory missing"; fi
+
+# Notebook utilities
+clean-notebooks:
+	@echo "🧹 Clearing output from all Jupyter notebooks..."
+	@echo "This will remove all cell outputs while preserving the code and markdown."
+	@echo ""
+	@if command -v nbstripout >/dev/null 2>&1; then \
+		echo "Using nbstripout (recommended)..."; \
+		find . -name "*.ipynb" -not -path "./venv/*" -not -path "./.git/*" -exec nbstripout {} \; && \
+		echo "✅ All notebooks cleared using nbstripout"; \
+	elif command -v jupyter >/dev/null 2>&1; then \
+		echo "Using jupyter nbconvert..."; \
+		find . -name "*.ipynb" -not -path "./venv/*" -not -path "./.git/*" -exec jupyter nbconvert --clear-output --inplace {} \; && \
+		echo "✅ All notebooks cleared using jupyter nbconvert"; \
+	else \
+		echo "Using Python fallback method..."; \
+		find . -name "*.ipynb" -not -path "./venv/*" -not -path "./.git/*" | while read notebook; do \
+			echo "🔄 Clearing: $$notebook"; \
+			$(PYTHON) -c "import json; nb=json.load(open('$$notebook')); [c.pop('outputs',None) or c.pop('execution_count',None) for c in nb.get('cells',[])]; json.dump(nb,open('$$notebook','w'),indent=1)" && \
+			echo "  ✅ Cleared: $$notebook" || echo "  ❌ Failed: $$notebook"; \
+		done; \
+		echo "✅ All notebooks processed using Python fallback"; \
+	fi
+	@echo ""
+	@echo "📝 To install nbstripout for better performance: pip install nbstripout"
