@@ -62,12 +62,35 @@ class BaseResource:
         """
         return self._client.post(self._endpoint, json_data=data)
 
-    def update(self, resource_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Update a resource using PUT.
+    def update(
+        self, resource_id: int, data: Dict[str, Any], update_type: str = "partial"
+    ) -> Dict[str, Any]:
+        """Update a resource with configurable update type.
 
         Args:
             resource_id: The resource ID
-            data: The updated resource data
+            data: The resource data to update
+            update_type: Type of update - "full" for PUT (complete replacement)
+                        or "partial" for PATCH (partial update). Default: "partial"
+
+        Returns:
+            The updated resource data
+        """
+        if update_type == "full":
+            return self.put(resource_id, data)
+        elif update_type == "partial":
+            return self.patch(resource_id, data)
+        else:
+            raise ValueError(
+                f"Invalid update_type '{update_type}'. Must be 'full' or 'partial'"
+            )
+
+    def put(self, resource_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Update a resource using PUT (full replacement).
+
+        Args:
+            resource_id: The resource ID
+            data: The complete resource data
 
         Returns:
             The updated resource data
@@ -498,6 +521,114 @@ class SearchableResource(BaseResource):
         resource_name = endpoint.lstrip("/")  # Remove leading slash only
         self._validator = SearchRequestValidator(resource_name, client)
 
+    def _is_standard_field(self, field_name: str) -> bool:
+        """Check if a field name is a standard field for this resource.
+
+        Args:
+            field_name: The field name to check
+
+        Returns:
+            True if the field is a standard field, False otherwise
+        """
+        try:
+            available_fields = self.get_output_fields()
+            standard_fields = available_fields.get("standardFields", [])
+
+            # Check if field_name exists in standard fields
+            if isinstance(standard_fields, list):
+                return field_name in standard_fields
+
+        except Exception:
+            # If we can't get standard fields, assume it might be custom
+            pass
+
+        return False
+
+    def _convert_field_names_to_ids(
+        self, search_request: SearchRequest
+    ) -> SearchRequest:
+        """Convert custom field names to their integer IDs in search and output fields.
+
+        Args:
+            search_request: The search request with potential custom field names
+
+        Returns:
+            Search request with custom field names converted to appropriate ID format
+        """
+        # Make a copy to avoid modifying the original
+        converted_request = search_request.copy()
+
+        # Get the resource category for custom field lookups
+        category = self._get_resource_category()
+        if not category:
+            self._logger.debug("No custom field category mapping for this resource")
+            return converted_request
+
+        # Convert custom field names in searchFields
+        search_fields = converted_request.get("searchFields", [])
+        if search_fields:
+            for field in search_fields:
+                if isinstance(field, dict) and "field" in field:
+                    field_name = field["field"]
+                    # Skip if already an integer ID (existing custom field ID)
+                    if isinstance(field_name, int):
+                        continue
+                    # Skip if already a digit string (existing custom field ID like "123")
+                    if isinstance(field_name, str) and field_name.isdigit():
+                        continue
+
+                    # Skip if this is a standard field - no need to convert
+                    if self._is_standard_field(field_name):
+                        continue
+
+                    # Try to find custom field by name
+                    custom_field = self._client.custom_fields.find_by_name_and_category(
+                        field_name, category
+                    )
+                    if custom_field and "id" in custom_field:
+                        # Convert to string for search fields (API expects strings)
+                        field["field"] = str(custom_field["id"])
+                        self._logger.debug(
+                            f"Converted custom field name '{field_name}' to ID string '{custom_field['id']}' for search"
+                        )
+
+        # Convert custom field names in outputFields
+        output_fields = converted_request.get("outputFields", [])
+        if output_fields:
+            converted_output_fields = []
+            for field_name in output_fields:
+                # Skip if already an integer ID (existing custom field ID)
+                if isinstance(field_name, int):
+                    converted_output_fields.append(field_name)
+                    continue
+                # Skip if already a digit string (existing custom field ID like "123")
+                if isinstance(field_name, str) and field_name.isdigit():
+                    converted_output_fields.append(field_name)
+                    continue
+
+                # Skip if this is a standard field - no need to convert
+                if self._is_standard_field(field_name):
+                    converted_output_fields.append(field_name)
+                    continue
+
+                # Try to find custom field by name
+                custom_field = self._client.custom_fields.find_by_name_and_category(
+                    field_name, category
+                )
+                if custom_field and "id" in custom_field:
+                    # Convert to integer for output fields (API expects integers)
+                    converted_output_fields.append(custom_field["id"])
+                    self._logger.debug(
+                        f"Converted custom field name '{field_name}' to ID integer {custom_field['id']} for output"
+                    )
+                else:
+                    # Keep original field name if not found as custom field (might be standard field)
+                    converted_output_fields.append(field_name)
+
+            converted_request["outputFields"] = converted_output_fields
+
+        return converted_request
+
     def _prepare_search_request(self, search_request: SearchRequest) -> SearchRequest:
         """Prepare search request by handling missing or wildcard output_fields and type conversions.
 
@@ -507,6 +638,9 @@ class SearchableResource(BaseResource):
         Returns:
             Modified search request with proper output_fields and field type conversions
         """
+        # First convert custom field names to IDs
+        search_request = self._convert_field_names_to_ids(search_request)
+
         # Make a copy to avoid modifying the original
         prepared_request = search_request.copy()
 

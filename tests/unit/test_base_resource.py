@@ -1,6 +1,7 @@
 """Unit tests for base resource classes."""
 
 import pytest
+from unittest.mock import MagicMock
 
 from neon_crm.resources.base import (
     BaseResource,
@@ -60,13 +61,55 @@ class TestBaseResource:
         assert result == {"id": 456, "name": "New Item"}
         mock_client.post.assert_called_once_with("/test", json_data=test_data)
 
-    def test_update_method(self, mock_client):
-        """Test UPDATE request method."""
+    def test_update_method_default_partial(self, mock_client):
+        """Test UPDATE request method with default partial update."""
+        test_data = {"name": "Updated Item"}
+        mock_client.patch.return_value = {"id": 123, "name": "Updated Item"}
+
+        resource = BaseResource(mock_client, "/test")
+        result = resource.update(123, test_data)
+
+        assert result == {"id": 123, "name": "Updated Item"}
+        mock_client.patch.assert_called_once_with("/test/123", json_data=test_data)
+
+    def test_update_method_partial_explicit(self, mock_client):
+        """Test UPDATE request method with explicit partial update."""
+        test_data = {"name": "Updated Item"}
+        mock_client.patch.return_value = {"id": 123, "name": "Updated Item"}
+
+        resource = BaseResource(mock_client, "/test")
+        result = resource.update(123, test_data, update_type="partial")
+
+        assert result == {"id": 123, "name": "Updated Item"}
+        mock_client.patch.assert_called_once_with("/test/123", json_data=test_data)
+
+    def test_update_method_full(self, mock_client):
+        """Test UPDATE request method with full update."""
         test_data = {"name": "Updated Item"}
         mock_client.put.return_value = {"id": 123, "name": "Updated Item"}
 
         resource = BaseResource(mock_client, "/test")
-        result = resource.update(123, test_data)
+        result = resource.update(123, test_data, update_type="full")
+
+        assert result == {"id": 123, "name": "Updated Item"}
+        mock_client.put.assert_called_once_with("/test/123", json_data=test_data)
+
+    def test_update_method_invalid_type(self, mock_client):
+        """Test UPDATE request method with invalid update type."""
+        test_data = {"name": "Updated Item"}
+
+        resource = BaseResource(mock_client, "/test")
+
+        with pytest.raises(ValueError, match="Invalid update_type 'invalid'"):
+            resource.update(123, test_data, update_type="invalid")
+
+    def test_put_method(self, mock_client):
+        """Test direct PUT request method."""
+        test_data = {"name": "Updated Item"}
+        mock_client.put.return_value = {"id": 123, "name": "Updated Item"}
+
+        resource = BaseResource(mock_client, "/test")
+        result = resource.put(123, test_data)
 
         assert result == {"id": 123, "name": "Updated Item"}
         mock_client.put.assert_called_once_with("/test/123", json_data=test_data)
@@ -203,6 +246,283 @@ class TestSearchableResource:
         assert "standardFields" in fields
         assert len(fields["standardFields"]) == 2
         mock_client.get.assert_called_once_with("/test/search/outputFields")
+
+    def test_convert_field_names_to_ids_search_fields(self, mock_client):
+        """Test conversion of custom field names to IDs in search fields."""
+        # Mock the resource category mapping
+        resource = SearchableResource(mock_client, "/accounts")
+
+        # Mock custom fields resource
+        mock_custom_fields = MagicMock()
+
+        def mock_find_by_name(field_name, category):
+            if field_name == "My Custom Field":
+                return {
+                    "id": 123,
+                    "name": "My Custom Field",
+                    "displayName": "My Custom Field",
+                }
+            return None  # Return None for standard fields like "firstName"
+
+        mock_custom_fields.find_by_name_and_category.side_effect = mock_find_by_name
+        mock_client.custom_fields = mock_custom_fields
+
+        search_request: SearchRequest = {
+            "searchFields": [
+                {"field": "My Custom Field", "operator": "EQUAL", "value": "test"},
+                {
+                    "field": "firstName",
+                    "operator": "EQUAL",
+                    "value": "John",
+                },  # Standard field
+                {
+                    "field": "456",
+                    "operator": "EQUAL",
+                    "value": "existing",
+                },  # Already an ID
+            ],
+            "outputFields": ["id", "firstName"],
+        }
+
+        result = resource._convert_field_names_to_ids(search_request)
+
+        # Verify custom field name was converted to string ID
+        assert result["searchFields"][0]["field"] == "123"
+        assert result["searchFields"][0]["operator"] == "EQUAL"
+        assert result["searchFields"][0]["value"] == "test"
+
+        # Verify standard field unchanged
+        assert result["searchFields"][1]["field"] == "firstName"
+
+        # Verify existing ID unchanged
+        assert result["searchFields"][2]["field"] == "456"
+
+        # Verify custom field lookup was called for the custom field
+        calls = mock_client.custom_fields.find_by_name_and_category.call_args_list
+        assert any(
+            call[0] == ("My Custom Field", resource._get_resource_category())
+            for call in calls
+        )
+
+    def test_convert_field_names_to_ids_output_fields(self, mock_client):
+        """Test conversion of custom field names to IDs in output fields."""
+        resource = SearchableResource(mock_client, "/accounts")
+
+        # Mock custom fields resource
+        mock_custom_fields = MagicMock()
+
+        def mock_find_by_name(field_name, category):
+            if field_name == "Another Custom Field":
+                return {
+                    "id": 789,
+                    "name": "Another Custom Field",
+                    "displayName": "Another Custom Field",
+                }
+            return None  # Return None for standard fields
+
+        mock_custom_fields.find_by_name_and_category.side_effect = mock_find_by_name
+        mock_client.custom_fields = mock_custom_fields
+
+        search_request: SearchRequest = {
+            "searchFields": [],
+            "outputFields": ["id", "Another Custom Field", "firstName", 999, "123"],
+        }
+
+        result = resource._convert_field_names_to_ids(search_request)
+
+        # Check output fields conversion
+        expected_output = ["id", 789, "firstName", 999, "123"]
+        assert result["outputFields"] == expected_output
+
+    def test_convert_field_names_to_ids_field_not_found(self, mock_client):
+        """Test behavior when custom field name is not found."""
+        resource = SearchableResource(mock_client, "/accounts")
+
+        # Mock custom fields resource
+        mock_custom_fields = MagicMock()
+        mock_custom_fields.find_by_name_and_category.return_value = None
+        mock_client.custom_fields = mock_custom_fields
+
+        search_request: SearchRequest = {
+            "searchFields": [
+                {"field": "Nonexistent Field", "operator": "EQUAL", "value": "test"}
+            ],
+            "outputFields": ["Nonexistent Output Field"],
+        }
+
+        result = resource._convert_field_names_to_ids(search_request)
+
+        # Verify fields remain unchanged when not found
+        assert result["searchFields"][0]["field"] == "Nonexistent Field"
+        assert result["outputFields"][0] == "Nonexistent Output Field"
+
+    def test_convert_field_names_to_ids_no_category(self, mock_client):
+        """Test behavior when resource has no custom field category mapping."""
+        # Use a resource that doesn't have a category mapping
+        resource = SearchableResource(mock_client, "/unknown")
+
+        search_request: SearchRequest = {
+            "searchFields": [
+                {"field": "Some Field", "operator": "EQUAL", "value": "test"}
+            ],
+            "outputFields": ["Some Output Field"],
+        }
+
+        result = resource._convert_field_names_to_ids(search_request)
+
+        # Verify fields remain unchanged when no category mapping
+        assert result["searchFields"][0]["field"] == "Some Field"
+        assert result["outputFields"][0] == "Some Output Field"
+
+        # Verify no custom field lookup was attempted (no custom_fields attribute set)
+
+    def test_convert_field_names_to_ids_integration(self, mock_client):
+        """Test full integration of field name conversion in search preparation."""
+        resource = SearchableResource(mock_client, "/accounts")
+
+        # Mock custom fields resource
+        mock_custom_fields = MagicMock()
+
+        def mock_find_by_name(field_name, category):
+            if field_name == "Integration Test Field":
+                return {
+                    "id": 555,
+                    "name": "Integration Test Field",
+                    "displayName": "Integration Test Field",
+                }
+            return None  # Return None for standard fields
+
+        mock_custom_fields.find_by_name_and_category.side_effect = mock_find_by_name
+        mock_client.custom_fields = mock_custom_fields
+
+        # Mock get_output_fields to prevent wildcard expansion
+        mock_client.get.return_value = {
+            "standardFields": ["id", "firstName"],
+            "customFields": [],
+        }
+        resource._client._cache = None
+
+        search_request: SearchRequest = {
+            "searchFields": [
+                {"field": "Integration Test Field", "operator": "EQUAL", "value": 42}
+            ],
+            "outputFields": ["Integration Test Field", "firstName"],
+        }
+
+        result = resource._prepare_search_request(search_request)
+
+        # Verify custom field name was converted and value was converted to string
+        assert result["searchFields"][0]["field"] == "555"
+        assert (
+            result["searchFields"][0]["value"] == "42"
+        )  # Should be string after type conversion
+
+        # Verify output field was converted to integer
+        assert 555 in result["outputFields"]
+        assert "firstName" in result["outputFields"]
+
+    def test_convert_field_names_with_spaces_and_special_chars(self, mock_client):
+        """Test that field names with spaces and special characters are processed correctly."""
+        resource = SearchableResource(mock_client, "/accounts")
+
+        # Mock custom fields resource
+        mock_custom_fields = MagicMock()
+
+        def mock_find_by_name(field_name, category):
+            field_mapping = {
+                "V-Volunteer Skills": {"id": 100, "name": "V-Volunteer Skills"},
+                "Volunteer Status - Current": {
+                    "id": 200,
+                    "name": "Volunteer Status - Current",
+                },
+                "Custom Notes": {"id": 300, "name": "Custom Notes"},
+            }
+            return field_mapping.get(field_name)
+
+        mock_custom_fields.find_by_name_and_category.side_effect = mock_find_by_name
+        mock_client.custom_fields = mock_custom_fields
+
+        search_request: SearchRequest = {
+            "searchFields": [
+                {
+                    "field": "V-Volunteer Skills",
+                    "operator": "EQUAL",
+                    "value": "canvassing",
+                },
+                {
+                    "field": "firstName",
+                    "operator": "EQUAL",
+                    "value": "John",
+                },  # Standard field
+                {
+                    "field": "123",
+                    "operator": "EQUAL",
+                    "value": "existing",
+                },  # Existing ID
+            ],
+            "outputFields": [
+                "Volunteer Status - Current",
+                "Custom Notes",
+                "lastName",
+                456,
+            ],
+        }
+
+        result = resource._convert_field_names_to_ids(search_request)
+
+        # Verify custom field names with spaces/special chars were converted
+        assert result["searchFields"][0]["field"] == "100"
+        assert (
+            result["searchFields"][1]["field"] == "firstName"
+        )  # Standard field unchanged
+        assert result["searchFields"][2]["field"] == "123"  # Existing ID unchanged
+
+        # Verify output fields
+        expected_output = [200, 300, "lastName", 456]
+        assert result["outputFields"] == expected_output
+
+    def test_standard_field_check_avoids_custom_field_lookup(self, mock_client):
+        """Test that standard fields are detected and don't trigger custom field lookups."""
+        resource = SearchableResource(mock_client, "/accounts")
+
+        # Mock get_output_fields to return standard fields
+        mock_client.get.return_value = {
+            "standardFields": ["firstName", "lastName", "email"],
+            "customFields": [],
+        }
+
+        # Disable cache to ensure get_output_fields is called
+        resource._client._cache = None
+
+        # Mock custom fields resource (should not be called for standard fields)
+        mock_custom_fields = MagicMock()
+        mock_client.custom_fields = mock_custom_fields
+
+        search_request: SearchRequest = {
+            "searchFields": [
+                {
+                    "field": "firstName",
+                    "operator": "EQUAL",
+                    "value": "John",
+                },  # Standard field
+                {
+                    "field": "lastName",
+                    "operator": "EQUAL",
+                    "value": "Doe",
+                },  # Standard field
+            ],
+            "outputFields": ["firstName", "email"],  # Standard fields
+        }
+
+        result = resource._convert_field_names_to_ids(search_request)
+
+        # Verify standard fields remain unchanged
+        assert result["searchFields"][0]["field"] == "firstName"
+        assert result["searchFields"][1]["field"] == "lastName"
+        assert result["outputFields"] == ["firstName", "email"]
+
+        # Verify custom field lookup was NOT called for standard fields
+        mock_custom_fields.find_by_name_and_category.assert_not_called()
 
 
 @pytest.mark.unit
