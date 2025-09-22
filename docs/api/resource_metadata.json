@@ -30,6 +30,14 @@
           ],
           "doc": "Link an individual account to a company.\n\nArgs:\n    individual_id: ID of the individual account\n    company_id: ID of the company account\n\nReturns:\n    The response from the link operation"
         },
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        },
         "unlink": {
           "parameters": [
             "company_id"
@@ -46,7 +54,6 @@
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "search",
         "update"
@@ -54,8 +61,17 @@
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
     },
     "addresses": {
       "class_name": "AddressesResource",
@@ -64,7 +80,6 @@
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "update"
       ],
@@ -83,14 +98,13 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "custom_fields": {
       "class_name": "CustomFieldsResource",
@@ -173,7 +187,6 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [
@@ -182,7 +195,7 @@
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "donations": {
       "class_name": "DonationsResource",
@@ -191,7 +204,6 @@
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "search",
         "update"
@@ -199,8 +211,17 @@
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
     },
     "events": {
       "class_name": "EventsResource",
@@ -214,11 +235,23 @@
         "search",
         "update"
       ],
-      "relationships": [],
+      "relationships": [
+        "get_categories",
+        "get_registrations"
+      ],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
     },
     "grants": {
       "class_name": "GrantsResource",
@@ -238,8 +271,17 @@
       ],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
     },
     "households": {
       "class_name": "HouseholdsResource",
@@ -280,14 +322,31 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
-      "relationships": [],
+      "relationships": [
+        "get_levels",
+        "get_terms"
+      ],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "calculate": {
+          "parameters": [
+            "calculation_type"
+          ],
+          "doc": "Perform a calculation using the resource's calculation endpoint.\n\nArgs:\n    calculation_data: The data to use for the calculation\n    calculation_type: Optional calculation type suffix (e.g., \"Fee\", \"Dates\")\n\nReturns:\n    The calculation result data"
+        },
+        "calculate_dates": {
+          "parameters": [],
+          "doc": "Calculate membership term start and end dates.\n\nArgs:\n    calculation_data: The membership data for date calculation\n\nReturns:\n    The calculated dates"
+        },
+        "calculate_fee": {
+          "parameters": [],
+          "doc": "Calculate the cost of a membership.\n\nArgs:\n    calculation_data: The membership data for fee calculation\n\nReturns:\n    The calculated fee"
+        }
+      },
+      "type": "specialized"
     },
     "online_store": {
       "class_name": "OnlineStoreResource",
@@ -373,8 +432,27 @@
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "calculate": {
+          "parameters": [
+            "calculation_type"
+          ],
+          "doc": "Perform a calculation using the resource's calculation endpoint.\n\nArgs:\n    calculation_data: The data to use for the calculation\n    calculation_type: Optional calculation type suffix (e.g., \"Fee\", \"Dates\")\n\nReturns:\n    The calculation result data"
+        },
+        "calculate_order_total": {
+          "parameters": [],
+          "doc": "Calculate the total cost of an order.\n\nArgs:\n    order_data: The order data for calculation\n\nReturns:\n    The calculated order totals"
+        },
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
     },
     "payments": {
       "class_name": "PaymentsResource",
@@ -385,14 +463,13 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "pledges": {
       "class_name": "PledgesResource",
@@ -403,14 +480,13 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "properties": {
       "class_name": "PropertiesResource",
@@ -419,14 +495,30 @@
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "update"
       ],
       "relationships": [
-        "get_by_category",
-        "get_organization_info",
-        "get_system_info"
+        "get_activity_statuses",
+        "get_address_types",
+        "get_company_types",
+        "get_countries",
+        "get_current_system_user",
+        "get_event_categories",
+        "get_event_topics",
+        "get_funds",
+        "get_genders",
+        "get_individual_types",
+        "get_organization_profile",
+        "get_prefixes",
+        "get_property",
+        "get_purposes",
+        "get_relation_types",
+        "get_solicitation_methods",
+        "get_sources",
+        "get_state_provinces",
+        "get_system_timezones",
+        "get_system_users"
       ],
       "custom_fields": true,
       "fuzzy_search": true,
@@ -435,14 +527,13 @@
     },
     "recurring_donations": {
       "class_name": "RecurringDonationsResource",
-      "endpoint": "/recurringDonations",
+      "endpoint": "/recurring",
       "operations": [
         "create",
         "delete",
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [
@@ -468,7 +559,6 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [
@@ -478,7 +568,7 @@
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "volunteers": {
       "class_name": "VolunteersResource",
@@ -489,14 +579,13 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "webhooks": {
       "class_name": "WebhooksResource",

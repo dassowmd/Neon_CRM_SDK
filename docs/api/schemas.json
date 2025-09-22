@@ -36,6 +36,14 @@
           ],
           "doc": "Link an individual account to a company.\n\nArgs:\n    individual_id: ID of the individual account\n    company_id: ID of the company account\n\nReturns:\n    The response from the link operation"
         },
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        },
         "unlink": {
           "parameters": [
             "company_id"
@@ -52,7 +60,6 @@
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "search",
         "update"
@@ -60,8 +67,17 @@
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
     },
     "addresses": {
       "class_name": "AddressesResource",
@@ -70,7 +86,6 @@
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "update"
       ],
@@ -89,14 +104,13 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "custom_fields": {
       "class_name": "CustomFieldsResource",
@@ -179,7 +193,6 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [
@@ -188,7 +201,7 @@
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "donations": {
       "class_name": "DonationsResource",
@@ -197,7 +210,6 @@
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "search",
         "update"
@@ -205,8 +217,17 @@
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
     },
     "events": {
       "class_name": "EventsResource",
@@ -220,11 +241,23 @@
         "search",
         "update"
       ],
-      "relationships": [],
+      "relationships": [
+        "get_categories",
+        "get_registrations"
+      ],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
     },
     "grants": {
       "class_name": "GrantsResource",
@@ -244,8 +277,17 @@
       ],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
     },
     "households": {
       "class_name": "HouseholdsResource",
@@ -286,14 +328,31 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
-      "relationships": [],
+      "relationships": [
+        "get_levels",
+        "get_terms"
+      ],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "calculate": {
+          "parameters": [
+            "calculation_type"
+          ],
+          "doc": "Perform a calculation using the resource's calculation endpoint.\n\nArgs:\n    calculation_data: The data to use for the calculation\n    calculation_type: Optional calculation type suffix (e.g., \"Fee\", \"Dates\")\n\nReturns:\n    The calculation result data"
+        },
+        "calculate_dates": {
+          "parameters": [],
+          "doc": "Calculate membership term start and end dates.\n\nArgs:\n    calculation_data: The membership data for date calculation\n\nReturns:\n    The calculated dates"
+        },
+        "calculate_fee": {
+          "parameters": [],
+          "doc": "Calculate the cost of a membership.\n\nArgs:\n    calculation_data: The membership data for fee calculation\n\nReturns:\n    The calculated fee"
+        }
+      },
+      "type": "specialized"
     },
     "online_store": {
       "class_name": "OnlineStoreResource",
@@ -379,8 +438,27 @@
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": {},
-      "type": "searchable"
+      "specialized_methods": {
+        "calculate": {
+          "parameters": [
+            "calculation_type"
+          ],
+          "doc": "Perform a calculation using the resource's calculation endpoint.\n\nArgs:\n    calculation_data: The data to use for the calculation\n    calculation_type: Optional calculation type suffix (e.g., \"Fee\", \"Dates\")\n\nReturns:\n    The calculation result data"
+        },
+        "calculate_order_total": {
+          "parameters": [],
+          "doc": "Calculate the total cost of an order.\n\nArgs:\n    order_data: The order data for calculation\n\nReturns:\n    The calculated order totals"
+        },
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
     },
     "payments": {
       "class_name": "PaymentsResource",
@@ -391,14 +469,13 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "pledges": {
       "class_name": "PledgesResource",
@@ -409,14 +486,13 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "properties": {
       "class_name": "PropertiesResource",
@@ -425,14 +501,30 @@
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "update"
       ],
       "relationships": [
-        "get_by_category",
-        "get_organization_info",
-        "get_system_info"
+        "get_activity_statuses",
+        "get_address_types",
+        "get_company_types",
+        "get_countries",
+        "get_current_system_user",
+        "get_event_categories",
+        "get_event_topics",
+        "get_funds",
+        "get_genders",
+        "get_individual_types",
+        "get_organization_profile",
+        "get_prefixes",
+        "get_property",
+        "get_purposes",
+        "get_relation_types",
+        "get_solicitation_methods",
+        "get_sources",
+        "get_state_provinces",
+        "get_system_timezones",
+        "get_system_users"
       ],
       "custom_fields": true,
       "fuzzy_search": true,
@@ -441,14 +533,13 @@
     },
     "recurring_donations": {
       "class_name": "RecurringDonationsResource",
-      "endpoint": "/recurringDonations",
+      "endpoint": "/recurring",
       "operations": [
         "create",
         "delete",
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [
@@ -474,7 +565,6 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [
@@ -484,7 +574,7 @@
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "volunteers": {
       "class_name": "VolunteersResource",
@@ -495,14 +585,13 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
       "specialized_methods": {},
-      "type": "searchable"
+      "type": "crud"
     },
     "webhooks": {
       "class_name": "WebhooksResource",
@@ -548,6 +637,27 @@
     }
   },
   "enums": {
+    "AddressType": {
+      "type": "string",
+      "enum": [
+        "HOME",
+        "WORK",
+        "BILLING",
+        "MAILING",
+        "SHIPPING",
+        "OTHER"
+      ],
+      "description": "Address type enumeration (common values from Swagger)."
+    },
+    "AnonymousType": {
+      "type": "string",
+      "enum": [
+        "FALSE",
+        "DONOR_NAME_ANONYMOUS",
+        "DONATION_AMOUNT_ANONYMOUS"
+      ],
+      "description": "Anonymous donation type enumeration."
+    },
     "CustomFieldCategory": {
       "type": "string",
       "enum": [
@@ -565,10 +675,70 @@
       ],
       "description": "Custom field category enumeration."
     },
+    "DonationStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELED",
+        "DEFERRED",
+        "REFUNDED"
+      ],
+      "description": "Donation status enumeration."
+    },
     "Enum": {
       "type": "string",
       "enum": [],
       "description": "Create a collection of name/value pairs.\n\nExample enumeration:\n\n>>> class Color(Enum):\n...     RED = 1\n...     BLUE = 2\n...     GREEN = 3\n\nAccess them by:\n\n- attribute access:\n\n  >>> Color.RED\n  <Color.RED: 1>\n\n- value lookup:\n\n  >>> Color(1)\n  <Color.RED: 1>\n\n- name lookup:\n\n  >>> Color['RED']\n  <Color.RED: 1>\n\nEnumerations can be iterated over, and know how many members they have:\n\n>>> len(Color)\n3\n\n>>> list(Color)\n[<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]\n\nMethods can be added to enumerations, and members can have their own\nattributes -- see the documentation for details."
+    },
+    "EventStatus": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PUBLISHED",
+        "CANCELED",
+        "COMPLETED"
+      ],
+      "description": "Event status enumeration (common values)."
+    },
+    "Gender": {
+      "type": "string",
+      "enum": [
+        "MALE",
+        "FEMALE",
+        "OTHER",
+        "PREFER_NOT_TO_SAY"
+      ],
+      "description": "Gender enumeration (common values)."
+    },
+    "PaymentStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PROCESSING",
+        "SUCCEEDED",
+        "FAILED",
+        "ERROR",
+        "SCHEDULED",
+        "CANCELED",
+        "DEFERRED",
+        "REFUNDED",
+        "PARTIALLY_REFUNDED",
+        "DISPUTE_LOST",
+        "HELD_FOR_REVIEW"
+      ],
+      "description": "Payment status enumeration."
+    },
+    "PhoneType": {
+      "type": "string",
+      "enum": [
+        "HOME",
+        "WORK",
+        "MOBILE",
+        "OTHER"
+      ],
+      "description": "Phone number type enumeration."
     },
     "SearchOperator": {
       "type": "string",
@@ -586,7 +756,15 @@
         "CONTAIN",
         "NOT_CONTAIN"
       ],
-      "description": "Search operator enumeration."
+      "description": "Search operator enumeration.\n\nNote about IN_RANGE and NOT_IN_RANGE operators:\nDespite the name, these operators behave like IN_ARRAY/NOT_IN_ARRAY operations.\nThey check if a field value matches any value in a provided list, rather than\nchecking if a value falls within a numeric range.\n\nExample:\n    # This checks if Status is \"Active\" OR \"Pending\" (not a range)\n    {\"field\": \"Status\", \"operator\": \"IN_RANGE\", \"value\": [\"Active\", \"Pending\"]}\n\n    # For actual numeric ranges, use comparison operators instead:\n    {\"field\": \"Amount\", \"operator\": \"GREATER_THAN\", \"value\": 100}\n    {\"field\": \"Amount\", \"operator\": \"LESS_THAN\", \"value\": 500}"
+    },
+    "SortDirection": {
+      "type": "string",
+      "enum": [
+        "ASC",
+        "DESC"
+      ],
+      "description": "Sort direction enumeration."
     },
     "UserType": {
       "type": "string",
@@ -731,6 +909,20 @@
       },
       "required": [],
       "description": "Address data structure."
+    },
+    "CodeNamePair": {
+      "type": "object",
+      "title": "CodeNamePair",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Common structure for Code/Name pairs (e.g., state/province)."
     },
     "CompanyAccount": {
       "type": "object",
@@ -919,6 +1111,53 @@
       "required": [],
       "description": "Donation data structure."
     },
+    "DonationRequest": {
+      "type": "object",
+      "title": "DonationRequest",
+      "properties": {
+        "accountId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "fund": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "anonymousType": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "sendAcknowledgeEmail": {
+          "type": "boolean"
+        },
+        "sendAcknowledgeLetter": {
+          "type": "boolean"
+        },
+        "payLater": {
+          "type": "boolean"
+        },
+        "payments": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [],
+      "description": "Donation creation request structure."
+    },
     "EventData": {
       "type": "object",
       "title": "EventData",
@@ -947,6 +1186,52 @@
       },
       "required": [],
       "description": "Event data structure."
+    },
+    "EventRequest": {
+      "type": "object",
+      "title": "EventRequest",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "eventDates": {
+          "type": "object"
+        },
+        "publishEvent": {
+          "type": "boolean"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Event creation request structure."
+    },
+    "IdNamePair": {
+      "type": "object",
+      "title": "IdNamePair",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Common structure for ID/Name pairs used throughout the API."
     },
     "IndividualAccount": {
       "type": "object",

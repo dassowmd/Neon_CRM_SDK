@@ -1,5 +1,26 @@
 {
   "enums": {
+    "AddressType": {
+      "type": "string",
+      "enum": [
+        "HOME",
+        "WORK",
+        "BILLING",
+        "MAILING",
+        "SHIPPING",
+        "OTHER"
+      ],
+      "description": "Address type enumeration (common values from Swagger)."
+    },
+    "AnonymousType": {
+      "type": "string",
+      "enum": [
+        "FALSE",
+        "DONOR_NAME_ANONYMOUS",
+        "DONATION_AMOUNT_ANONYMOUS"
+      ],
+      "description": "Anonymous donation type enumeration."
+    },
     "CustomFieldCategory": {
       "type": "string",
       "enum": [
@@ -17,10 +38,70 @@
       ],
       "description": "Custom field category enumeration."
     },
+    "DonationStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELED",
+        "DEFERRED",
+        "REFUNDED"
+      ],
+      "description": "Donation status enumeration."
+    },
     "Enum": {
       "type": "string",
       "enum": [],
       "description": "Create a collection of name/value pairs.\n\nExample enumeration:\n\n>>> class Color(Enum):\n...     RED = 1\n...     BLUE = 2\n...     GREEN = 3\n\nAccess them by:\n\n- attribute access:\n\n  >>> Color.RED\n  <Color.RED: 1>\n\n- value lookup:\n\n  >>> Color(1)\n  <Color.RED: 1>\n\n- name lookup:\n\n  >>> Color['RED']\n  <Color.RED: 1>\n\nEnumerations can be iterated over, and know how many members they have:\n\n>>> len(Color)\n3\n\n>>> list(Color)\n[<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]\n\nMethods can be added to enumerations, and members can have their own\nattributes -- see the documentation for details."
+    },
+    "EventStatus": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PUBLISHED",
+        "CANCELED",
+        "COMPLETED"
+      ],
+      "description": "Event status enumeration (common values)."
+    },
+    "Gender": {
+      "type": "string",
+      "enum": [
+        "MALE",
+        "FEMALE",
+        "OTHER",
+        "PREFER_NOT_TO_SAY"
+      ],
+      "description": "Gender enumeration (common values)."
+    },
+    "PaymentStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PROCESSING",
+        "SUCCEEDED",
+        "FAILED",
+        "ERROR",
+        "SCHEDULED",
+        "CANCELED",
+        "DEFERRED",
+        "REFUNDED",
+        "PARTIALLY_REFUNDED",
+        "DISPUTE_LOST",
+        "HELD_FOR_REVIEW"
+      ],
+      "description": "Payment status enumeration."
+    },
+    "PhoneType": {
+      "type": "string",
+      "enum": [
+        "HOME",
+        "WORK",
+        "MOBILE",
+        "OTHER"
+      ],
+      "description": "Phone number type enumeration."
     },
     "SearchOperator": {
       "type": "string",
@@ -38,7 +119,15 @@
         "CONTAIN",
         "NOT_CONTAIN"
       ],
-      "description": "Search operator enumeration."
+      "description": "Search operator enumeration.\n\nNote about IN_RANGE and NOT_IN_RANGE operators:\nDespite the name, these operators behave like IN_ARRAY/NOT_IN_ARRAY operations.\nThey check if a field value matches any value in a provided list, rather than\nchecking if a value falls within a numeric range.\n\nExample:\n    # This checks if Status is \"Active\" OR \"Pending\" (not a range)\n    {\"field\": \"Status\", \"operator\": \"IN_RANGE\", \"value\": [\"Active\", \"Pending\"]}\n\n    # For actual numeric ranges, use comparison operators instead:\n    {\"field\": \"Amount\", \"operator\": \"GREATER_THAN\", \"value\": 100}\n    {\"field\": \"Amount\", \"operator\": \"LESS_THAN\", \"value\": 500}"
+    },
+    "SortDirection": {
+      "type": "string",
+      "enum": [
+        "ASC",
+        "DESC"
+      ],
+      "description": "Sort direction enumeration."
     },
     "UserType": {
       "type": "string",
@@ -183,6 +272,20 @@
       },
       "required": [],
       "description": "Address data structure."
+    },
+    "CodeNamePair": {
+      "type": "object",
+      "title": "CodeNamePair",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Common structure for Code/Name pairs (e.g., state/province)."
     },
     "CompanyAccount": {
       "type": "object",
@@ -371,6 +474,53 @@
       "required": [],
       "description": "Donation data structure."
     },
+    "DonationRequest": {
+      "type": "object",
+      "title": "DonationRequest",
+      "properties": {
+        "accountId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "fund": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "anonymousType": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "sendAcknowledgeEmail": {
+          "type": "boolean"
+        },
+        "sendAcknowledgeLetter": {
+          "type": "boolean"
+        },
+        "payLater": {
+          "type": "boolean"
+        },
+        "payments": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [],
+      "description": "Donation creation request structure."
+    },
     "EventData": {
       "type": "object",
       "title": "EventData",
@@ -399,6 +549,52 @@
       },
       "required": [],
       "description": "Event data structure."
+    },
+    "EventRequest": {
+      "type": "object",
+      "title": "EventRequest",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "eventDates": {
+          "type": "object"
+        },
+        "publishEvent": {
+          "type": "boolean"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Event creation request structure."
+    },
+    "IdNamePair": {
+      "type": "object",
+      "title": "IdNamePair",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Common structure for ID/Name pairs used throughout the API."
     },
     "IndividualAccount": {
       "type": "object",

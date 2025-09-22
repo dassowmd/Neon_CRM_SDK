@@ -34,17 +34,17 @@
       "fuzzy_search": true,
       "specialized_methods": [
         "link",
+        "search_paginated",
         "unlink"
       ]
     },
     "activities": {
-      "type": "searchable",
+      "type": "specialized",
       "endpoint": "/activities",
       "operations": [
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "search",
         "update"
@@ -52,7 +52,9 @@
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": []
+      "specialized_methods": [
+        "search_paginated"
+      ]
     },
     "addresses": {
       "type": "crud",
@@ -61,7 +63,6 @@
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "update"
       ],
@@ -71,7 +72,7 @@
       "specialized_methods": []
     },
     "campaigns": {
-      "type": "searchable",
+      "type": "crud",
       "endpoint": "/campaigns",
       "operations": [
         "create",
@@ -79,7 +80,6 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
@@ -116,7 +116,7 @@
       ]
     },
     "custom_objects": {
-      "type": "searchable",
+      "type": "crud",
       "endpoint": "/customObjects",
       "operations": [
         "create",
@@ -124,7 +124,6 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [
@@ -135,13 +134,12 @@
       "specialized_methods": []
     },
     "donations": {
-      "type": "searchable",
+      "type": "specialized",
       "endpoint": "/donations",
       "operations": [
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "search",
         "update"
@@ -149,10 +147,12 @@
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": []
+      "specialized_methods": [
+        "search_paginated"
+      ]
     },
     "events": {
-      "type": "searchable",
+      "type": "specialized",
       "endpoint": "/events",
       "operations": [
         "create",
@@ -163,13 +163,18 @@
         "search",
         "update"
       ],
-      "relationships": [],
+      "relationships": [
+        "get_categories",
+        "get_registrations"
+      ],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": []
+      "specialized_methods": [
+        "search_paginated"
+      ]
     },
     "grants": {
-      "type": "searchable",
+      "type": "specialized",
       "endpoint": "/grants",
       "operations": [
         "create",
@@ -186,7 +191,9 @@
       ],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": []
+      "specialized_methods": [
+        "search_paginated"
+      ]
     },
     "households": {
       "type": "specialized",
@@ -208,7 +215,7 @@
       ]
     },
     "memberships": {
-      "type": "searchable",
+      "type": "specialized",
       "endpoint": "/memberships",
       "operations": [
         "create",
@@ -216,13 +223,19 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
-      "relationships": [],
+      "relationships": [
+        "get_levels",
+        "get_terms"
+      ],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": []
+      "specialized_methods": [
+        "calculate",
+        "calculate_dates",
+        "calculate_fee"
+      ]
     },
     "online_store": {
       "type": "specialized",
@@ -251,7 +264,7 @@
       ]
     },
     "orders": {
-      "type": "searchable",
+      "type": "specialized",
       "endpoint": "/orders",
       "operations": [
         "create",
@@ -265,10 +278,14 @@
       "relationships": [],
       "custom_fields": true,
       "fuzzy_search": true,
-      "specialized_methods": []
+      "specialized_methods": [
+        "calculate",
+        "calculate_order_total",
+        "search_paginated"
+      ]
     },
     "payments": {
-      "type": "searchable",
+      "type": "crud",
       "endpoint": "/payments",
       "operations": [
         "create",
@@ -276,7 +293,6 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
@@ -285,7 +301,7 @@
       "specialized_methods": []
     },
     "pledges": {
-      "type": "searchable",
+      "type": "crud",
       "endpoint": "/pledges",
       "operations": [
         "create",
@@ -293,7 +309,6 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
@@ -308,14 +323,30 @@
         "create",
         "delete",
         "get",
-        "list",
         "patch",
         "update"
       ],
       "relationships": [
-        "get_by_category",
-        "get_organization_info",
-        "get_system_info"
+        "get_activity_statuses",
+        "get_address_types",
+        "get_company_types",
+        "get_countries",
+        "get_current_system_user",
+        "get_event_categories",
+        "get_event_topics",
+        "get_funds",
+        "get_genders",
+        "get_individual_types",
+        "get_organization_profile",
+        "get_prefixes",
+        "get_property",
+        "get_purposes",
+        "get_relation_types",
+        "get_solicitation_methods",
+        "get_sources",
+        "get_state_provinces",
+        "get_system_timezones",
+        "get_system_users"
       ],
       "custom_fields": true,
       "fuzzy_search": true,
@@ -323,14 +354,13 @@
     },
     "recurring_donations": {
       "type": "specialized",
-      "endpoint": "/recurringDonations",
+      "endpoint": "/recurring",
       "operations": [
         "create",
         "delete",
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [
@@ -344,7 +374,7 @@
       ]
     },
     "soft_credits": {
-      "type": "searchable",
+      "type": "crud",
       "endpoint": "/softCredits",
       "operations": [
         "create",
@@ -352,7 +382,6 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [
@@ -364,7 +393,7 @@
       "specialized_methods": []
     },
     "volunteers": {
-      "type": "searchable",
+      "type": "crud",
       "endpoint": "/volunteers",
       "operations": [
         "create",
@@ -372,7 +401,6 @@
         "get",
         "list",
         "patch",
-        "search",
         "update"
       ],
       "relationships": [],
