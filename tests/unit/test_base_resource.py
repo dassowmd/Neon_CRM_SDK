@@ -4,6 +4,7 @@ import pytest
 
 from neon_crm.resources.base import (
     BaseResource,
+    ListableResource,
     RelationshipResource,
     SearchableResource,
 )
@@ -91,15 +92,15 @@ class TestBaseResource:
         assert result == {"success": True}
         mock_client.delete.assert_called_once_with("/test/123")
 
-    def test_list_method_with_searchResults(self, mock_client):
-        """Test LIST method with searchResults response."""
+    def test_list_method_with_endpoint_key(self, mock_client):
+        """Test LIST method with endpoint-named key response."""
         mock_response = {
             "pagination": {"currentPage": 1, "totalPages": 1},
-            "searchResults": [{"id": 1}, {"id": 2}],
+            "test": [{"id": 1}, {"id": 2}],
         }
         mock_client.get.return_value = mock_response
 
-        resource = BaseResource(mock_client, "/test")
+        resource = ListableResource(mock_client, "/test")
         results = list(resource.list(page_size=10))
 
         assert len(results) == 2
@@ -111,7 +112,7 @@ class TestBaseResource:
         mock_response = [{"id": 1}, {"id": 2}]
         mock_client.get.return_value = mock_response
 
-        resource = BaseResource(mock_client, "/test")
+        resource = ListableResource(mock_client, "/test")
         results = list(resource.list())
 
         assert len(results) == 2
@@ -123,16 +124,16 @@ class TestBaseResource:
         # Mock two pages of results
         page1_response = {
             "pagination": {"currentPage": 1, "totalPages": 2},
-            "searchResults": [{"id": 1}, {"id": 2}],
+            "test": [{"id": 1}, {"id": 2}],
         }
         page2_response = {
             "pagination": {"currentPage": 2, "totalPages": 2},
-            "searchResults": [{"id": 3}, {"id": 4}],
+            "test": [{"id": 3}, {"id": 4}],
         }
 
         mock_client.get.side_effect = [page1_response, page2_response]
 
-        resource = BaseResource(mock_client, "/test")
+        resource = ListableResource(mock_client, "/test")
         results = list(resource.list(page_size=2))
 
         assert len(results) == 4
@@ -165,32 +166,42 @@ class TestSearchableResource:
 
     def test_get_search_fields(self, mock_client):
         """Test get_search_fields method."""
-        mock_response = [
-            {"field": "name", "type": "string"},
-            {"field": "id", "type": "integer"},
-        ]
+        mock_response = {
+            "standardFields": [
+                {"fieldName": "name", "operators": ["EQUAL"]},
+                {"fieldName": "id", "operators": ["EQUAL"]},
+            ]
+        }
         mock_client.get.return_value = mock_response
+        # Mock cache to None to bypass caching
+        mock_client._cache = None
 
         resource = SearchableResource(mock_client, "/test")
         fields = resource.get_search_fields()
 
-        assert len(fields) == 2
-        assert fields[0]["field"] == "name"
+        assert isinstance(fields, dict)
+        assert "standardFields" in fields
+        assert len(fields["standardFields"]) == 2
         mock_client.get.assert_called_once_with("/test/search/searchFields")
 
     def test_get_output_fields(self, mock_client):
         """Test get_output_fields method."""
-        mock_response = [
-            {"field": "id", "type": "integer"},
-            {"field": "name", "type": "string"},
-        ]
+        mock_response = {
+            "standardFields": [
+                {"fieldName": "id", "dataType": "integer"},
+                {"fieldName": "name", "dataType": "string"},
+            ]
+        }
         mock_client.get.return_value = mock_response
+        # Mock cache to None to bypass caching
+        mock_client._cache = None
 
         resource = SearchableResource(mock_client, "/test")
         fields = resource.get_output_fields()
 
-        assert len(fields) == 2
-        assert fields[0]["field"] == "id"
+        assert isinstance(fields, dict)
+        assert "standardFields" in fields
+        assert len(fields["standardFields"]) == 2
         mock_client.get.assert_called_once_with("/test/search/outputFields")
 
 

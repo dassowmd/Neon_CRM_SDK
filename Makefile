@@ -117,7 +117,7 @@ test:
 
 test-unit:
 	@echo "Running unit tests (mocked, fast)..."
-	$(PYTHON) -m pytest tests/unit/ -m unit -v --cov=neon_crm --cov-report=term-missing
+	$(PYTHON) -m pytest tests/unit/ -v --cov=neon_crm --cov-report=term-missing
 
 test-regression-readonly:
 	@echo "Running regression tests (read-only operations)..."

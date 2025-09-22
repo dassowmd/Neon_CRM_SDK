@@ -29,7 +29,7 @@ class TestAccountsResource:
     def test_list_with_filters(self, mock_client):
         """Test list method with various filters."""
         mock_client.get.return_value = {
-            "searchResults": [{"id": 1}],
+            "accounts": [{"id": 1}],
             "pagination": {"currentPage": 1, "totalPages": 1},
         }
 
@@ -129,7 +129,7 @@ class TestDonationsResource:
     def test_list_with_filters(self, mock_client):
         """Test list method with donation-specific filters."""
         mock_client.get.return_value = {
-            "searchResults": [{"id": 1}],
+            "donations": [{"id": 1}],
             "pagination": {"currentPage": 1, "totalPages": 1},
         }
 
@@ -159,7 +159,7 @@ class TestEventsResource:
     def test_list_with_filters(self, mock_client):
         """Test list method with event-specific filters."""
         mock_client.get.return_value = {
-            "searchResults": [{"id": 1}],
+            "events": [{"id": 1}],
             "pagination": {"currentPage": 1, "totalPages": 1},
         }
 
@@ -184,7 +184,7 @@ class TestOrdersResource:
     def test_list_with_filters(self, mock_client):
         """Test list method with order-specific filters."""
         mock_client.get.return_value = {
-            "searchResults": [{"id": 1}],
+            "orders": [{"id": 1}],
             "pagination": {"currentPage": 1, "totalPages": 1},
         }
 
@@ -205,7 +205,7 @@ class TestPledgesResource:
     def test_list_with_filters(self, mock_client):
         """Test list method with pledge-specific filters."""
         mock_client.get.return_value = {
-            "searchResults": [{"id": 1}],
+            "pledges": [{"id": 1}],
             "pagination": {"currentPage": 1, "totalPages": 1},
         }
 
@@ -255,7 +255,7 @@ class TestGrantsResource:
     def test_get_by_funder(self, mock_client):
         """Test getting grants by funder."""
         mock_client.get.return_value = {
-            "searchResults": [{"id": 1}],
+            "grants": [{"id": 1}],
             "pagination": {"currentPage": 1, "totalPages": 1},
         }
 
@@ -270,7 +270,7 @@ class TestGrantsResource:
     def test_get_active(self, mock_client):
         """Test getting active grants."""
         mock_client.get.return_value = {
-            "searchResults": [{"id": 1}],
+            "grants": [{"id": 1}],
             "pagination": {"currentPage": 1, "totalPages": 1},
         }
 
@@ -290,7 +290,7 @@ class TestCustomFieldsResource:
     def test_get_by_category(self, mock_client):
         """Test getting custom fields by category."""
         mock_client.get.return_value = {
-            "searchResults": [{"id": 1}],
+            "customFields": [{"id": 1}],
             "pagination": {"currentPage": 1, "totalPages": 1},
         }
 
@@ -315,12 +315,12 @@ class TestRecurringDonationsResource:
         result = resource.cancel(donation_id=123)
 
         assert result["success"] is True
-        mock_client.post.assert_called_once_with("/recurringDonations/123/cancel")
+        mock_client.post.assert_called_once_with("/recurring/123/cancel")
 
     def test_get_by_frequency(self, mock_client):
         """Test getting recurring donations by frequency."""
         mock_client.get.return_value = {
-            "searchResults": [{"id": 1}],
+            "recurringDonations": [{"id": 1}],
             "pagination": {"currentPage": 1, "totalPages": 1},
         }
 
@@ -411,22 +411,22 @@ class TestOnlineStoreResource:
 class TestPropertiesResource:
     """Test cases for PropertiesResource."""
 
-    def test_get_system_info(self, mock_client):
-        """Test getting system information."""
-        mock_client.get.return_value = {"version": "2.10", "status": "active"}
+    def test_get_system_users(self, mock_client):
+        """Test getting system users."""
+        mock_client.get.return_value = {"users": [{"id": 1, "name": "Admin"}]}
 
         resource = PropertiesResource(mock_client)
-        result = resource.get_system_info()
+        result = resource.get_system_users()
 
-        assert result["version"] == "2.10"
-        mock_client.get.assert_called_once_with("/properties/system")
+        assert "users" in result
+        mock_client.get.assert_called_once_with("/properties/system/users")
 
-    def test_get_organization_info(self, mock_client):
-        """Test getting organization information."""
+    def test_get_organization_profile(self, mock_client):
+        """Test getting organization profile."""
         mock_client.get.return_value = {"name": "Test Org", "id": "12345"}
 
         resource = PropertiesResource(mock_client)
-        result = resource.get_organization_info()
+        result = resource.get_organization_profile()
 
         assert result["name"] == "Test Org"
         mock_client.get.assert_called_once_with("/properties/organization")
