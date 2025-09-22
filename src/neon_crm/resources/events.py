@@ -1,6 +1,6 @@
 """Events resource for the Neon CRM SDK."""
 
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional
 
 from .base import ListableResource, SearchableResource
 
@@ -55,3 +55,85 @@ class EventsResource(ListableResource, SearchableResource):
         return super().list(
             current_page=current_page, page_size=page_size, limit=limit, **params
         )
+
+    def get_categories(self) -> List[Dict[str, Any]]:
+        """Get all event categories.
+
+        Returns:
+            List of event category dictionaries with id and name fields
+        """
+        response = self._client.get("/events/categories")
+        return response if isinstance(response, list) else []
+
+    def get_registrations(
+        self,
+        event_id: str,
+        page: int = 0,
+        page_size: int = 50,
+        limit: Optional[int] = None,
+        registrant_account_id: Optional[str] = None,
+        sort_direction: Optional[str] = None,
+        sort_field: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Iterator[Dict[str, Any]]:
+        """Get registrations for a specific event.
+
+        Args:
+            event_id: The event ID
+            page: Page number to start from (0-indexed)
+            page_size: Number of items per page
+            limit: Maximum number of registrations to return
+            registrant_account_id: Filter by registrant account ID
+            sort_direction: Sort direction ("ASC" or "DESC")
+            sort_field: Field to sort by
+            **kwargs: Additional query parameters
+
+        Yields:
+            Individual registration dictionaries
+        """
+        params = {"page": page, "pageSize": page_size}
+
+        if registrant_account_id is not None:
+            params["registrantAccountId"] = registrant_account_id
+        if sort_direction is not None:
+            params["sortDirection"] = sort_direction
+        if sort_field is not None:
+            params["sortField"] = sort_field
+
+        params.update(kwargs)
+
+        url = f"/events/{event_id}/eventRegistrations"
+        count = 0
+        current_page = page
+
+        while True:
+            params["page"] = current_page
+            response = self._client.get(url, params=params)
+
+            # Handle different response structures
+            if isinstance(response, list):
+                registrations = response
+            elif isinstance(response, dict):
+                # Try common response keys
+                registrations = (
+                    response.get("eventRegistrations")
+                    or response.get("registrations")
+                    or response.get("data")
+                    or []
+                )
+            else:
+                registrations = []
+
+            if not registrations:
+                break
+
+            for registration in registrations:
+                if limit is not None and count >= limit:
+                    return
+                yield registration
+                count += 1
+
+            # Check if we should continue to next page
+            if len(registrations) < page_size:
+                break
+            current_page += 1
