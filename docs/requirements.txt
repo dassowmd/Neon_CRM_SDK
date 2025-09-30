@@ -1,0 +1,8 @@
+# Documentation requirements for MkDocs
+mkdocs>=1.5.0
+mkdocs-material>=9.0.0
+mkdocstrings[python]>=0.24.0
+pymdown-extensions>=10.0.0
+
+# For automatic API documentation generation from docstrings
+mkdocstrings-python>=1.7.0

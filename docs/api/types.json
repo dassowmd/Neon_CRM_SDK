@@ -1,0 +1,845 @@
+{
+  "enums": {
+    "AddressType": {
+      "type": "string",
+      "enum": [
+        "HOME",
+        "WORK",
+        "BILLING",
+        "MAILING",
+        "SHIPPING",
+        "OTHER"
+      ],
+      "description": "Address type enumeration (common values from Swagger)."
+    },
+    "AnonymousType": {
+      "type": "string",
+      "enum": [
+        "FALSE",
+        "DONOR_NAME_ANONYMOUS",
+        "DONATION_AMOUNT_ANONYMOUS"
+      ],
+      "description": "Anonymous donation type enumeration."
+    },
+    "CustomFieldCategory": {
+      "type": "string",
+      "enum": [
+        "ACCOUNT",
+        "DONATION",
+        "EVENT",
+        "ATTENDEE",
+        "INDIVIDUAL",
+        "COMPANY",
+        "ACTIVITY",
+        "MEMBERSHIP",
+        "PRODUCT",
+        "PROSPECT",
+        "GRANT"
+      ],
+      "description": "Custom field category enumeration."
+    },
+    "DonationStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELED",
+        "DEFERRED",
+        "REFUNDED"
+      ],
+      "description": "Donation status enumeration."
+    },
+    "Enum": {
+      "type": "string",
+      "enum": [],
+      "description": "Create a collection of name/value pairs.\n\nExample enumeration:\n\n>>> class Color(Enum):\n...     RED = 1\n...     BLUE = 2\n...     GREEN = 3\n\nAccess them by:\n\n- attribute access:\n\n  >>> Color.RED\n  <Color.RED: 1>\n\n- value lookup:\n\n  >>> Color(1)\n  <Color.RED: 1>\n\n- name lookup:\n\n  >>> Color['RED']\n  <Color.RED: 1>\n\nEnumerations can be iterated over, and know how many members they have:\n\n>>> len(Color)\n3\n\n>>> list(Color)\n[<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]\n\nMethods can be added to enumerations, and members can have their own\nattributes -- see the documentation for details."
+    },
+    "EventStatus": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PUBLISHED",
+        "CANCELED",
+        "COMPLETED"
+      ],
+      "description": "Event status enumeration (common values)."
+    },
+    "Gender": {
+      "type": "string",
+      "enum": [
+        "MALE",
+        "FEMALE",
+        "OTHER",
+        "PREFER_NOT_TO_SAY"
+      ],
+      "description": "Gender enumeration (common values)."
+    },
+    "PaymentStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PROCESSING",
+        "SUCCEEDED",
+        "FAILED",
+        "ERROR",
+        "SCHEDULED",
+        "CANCELED",
+        "DEFERRED",
+        "REFUNDED",
+        "PARTIALLY_REFUNDED",
+        "DISPUTE_LOST",
+        "HELD_FOR_REVIEW"
+      ],
+      "description": "Payment status enumeration."
+    },
+    "PhoneType": {
+      "type": "string",
+      "enum": [
+        "HOME",
+        "WORK",
+        "MOBILE",
+        "OTHER"
+      ],
+      "description": "Phone number type enumeration."
+    },
+    "SearchOperator": {
+      "type": "string",
+      "enum": [
+        "EQUAL",
+        "NOT_EQUAL",
+        "BLANK",
+        "NOT_BLANK",
+        "LESS_THAN",
+        "GREATER_THAN",
+        "LESS_AND_EQUAL",
+        "GREATER_AND_EQUAL",
+        "IN_RANGE",
+        "NOT_IN_RANGE",
+        "CONTAIN",
+        "NOT_CONTAIN"
+      ],
+      "description": "Search operator enumeration.\n\nNote about IN_RANGE and NOT_IN_RANGE operators:\nDespite the name, these operators behave like IN_ARRAY/NOT_IN_ARRAY operations.\nThey check if a field value matches any value in a provided list, rather than\nchecking if a value falls within a numeric range.\n\nExample:\n    # This checks if Status is \"Active\" OR \"Pending\" (not a range)\n    {\"field\": \"Status\", \"operator\": \"IN_RANGE\", \"value\": [\"Active\", \"Pending\"]}\n\n    # For actual numeric ranges, use comparison operators instead:\n    {\"field\": \"Amount\", \"operator\": \"GREATER_THAN\", \"value\": 100}\n    {\"field\": \"Amount\", \"operator\": \"LESS_THAN\", \"value\": 500}"
+    },
+    "SortDirection": {
+      "type": "string",
+      "enum": [
+        "ASC",
+        "DESC"
+      ],
+      "description": "Sort direction enumeration."
+    },
+    "UserType": {
+      "type": "string",
+      "enum": [
+        "INDIVIDUAL",
+        "COMPANY"
+      ],
+      "description": "Account user type enumeration."
+    }
+  },
+  "typed_dicts": {
+    "AccountData": {
+      "type": "object",
+      "title": "AccountData",
+      "properties": {
+        "individualAccount": {
+          "type": "string"
+        },
+        "companyAccount": {
+          "type": "string"
+        },
+        "loginName": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "timestamps": {
+          "type": "string"
+        },
+        "addresses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "consent": {
+          "type": "object"
+        },
+        "customFields": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [],
+      "description": "Account creation data."
+    },
+    "AccountListResponse": {
+      "type": "object",
+      "title": "AccountListResponse",
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pagination": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "accounts",
+        "pagination"
+      ],
+      "description": "Response structure for GET /accounts."
+    },
+    "AccountResponse": {
+      "type": "object",
+      "title": "AccountResponse",
+      "properties": {
+        "accountId": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "companyName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "userType": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Account response structure from API."
+    },
+    "Address": {
+      "type": "object",
+      "title": "Address",
+      "properties": {
+        "addressId": {
+          "type": "string"
+        },
+        "addressType": {
+          "type": "string"
+        },
+        "streetAddress1": {
+          "type": "string"
+        },
+        "streetAddress2": {
+          "type": "string"
+        },
+        "addressLine1": {
+          "type": "string"
+        },
+        "addressLine2": {
+          "type": "string"
+        },
+        "addressLine3": {
+          "type": "string"
+        },
+        "addressLine4": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "zipCode": {
+          "type": "string"
+        },
+        "postalCode": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "isPrimaryAddress": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "description": "Address data structure."
+    },
+    "CodeNamePair": {
+      "type": "object",
+      "title": "CodeNamePair",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Common structure for Code/Name pairs (e.g., state/province)."
+    },
+    "CompanyAccount": {
+      "type": "object",
+      "title": "CompanyAccount",
+      "properties": {
+        "accountType": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "companyName": {
+          "type": "string"
+        },
+        "organizationType": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        },
+        "fax": {
+          "type": "string"
+        },
+        "email1": {
+          "type": "string"
+        },
+        "email2": {
+          "type": "string"
+        },
+        "email3": {
+          "type": "string"
+        },
+        "phone1": {
+          "type": "string"
+        },
+        "phone2": {
+          "type": "string"
+        },
+        "phone3": {
+          "type": "string"
+        },
+        "phone1Type": {
+          "type": "string"
+        },
+        "phone2Type": {
+          "type": "string"
+        },
+        "phone3Type": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Company account data structure."
+    },
+    "CompleteAccountPayload": {
+      "type": "object",
+      "title": "CompleteAccountPayload",
+      "properties": {
+        "individualAccount": {
+          "type": "string"
+        },
+        "companyAccount": {
+          "type": "string"
+        },
+        "addresses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "type": "string"
+        },
+        "timestamps": {
+          "type": "string"
+        },
+        "loginName": {
+          "type": "string"
+        },
+        "consent": {
+          "type": "object"
+        },
+        "customFields": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [],
+      "description": "Complete account creation payload with all optional fields."
+    },
+    "Contact": {
+      "type": "object",
+      "title": "Contact",
+      "properties": {
+        "contactId": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "isPrimaryContact": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "description": "Contact data structure for company accounts."
+    },
+    "CreateCompanyAccountPayload": {
+      "type": "object",
+      "title": "CreateCompanyAccountPayload",
+      "properties": {
+        "companyAccount": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "companyAccount"
+      ],
+      "description": "Payload for creating a company account."
+    },
+    "CreateIndividualAccountPayload": {
+      "type": "object",
+      "title": "CreateIndividualAccountPayload",
+      "properties": {
+        "individualAccount": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "individualAccount"
+      ],
+      "description": "Payload for creating an individual account."
+    },
+    "DonationData": {
+      "type": "object",
+      "title": "DonationData",
+      "properties": {
+        "amount": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "object"
+        },
+        "fund": {
+          "type": "object"
+        },
+        "purpose": {
+          "type": "object"
+        },
+        "acknowledgee": {
+          "type": "object"
+        },
+        "tribute": {
+          "type": "object"
+        },
+        "anonymousType": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Donation data structure."
+    },
+    "DonationRequest": {
+      "type": "object",
+      "title": "DonationRequest",
+      "properties": {
+        "accountId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "fund": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "anonymousType": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "sendAcknowledgeEmail": {
+          "type": "boolean"
+        },
+        "sendAcknowledgeLetter": {
+          "type": "boolean"
+        },
+        "payLater": {
+          "type": "boolean"
+        },
+        "payments": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [],
+      "description": "Donation creation request structure."
+    },
+    "EventData": {
+      "type": "object",
+      "title": "EventData",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "eventDates": {
+          "type": "object"
+        },
+        "publishEvent": {
+          "type": "boolean"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "object"
+        }
+      },
+      "required": [],
+      "description": "Event data structure."
+    },
+    "EventRequest": {
+      "type": "object",
+      "title": "EventRequest",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "eventDates": {
+          "type": "object"
+        },
+        "publishEvent": {
+          "type": "boolean"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Event creation request structure."
+    },
+    "IdNamePair": {
+      "type": "object",
+      "title": "IdNamePair",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Common structure for ID/Name pairs used throughout the API."
+    },
+    "IndividualAccount": {
+      "type": "object",
+      "title": "IndividualAccount",
+      "properties": {
+        "accountType": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "middleName": {
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "suffix": {
+          "type": "string"
+        },
+        "salutation": {
+          "type": "string"
+        },
+        "preferredName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        },
+        "jobTitle": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string"
+        },
+        "deceased": {
+          "type": "boolean"
+        },
+        "primaryContact": {
+          "type": "object"
+        },
+        "email1": {
+          "type": "string"
+        },
+        "email2": {
+          "type": "string"
+        },
+        "email3": {
+          "type": "string"
+        },
+        "phone1": {
+          "type": "string"
+        },
+        "phone2": {
+          "type": "string"
+        },
+        "phone3": {
+          "type": "string"
+        },
+        "phone1Type": {
+          "type": "string"
+        },
+        "phone2Type": {
+          "type": "string"
+        },
+        "phone3Type": {
+          "type": "string"
+        },
+        "fax": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Individual account data structure."
+    },
+    "MembershipData": {
+      "type": "object",
+      "title": "MembershipData",
+      "properties": {
+        "membershipType": {
+          "type": "object"
+        },
+        "enrollmentDate": {
+          "type": "string"
+        },
+        "expirationDate": {
+          "type": "string"
+        },
+        "membershipLevel": {
+          "type": "object"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Membership data structure."
+    },
+    "PaginatedResponse": {
+      "type": "object",
+      "title": "PaginatedResponse",
+      "properties": {
+        "pagination": {
+          "type": "object"
+        },
+        "searchResults": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "pagination",
+        "searchResults"
+      ],
+      "description": "Structure of paginated API responses."
+    },
+    "PaginationInfo": {
+      "type": "object",
+      "title": "PaginationInfo",
+      "properties": {
+        "currentPage": {
+          "type": "integer"
+        },
+        "pageSize": {
+          "type": "integer"
+        },
+        "sortColumn": {
+          "type": "string"
+        },
+        "sortDirection": {
+          "type": "string"
+        },
+        "totalPages": {
+          "type": "integer"
+        },
+        "totalResults": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "currentPage",
+        "pageSize",
+        "sortColumn",
+        "sortDirection",
+        "totalPages",
+        "totalResults"
+      ],
+      "description": "Pagination information structure."
+    },
+    "PaginationParams": {
+      "type": "object",
+      "title": "PaginationParams",
+      "properties": {
+        "currentPage": {
+          "type": "integer"
+        },
+        "pageSize": {
+          "type": "integer"
+        }
+      },
+      "required": [],
+      "description": "Parameters for paginated requests."
+    },
+    "SearchField": {
+      "type": "object",
+      "title": "SearchField",
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "operator": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "operator",
+        "value"
+      ],
+      "description": "A search field specification."
+    },
+    "SearchRequest": {
+      "type": "object",
+      "title": "SearchRequest",
+      "properties": {
+        "searchFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outputFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pagination": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Request structure for search endpoints."
+    },
+    "Source": {
+      "type": "object",
+      "title": "Source",
+      "properties": {
+        "sourceId": {
+          "type": "integer"
+        },
+        "sourceName": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Source tracking information."
+    },
+    "Timestamps": {
+      "type": "object",
+      "title": "Timestamps",
+      "properties": {
+        "createdDateTime": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Custom timestamp information."
+    }
+  }
+}

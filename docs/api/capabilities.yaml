@@ -1,0 +1,379 @@
+# Resource Capability Matrix
+# Machine-readable documentation of what each resource can do
+
+version: "1.0.0"
+sdk_capabilities:
+  fuzzy_search: true
+  semantic_search: true
+  custom_fields: true
+  relationship_traversal: true
+  intelligent_validation: true
+  auto_suggestion: true
+
+resource_types:
+  searchable:
+    description: "Resources with advanced search and fuzzy field matching"
+    base_operations: ["list", "get", "create", "update", "patch", "delete"]
+    advanced_operations: ["search", "get_search_fields", "get_output_fields"]
+    features:
+      - fuzzy_field_matching
+      - semantic_search
+      - custom_fields
+      - field_validation
+      - auto_suggestions
+      - relationship_traversal
+
+  crud:
+    description: "Resources with standard CRUD operations only"
+    base_operations: ["get", "create", "update", "patch", "delete"]
+    advanced_operations: []
+    features:
+      - basic_validation
+      - custom_fields
+    notes: "Some CRUD resources may not have list endpoints"
+
+  specialized:
+    description: "Resources with unique operational patterns"
+    base_operations: ["varies by resource"]
+    advanced_operations: ["domain-specific methods"]
+    features:
+      - custom_operations
+      - specialized_endpoints
+      - domain_logic
+
+resources:
+  # Searchable Resources (10 resources)
+  accounts:
+    type: "searchable"
+    endpoint: "/accounts"
+    operations: ["list", "get", "create", "update", "patch", "delete", "search"]
+    relationships:
+      - resource: "donations"
+        method: "get_donations"
+        description: "Get donations associated with account"
+      - resource: "memberships"
+        method: "get_memberships"
+        description: "Get memberships for account"
+      - resource: "activities"
+        method: "get_activities"
+        description: "Get activities related to account"
+      - resource: "event_registrations"
+        method: "get_event_registrations"
+        description: "Get event registrations for account"
+      - resource: "contacts"
+        method: "get_contacts"
+        description: "Get contacts for company accounts"
+    custom_fields: true
+    fuzzy_search: true
+    required_params: ["user_type"]
+    search_filters: ["email", "first_name", "last_name", "user_type", "city", "state", "zip_code"]
+    output_fields: ["accountId", "firstName", "lastName", "email", "addresses", "customFields"]
+    examples:
+      list: "client.accounts.list(user_type='INDIVIDUAL', first_name='John')"
+      search: "client.accounts.search({'searchFields': [{'field': 'email', 'operator': 'CONTAIN', 'value': '@gmail.com'}]})"
+      fuzzy: "Field 'frist_name' auto-corrects to 'first_name'"
+
+  donations:
+    type: "searchable"
+    endpoint: "/donations"
+    operations: ["list", "get", "create", "update", "patch", "delete", "search"]
+    relationships:
+      - resource: "accounts"
+        method: "get_account"
+        description: "Get donor account information"
+      - resource: "campaigns"
+        method: "get_campaign"
+        description: "Get associated campaign"
+    custom_fields: true
+    fuzzy_search: true
+    search_filters: ["account_id", "campaign_id", "fund_id", "start_date", "end_date", "amount"]
+    output_fields: ["donationId", "accountId", "amount", "donationDate", "campaignId", "customFields"]
+
+  events:
+    type: "searchable"
+    endpoint: "/events"
+    operations: ["list", "get", "create", "update", "patch", "delete", "search"]
+    relationships:
+      - resource: "accounts"
+        method: "get_registrations"
+        description: "Get event registrations"
+    custom_fields: true
+    fuzzy_search: true
+    search_filters: ["name", "start_date", "end_date", "event_status", "category_id"]
+    output_fields: ["id", "name", "startDate", "endDate", "capacity", "customFields"]
+    notes: "Legacy events API - newer activities API preferred"
+
+  activities:
+    type: "searchable"
+    endpoint: "/activities"
+    operations: ["list", "get", "create", "update", "patch", "delete", "search"]
+    relationships:
+      - resource: "accounts"
+        method: "get_account"
+        description: "Get associated account"
+    custom_fields: true
+    fuzzy_search: true
+    search_filters: ["account_id", "activity_type", "start_date", "end_date", "subject"]
+    output_fields: ["id", "accountId", "activityType", "subject", "startDateTime", "customFields"]
+
+  memberships:
+    type: "searchable"
+    endpoint: "/memberships"
+    operations: ["list", "get", "create", "update", "patch", "delete", "search"]
+    relationships:
+      - resource: "accounts"
+        method: "get_account"
+        description: "Get member account"
+    custom_fields: true
+    fuzzy_search: true
+    search_filters: ["account_id", "membership_type", "status", "start_date", "end_date"]
+    output_fields: ["membershipId", "accountId", "membershipType", "status", "customFields"]
+
+  # CRUD Resources (8 resources)
+  addresses:
+    type: "crud"
+    endpoint: "/addresses"
+    operations: ["get", "create", "update", "patch", "delete"]
+    relationships:
+      - resource: "accounts"
+        description: "Belongs to account"
+    custom_fields: false
+    fuzzy_search: false
+    notes: "No list endpoint available"
+    output_fields: ["addressId", "street1", "street2", "city", "state", "zipCode", "country"]
+
+  campaigns:
+    type: "crud"
+    endpoint: "/campaigns"
+    operations: ["list", "get", "create", "update", "patch", "delete"]
+    relationships:
+      - resource: "donations"
+        description: "Has many donations"
+    custom_fields: true
+    fuzzy_search: false
+    search_filters: ["name", "status", "start_date", "end_date"]
+
+  grants:
+    type: "crud"
+    endpoint: "/grants"
+    operations: ["list", "get", "create", "update", "patch", "delete"]
+    relationships:
+      - resource: "accounts"
+        description: "Associated with grantor account"
+    custom_fields: true
+    fuzzy_search: false
+    search_filters: ["grantor_id", "status", "award_date", "amount"]
+
+  households:
+    type: "crud"
+    endpoint: "/households"
+    operations: ["list", "get", "create", "update", "patch", "delete"]
+    relationships:
+      - resource: "accounts"
+        method: "get_members"
+        description: "Get household members"
+    custom_fields: true
+    fuzzy_search: false
+
+  orders:
+    type: "crud"
+    endpoint: "/orders"
+    operations: ["list", "get", "create", "update", "patch", "delete"]
+    relationships:
+      - resource: "accounts"
+        description: "Belongs to customer account"
+    custom_fields: false
+    fuzzy_search: false
+
+  payments:
+    type: "crud"
+    endpoint: "/payments"
+    operations: ["list", "get", "create", "update", "patch", "delete"]
+    relationships:
+      - resource: "donations"
+        description: "Payment for donation"
+    custom_fields: false
+    fuzzy_search: false
+
+  pledges:
+    type: "crud"
+    endpoint: "/pledges"
+    operations: ["list", "get", "create", "update", "patch", "delete"]
+    relationships:
+      - resource: "accounts"
+        description: "Pledge by account"
+    custom_fields: true
+    fuzzy_search: false
+
+  volunteers:
+    type: "crud"
+    endpoint: "/volunteers"
+    operations: ["list", "get", "create", "update", "patch", "delete"]
+    relationships:
+      - resource: "accounts"
+        description: "Volunteer profile for account"
+    custom_fields: true
+    fuzzy_search: false
+
+  # Specialized Resources (5 resources)
+  online_store:
+    type: "specialized"
+    endpoint: "/store"
+    operations: ["multi-endpoint"]
+    specialized_methods:
+      products:
+        endpoint: "/store/products"
+        operations: ["list", "get"]
+        description: "Manage store products"
+      catalogs:
+        endpoint: "/store/catalogs"
+        operations: ["list"]
+        description: "Product catalogs"
+      categories:
+        endpoint: "/store/categories"
+        operations: ["list"]
+        description: "Product categories"
+      transactions:
+        endpoint: "/store/transactions"
+        operations: ["list", "get"]
+        description: "Purchase transactions"
+      orders:
+        endpoint: "/store/orders"
+        operations: ["list", "get"]
+        description: "Store orders"
+    custom_fields: false
+    fuzzy_search: false
+
+  custom_fields:
+    type: "specialized"
+    endpoint: "/customFields"
+    operations: ["list", "get", "create", "update", "patch", "delete"]
+    specialized_methods:
+      fuzzy_search_by_name:
+        description: "Fuzzy search fields by name with similarity scoring"
+        features: ["levenshtein_distance", "word_overlap", "semantic_matching"]
+      semantic_search_by_name:
+        description: "Semantic search using meaning and synonyms"
+        features: ["abbreviation_expansion", "synonym_matching"]
+      suggest_field_names:
+        description: "Generate suggestions for invalid field names"
+        features: ["typo_correction", "semantic_suggestions"]
+      find_by_name_and_category:
+        description: "Find field by name with intelligent suggestions"
+        features: ["auto_logging", "suggestion_generation"]
+      groups:
+        endpoint: "/customFields/groups"
+        operations: ["list", "get"]
+        description: "Custom field group management"
+    custom_fields: false
+    fuzzy_search: true
+    intelligence_features:
+      - field_name_correction
+      - semantic_field_discovery
+      - automatic_suggestion_logging
+      - abbreviation_expansion
+
+  webhooks:
+    type: "specialized"
+    endpoint: "/webhooks"
+    operations: ["list", "get", "create", "update", "patch", "delete"]
+    specialized_methods:
+      create_webhook:
+        description: "Simplified webhook creation"
+        parameters: ["url", "event_types"]
+      test_webhook:
+        description: "Test webhook connectivity"
+      get_event_types:
+        description: "Get available webhook event types"
+    custom_fields: false
+    fuzzy_search: false
+
+# Fuzzy Search Capabilities
+fuzzy_search_features:
+  algorithms:
+    levenshtein_distance:
+      description: "Character-level edit distance for typo correction"
+      use_cases: ["frist_name → first_name", "emial → email"]
+      threshold: 0.8
+
+    word_overlap:
+      description: "Word-based similarity matching"
+      use_cases: ["firstName → first_name", "emailAddr → email_address"]
+      threshold: 0.7
+
+    starts_with_matching:
+      description: "Prefix-based matching"
+      use_cases: ["vol → volunteer_interests", "addr → address"]
+      threshold: 0.2
+
+    contains_matching:
+      description: "Substring matching"
+      use_cases: ["volunteer_activities contains volunteer"]
+      threshold: 0.3
+
+  semantic_matching:
+    abbreviation_expansion:
+      examples:
+        ph: ["phone"]
+        addr: ["address"]
+        num: ["number"]
+        vol: ["volunteer"]
+        pref: ["preference", "preferences"]
+
+    synonyms:
+      address: ["location", "residence", "place"]
+      phone: ["telephone", "mobile", "cell"]
+      email: ["mail", "electronic_mail"]
+      name: ["title", "label"]
+
+  validation_integration:
+    search_field_validation:
+      description: "Validates search fields with intelligent suggestions"
+      behavior: "Logs suggestions at INFO level when invalid field detected"
+
+    custom_field_lookup:
+      description: "Custom field name resolution with suggestions"
+      behavior: "Returns None but logs helpful suggestions"
+
+    output_field_validation:
+      description: "Validates output fields in search requests"
+      behavior: "Provides corrections for invalid output field names"
+
+# Usage Examples
+usage_examples:
+  fuzzy_search:
+    typo_correction: |
+      # This will auto-suggest 'first_name'
+      client.accounts.search({
+        'searchFields': [{'field': 'frist_name', 'operator': 'EQUAL', 'value': 'John'}]
+      })
+      # Logs: "Search field 'frist_name' not found. Did you mean: first_name?"
+
+    semantic_search: |
+      # This will find 'home_address', 'work_location', etc.
+      client.custom_fields.semantic_search_by_name('address', category='Account')
+
+    custom_field_discovery: |
+      # Intelligent custom field lookup
+      field = client.custom_fields.find_by_name_and_category('volunter', 'Account')
+      # Returns None but logs: "Did you mean: volunteer_interests, volunteer_hours?"
+
+  relationship_traversal: |
+    # Get all donations for an account
+    donations = client.accounts.get_donations(account_id=123)
+
+    # Get account activities
+    activities = client.accounts.get_activities(account_id=123, limit=50)
+
+  advanced_search: |
+    # Complex search with multiple criteria
+    search_request = {
+      'searchFields': [
+        {'field': 'user_type', 'operator': 'EQUAL', 'value': 'INDIVIDUAL'},
+        {'field': 'city', 'operator': 'EQUAL', 'value': 'New York'},
+        {'field': 'last_donation_date', 'operator': 'GREATER_THAN', 'value': '2023-01-01'}
+      ],
+      'outputFields': ['first_name', 'last_name', 'email', 'total_donated'],
+      'pagination': {'currentPage': 0, 'pageSize': 100}
+    }
+    results = client.accounts.search(search_request)

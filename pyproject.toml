@@ -1,0 +1,201 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "neon-crm"
+dynamic = ["version"]
+description = "Python SDK for the Neon CRM API"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Neon CRM SDK Contributors"},
+]
+maintainers = [
+    {name = "Neon CRM SDK Contributors"},
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Office/Business",
+]
+keywords = ["neon", "crm", "api", "sdk", "nonprofit", "fundraising"]
+dependencies = [
+    "httpx>=0.24.0",
+    "pydantic>=2.0.0",
+    "typing-extensions>=4.0.0",
+]
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "pre-commit>=3.0.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-literate-nav>=0.6.0",
+    "mkdocs-section-index>=0.3.0",
+    "mkdocstrings[python]>=0.24.0",
+]
+semantic = [
+    "spacy>=3.4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-username/neon-crm-python"
+Documentation = "https://neon-crm-python.readthedocs.io"
+Repository = "https://github.com/your-username/neon-crm-python.git"
+"Bug Tracker" = "https://github.com/your-username/neon-crm-python/issues"
+
+[tool.hatch.version]
+path = "src/neon_crm/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/neon_crm"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.ruff]
+target-version = "py38"
+line-length = 88
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    "*.ipynb",          # Exclude all Jupyter notebooks
+    "examples/",        # Exclude examples directory
+]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "I001",  # import block is un-sorted or un-formatted
+    "F401",  # imported but unused
+    "F841",  # local variable assigned but never used
+    "E402",  # module level import not at top of file
+    "B904",  # raise ... from ... missing
+    "B905",  # zip without explicit strict parameter
+    "UP006", # use list instead of List for type annotations
+    "UP007", # use X | Y for union types
+    "E722",  # bare except
+    "E741",  # ambiguous variable name
+    "F541",  # f-string missing placeholders
+    "B007",  # unused loop control variable
+    "F811",  # redefined while unused
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"examples/*.ipynb" = ["E402", "F401", "F841", "I001", "E722", "B905"]
+"tests/*.py" = ["F401", "F841", "E402", "B904", "E722"]
+"*.ipynb" = ["E402", "F401", "F841", "I001", "E722", "B905"]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=neon_crm",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "regression: marks tests as regression tests that use real API",
+    "readonly: marks tests as read-only operations (safe for production)",
+    "writeops: marks tests as write operations (modifies database)",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
