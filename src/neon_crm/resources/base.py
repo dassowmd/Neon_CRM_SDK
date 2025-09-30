@@ -10,6 +10,7 @@ from ..validation import SearchRequestValidator
 
 if TYPE_CHECKING:
     from ..client import NeonClient
+    from ..custom_field_manager import BatchResult, ValidationResult
 
 
 class BaseResource:
@@ -272,6 +273,236 @@ class BaseResource:
         return self._client.custom_fields.find_group_by_name_and_category(
             group_name, category
         )
+
+    # Advanced Custom Field Management Methods
+
+    def get_custom_field_value(self, resource_id: int, field_name: str) -> Any:
+        """Get the current value of a custom field for a resource.
+
+        Args:
+            resource_id: ID of the resource
+            field_name: Name of the custom field
+
+        Returns:
+            Current field value, parsed to appropriate Python type
+
+        Example:
+            >>> client.accounts.get_custom_field_value(123, "V-Volunteer Skills")
+            ['Technology', 'Writing', 'Data Entry']
+        """
+        from ..custom_field_manager import CustomFieldValueManager
+
+        resource_name = self._endpoint.lstrip("/")
+        manager = CustomFieldValueManager(self._client, resource_name)
+        return manager.get_custom_field_value(resource_id, field_name)
+
+    def set_custom_field_value(
+        self, resource_id: int, field_name: str, value: Any, validate: bool = True
+    ) -> bool:
+        """Set a custom field value for a resource.
+
+        Args:
+            resource_id: ID of the resource
+            field_name: Name of the custom field
+            value: Value to set
+            validate: Whether to validate the value before setting
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            >>> client.accounts.set_custom_field_value(123, "V-Tech Skills", ["Python", "API Development"])
+            True
+        """
+        from ..custom_field_manager import CustomFieldValueManager
+
+        resource_name = self._endpoint.lstrip("/")
+        manager = CustomFieldValueManager(self._client, resource_name)
+        return manager.set_custom_field_value(resource_id, field_name, value, validate)
+
+    def add_to_multivalue_field(
+        self, resource_id: int, field_name: str, new_option: str
+    ) -> bool:
+        """Add an option to a multi-value field without losing existing values.
+
+        Args:
+            resource_id: ID of the resource
+            field_name: Name of the multi-value custom field
+            new_option: Option to add
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            >>> client.accounts.add_to_multivalue_field(123, "V-Volunteer Skills", "Technology")
+            True
+        """
+        from ..custom_field_manager import CustomFieldValueManager
+
+        resource_name = self._endpoint.lstrip("/")
+        manager = CustomFieldValueManager(self._client, resource_name)
+        return manager.add_to_multivalue_field(resource_id, field_name, new_option)
+
+    def remove_from_multivalue_field(
+        self, resource_id: int, field_name: str, option_to_remove: str
+    ) -> bool:
+        """Remove an option from a multi-value field.
+
+        Args:
+            resource_id: ID of the resource
+            field_name: Name of the multi-value custom field
+            option_to_remove: Option to remove
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            >>> client.accounts.remove_from_multivalue_field(123, "V-Volunteer Skills", "Data Entry")
+            True
+        """
+        from ..custom_field_manager import CustomFieldValueManager
+
+        resource_name = self._endpoint.lstrip("/")
+        manager = CustomFieldValueManager(self._client, resource_name)
+        return manager.remove_from_multivalue_field(
+            resource_id, field_name, option_to_remove
+        )
+
+    def append_to_text_field(
+        self,
+        resource_id: int,
+        field_name: str,
+        additional_text: str,
+        separator: str = " ",
+    ) -> bool:
+        """Append text to a text field.
+
+        Args:
+            resource_id: ID of the resource
+            field_name: Name of the text custom field
+            additional_text: Text to append
+            separator: Separator between existing and new text
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            >>> client.accounts.append_to_text_field(123, "V-Notes", "Updated contact info")
+            True
+        """
+        from ..custom_field_manager import CustomFieldValueManager
+
+        resource_name = self._endpoint.lstrip("/")
+        manager = CustomFieldValueManager(self._client, resource_name)
+        return manager.append_to_text_field(
+            resource_id, field_name, additional_text, separator
+        )
+
+    def clear_custom_field_value(self, resource_id: int, field_name: str) -> bool:
+        """Clear a custom field value.
+
+        Args:
+            resource_id: ID of the resource
+            field_name: Name of the custom field
+
+        Returns:
+            True if successful, False otherwise
+
+        Example:
+            >>> client.accounts.clear_custom_field_value(123, "V-Temp Field")
+            True
+        """
+        from ..custom_field_manager import CustomFieldValueManager
+
+        resource_name = self._endpoint.lstrip("/")
+        manager = CustomFieldValueManager(self._client, resource_name)
+        return manager.clear_custom_field_value(resource_id, field_name)
+
+    def set_multiple_custom_field_values(
+        self, resource_id: int, field_values: Dict[str, Any], validate: bool = True
+    ) -> "BatchResult":
+        """Set multiple custom field values in a single operation.
+
+        Args:
+            resource_id: ID of the resource
+            field_values: Dictionary mapping field names to values
+            validate: Whether to validate values before setting
+
+        Returns:
+            BatchResult with operation statistics
+
+        Example:
+            >>> result = client.accounts.set_multiple_custom_field_values(123, {
+            ...     "V-Skills": ["Python", "JavaScript"],
+            ...     "V-Notes": "Updated profile",
+            ...     "V-Active": True
+            ... })
+            >>> print(f"Success: {result.successful}, Failed: {result.failed}")
+        """
+        from ..custom_field_manager import CustomFieldValueManager
+
+        resource_name = self._endpoint.lstrip("/")
+        manager = CustomFieldValueManager(self._client, resource_name)
+        return manager.set_multiple_custom_field_values(
+            resource_id, field_values, validate
+        )
+
+    def validate_custom_field_value(
+        self, field_name: str, value: Any
+    ) -> "ValidationResult":
+        """Validate a value for a custom field.
+
+        Args:
+            field_name: Name of the custom field
+            value: Value to validate
+
+        Returns:
+            ValidationResult with validation status and messages
+
+        Example:
+            >>> result = client.accounts.validate_custom_field_value("V-Skills", ["Python", "InvalidSkill"])
+            >>> if not result.is_valid:
+            ...     print(f"Validation errors: {result.errors}")
+        """
+        from ..custom_field_manager import CustomFieldValueManager
+
+        resource_name = self._endpoint.lstrip("/")
+        manager = CustomFieldValueManager(self._client, resource_name)
+        return manager.validate_field_value(field_name, value)
+
+    def search_by_custom_field_value(
+        self,
+        field_name: str,
+        value: Any,
+        operator: str = "EQUAL",
+        limit: Optional[int] = None,
+    ) -> Iterator[Dict[str, Any]]:
+        """Search for resources by custom field value.
+
+        Args:
+            field_name: Name of the custom field to search by
+            value: Value to search for
+            operator: Search operator (EQUAL, NOT_EQUAL, CONTAINS, etc.)
+            limit: Maximum number of results to return
+
+        Yields:
+            Individual resource dictionaries matching the search
+
+        Example:
+            >>> for account in client.accounts.search_by_custom_field_value("V-Skills", "Technology"):
+            ...     print(f"{account['firstName']} {account['lastName']}")
+        """
+        search_request = {
+            "searchFields": [
+                {"field": field_name, "operator": operator, "value": str(value)}
+            ],
+            "outputFields": ["*"],  # Get all available fields
+        }
+
+        if hasattr(self, "search"):
+            yield from self.search(search_request, limit=limit)
+        else:
+            raise NotImplementedError("Search not supported for this resource type")
 
     def fuzzy_search_fields(
         self,
@@ -629,6 +860,198 @@ class SearchableResource(BaseResource):
 
         return converted_request
 
+    def _get_primary_key_field(self) -> str:
+        """Get the primary key field name for this resource.
+
+        Returns:
+            The primary key field name (e.g., 'accountId', 'donationId')
+        """
+        endpoint_to_primary_key = {
+            "/accounts": "accountId",
+            "/donations": "donationId",
+            "/events": "eventId",
+            "/activities": "activityId",
+            "/memberships": "membershipId",
+            "/attendees": "attendeeId",
+            "/individuals": "individualId",
+            "/companies": "companyId",
+            "/products": "productId",
+            "/prospects": "prospectId",
+            "/grants": "grantId",
+            "/households": "householdId",
+            "/pledges": "pledgeId",
+            "/recurring-donations": "recurringDonationId",
+            "/soft-credits": "softCreditId",
+            "/orders": "orderId",
+            "/payments": "paymentId",
+            "/volunteers": "volunteerId",
+        }
+        return endpoint_to_primary_key.get(self._endpoint, "id")
+
+    def _chunk_fields(
+        self, fields: List[Any], chunk_size: int = 299
+    ) -> List[List[Any]]:
+        """Split a list of fields into chunks, ensuring primary key is in each chunk.
+
+        Args:
+            fields: List of field names/IDs to chunk
+            chunk_size: Maximum fields per chunk (default 299 to leave room for primary key)
+
+        Returns:
+            List of field chunks, each containing up to chunk_size fields plus primary key
+        """
+        if len(fields) <= 300:
+            return [fields]
+
+        primary_key = self._get_primary_key_field()
+
+        # Remove primary key from fields if already present to avoid duplication
+        fields_without_pk = [f for f in fields if f != primary_key]
+
+        chunks = []
+        for i in range(0, len(fields_without_pk), chunk_size):
+            chunk = [primary_key] + fields_without_pk[i : i + chunk_size]
+            chunks.append(chunk)
+
+        self._logger.info(
+            f"Split {len(fields)} fields into {len(chunks)} chunks "
+            f"(max {chunk_size + 1} fields per chunk including primary key)"
+        )
+
+        return chunks
+
+    def _merge_chunked_results(
+        self, chunk_results: List[List[Dict[str, Any]]], primary_key: str
+    ) -> List[Dict[str, Any]]:
+        """Merge results from multiple field chunks back into unified records.
+
+        Uses the first chunk as authoritative for record set consistency,
+        filtering out phantom records that appear mid-search.
+
+        Args:
+            chunk_results: List of result lists from each field chunk
+            primary_key: Primary key field name to use for merging
+
+        Returns:
+            List of merged records with all fields, filtered for consistency
+        """
+        if not chunk_results or not chunk_results[0]:
+            return []
+
+        # Use first chunk to establish authoritative record set
+        # This prevents phantom records added mid-search from corrupting results
+        first_chunk = chunk_results[0]
+        authoritative_keys = {
+            record.get(primary_key)
+            for record in first_chunk
+            if record.get(primary_key) is not None
+        }
+
+        self._logger.debug(
+            f"Using first chunk as authoritative with {len(authoritative_keys)} records"
+        )
+
+        # Track records and detect inconsistencies
+        merged_records = {}
+        chunk_keys_by_index = []
+
+        # Process each chunk
+        for chunk_idx, chunk_items in enumerate(chunk_results):
+            chunk_keys = set()
+
+            for record in chunk_items:
+                pk_value = record.get(primary_key)
+                if pk_value is not None:
+                    chunk_keys.add(pk_value)
+
+                    # Only process records that were in the first chunk (authoritative set)
+                    if pk_value in authoritative_keys:
+                        # Initialize record if first time seeing this primary key
+                        if pk_value not in merged_records:
+                            merged_records[pk_value] = {primary_key: pk_value}
+
+                        # Merge all fields from this record
+                        for field_name, field_value in record.items():
+                            merged_records[pk_value][field_name] = field_value
+
+            chunk_keys_by_index.append(chunk_keys)
+
+        # Analyze consistency and detect phantom/missing records
+        self._analyze_chunk_consistency(
+            chunk_keys_by_index, authoritative_keys, primary_key
+        )
+
+        # Sort by primary key to ensure deterministic ordering
+        def sort_key(x):
+            """Sort key function that handles both numeric and string keys."""
+            str_x = str(x)
+            if str_x.isdigit():
+                return (0, int(x))  # Numeric keys sort first, by numeric value
+            else:
+                return (1, str_x.lower())  # String keys sort second, case-insensitive
+
+        sorted_keys = sorted(authoritative_keys, key=sort_key)
+
+        # Only return records that exist in merged_records (complete data)
+        complete_records = [
+            merged_records[pk] for pk in sorted_keys if pk in merged_records
+        ]
+
+        self._logger.debug(
+            f"Merged {len(chunk_results)} chunks into {len(complete_records)} complete records"
+        )
+
+        return complete_records
+
+    def _analyze_chunk_consistency(
+        self, chunk_keys_by_index: List[set], authoritative_keys: set, primary_key: str
+    ) -> None:
+        """Analyze consistency across chunks and log detailed diagnostics.
+
+        Args:
+            chunk_keys_by_index: List of sets containing keys found in each chunk
+            authoritative_keys: Set of keys from the first (authoritative) chunk
+            primary_key: Primary key field name for logging
+        """
+        # Check for phantom records (appear in later chunks but not first)
+        phantom_records = set()
+        missing_records = set()
+
+        for chunk_idx, chunk_keys in enumerate(chunk_keys_by_index[1:], 1):
+            # Records in this chunk but not in authoritative set
+            phantom_in_chunk = chunk_keys - authoritative_keys
+            if phantom_in_chunk:
+                phantom_records.update(phantom_in_chunk)
+                self._logger.warning(
+                    f"Phantom records detected in chunk {chunk_idx}: "
+                    f"{sorted(list(phantom_in_chunk))} "
+                    f"(likely added to database mid-search)"
+                )
+
+            # Records missing from this chunk that should be there
+            missing_in_chunk = authoritative_keys - chunk_keys
+            if missing_in_chunk:
+                missing_records.update(missing_in_chunk)
+                self._logger.warning(
+                    f"Records missing from chunk {chunk_idx}: "
+                    f"{sorted(list(missing_in_chunk))} "
+                    f"(may indicate data deletion or API inconsistency)"
+                )
+
+        # Summary statistics
+        chunk_sizes = [len(keys) for keys in chunk_keys_by_index]
+        if len(set(chunk_sizes)) > 1:
+            self._logger.info(
+                f"Chunk size variation detected - Sizes: {chunk_sizes}, "
+                f"Phantom: {len(phantom_records)}, Missing: {len(missing_records)}"
+            )
+
+        if phantom_records:
+            self._logger.info(
+                f"Filtered out {len(phantom_records)} phantom records to maintain "
+                f"consistent snapshot (records added during search execution)"
+            )
+
     def _prepare_search_request(self, search_request: SearchRequest) -> SearchRequest:
         """Prepare search request by handling missing or wildcard output_fields and type conversions.
 
@@ -710,19 +1133,10 @@ class SearchableResource(BaseResource):
                         all_fields.append(field)
 
                 if all_fields:
-                    # Limit to first 300 fields for performance
-                    if len(all_fields) > 300:
-                        limited_fields = all_fields[:300]
-                        prepared_request["outputFields"] = limited_fields
-                        self._logger.info(
-                            f"Limited output fields to 300 (from {len(all_fields)} available) for performance. "
-                            f"Specify explicit outputFields to get different fields."
-                        )
-                    else:
-                        prepared_request["outputFields"] = all_fields
-                        self._logger.debug(
-                            f"Auto-populated {len(all_fields)} output fields"
-                        )
+                    prepared_request["outputFields"] = all_fields
+                    self._logger.debug(
+                        f"Auto-populated {len(all_fields)} output fields"
+                    )
                 else:
                     self._logger.warning("No output fields available for this resource")
 
@@ -731,6 +1145,97 @@ class SearchableResource(BaseResource):
                 # Fall back to original request if field discovery fails
 
         return prepared_request
+
+    def _execute_chunked_search(
+        self, search_request: SearchRequest, limit: Optional[int] = None
+    ) -> Iterator[Dict[str, Any]]:
+        """Execute search with field chunking for >300 field requests.
+
+        Ensures consistent record ordering across all chunks by adding explicit sorting.
+
+        Args:
+            search_request: The prepared search request
+            limit: Maximum number of results to return
+
+        Yields:
+            Individual merged resource dictionaries
+        """
+        output_fields = search_request.get("outputFields", [])
+        field_chunks = self._chunk_fields(output_fields)
+        primary_key = self._get_primary_key_field()
+
+        url = self._build_url("search")
+        page_size = search_request.get("pagination", {}).get("pageSize", 50)
+        current_page = 0
+        results_returned = 0
+
+        # Ensure consistent ordering across chunks by adding sort parameter
+        base_request = search_request.copy()
+        if "sortBy" not in base_request:
+            # Add explicit sort by primary key to guarantee consistent ordering
+            base_request["sortBy"] = [{"field": primary_key, "direction": "ASC"}]
+            self._logger.debug(
+                f"Added explicit sorting by {primary_key} to ensure consistent ordering across field chunks"
+            )
+
+        while True:
+            # Execute all field chunks for this page
+            chunk_results = []
+            pagination = {}
+
+            for chunk_idx, field_chunk in enumerate(field_chunks):
+                # Create request for this field chunk
+                chunk_request = base_request.copy()
+                chunk_request["outputFields"] = field_chunk
+                chunk_request["pagination"] = {
+                    "currentPage": current_page,
+                    "pageSize": page_size,
+                }
+
+                self._logger.debug(
+                    f"Executing chunk {chunk_idx + 1}/{len(field_chunks)} "
+                    f"with {len(field_chunk)} fields (page {current_page})"
+                )
+
+                response = self._client.post(url, json_data=chunk_request)
+
+                # Extract search results
+                if "searchResults" in response:
+                    chunk_items = response["searchResults"]
+                    # Use pagination from first chunk as canonical
+                    if chunk_idx == 0:
+                        pagination = response.get("pagination", {})
+                else:
+                    # Fallback if response structure is different
+                    chunk_items = response if isinstance(response, list) else [response]
+                    if chunk_idx == 0:
+                        pagination = {}
+
+                chunk_results.append(chunk_items)
+
+            # Merge results from all chunks
+            if chunk_results:
+                merged_items = self._merge_chunked_results(chunk_results, primary_key)
+
+                # Yield merged items with limit checking
+                for item in merged_items:
+                    if limit is None or results_returned < limit:
+                        yield item
+                        results_returned += 1
+                    else:
+                        return  # Stop iteration when limit is reached
+
+            # Check if there are more pages (using pagination from first chunk)
+            if not pagination:
+                break
+
+            current_page_num = pagination.get("currentPage", 0)
+            total_pages = pagination.get("totalPages", 1)
+
+            if current_page_num >= total_pages - 1:
+                break
+
+            current_page += 1
 
     def search(
         self,
@@ -754,7 +1259,7 @@ class SearchableResource(BaseResource):
         import time
 
         self._logger.debug(
-            f"Starting search operation: fields={len(search_request.get('searchFields', []))}, validate={validate}, limit={limit}"
+            f"Starting search operation: fields={len(search_request.get('outputFields', []))}, validate={validate}, limit={limit}"
         )
 
         # TEMPORARILY DISABLED: Convert field names from display format to API format
@@ -764,6 +1269,16 @@ class SearchableResource(BaseResource):
 
         # Handle missing or wildcard output_fields
         search_request = self._prepare_search_request(search_request)
+
+        # Check if we need field chunking
+        output_fields = search_request.get("outputFields", [])
+        if len(output_fields) > 300:
+            self._logger.info(
+                f"Field count ({len(output_fields)}) exceeds 300 limit. "
+                f"Using automatic field chunking for transparent handling."
+            )
+            yield from self._execute_chunked_search(search_request, limit)
+            return
 
         # Validate search request if requested
         if validate:

@@ -4,48 +4,68 @@ This module provides utilities for mapping Neon CRM custom field types
 to Python types and validation rules.
 """
 
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 
 class CustomFieldTypeMapper:
     """Maps Neon CRM custom field types to Python types."""
 
-    # Mapping from displayType to Python type
+    # Mapping from displayType to Python type (comprehensive Neon CRM support)
     DISPLAY_TYPE_TO_PYTHON_TYPE = {
         # Text types
         "Text": str,
+        "OneLineText": str,
         "MultiLineText": str,
         "Email": str,
         "URL": str,
         "Phone": str,
+        "Password": str,  # Secure text input
         # Numeric types
         "Number": int,
         "Currency": float,
         "Percentage": float,
         # Date/Time types
-        "Date": str,  # API returns dates as strings
-        "DateTime": str,  # API returns datetimes as strings
-        "Time": str,  # API returns times as strings
+        "Date": str,  # API returns dates as strings (ISO format)
+        "DateTime": str,  # API returns datetimes as strings (ISO format)
+        "Time": str,  # API returns times as strings (HH:MM format)
         # Boolean types
-        "Checkbox": bool,
-        "YesNo": bool,
+        "Checkbox": list,  # Multi-select checkboxes return lists
+        "YesNo": bool,  # Single boolean checkbox
         # Selection types
-        "DropDown": str,
-        "MultiSelect": list,
-        "RadioButton": str,
+        "DropDown": str,  # Single selection dropdown
+        "Dropdown": str,  # Alternative spelling in API
+        "MultiSelect": list,  # Multi-selection dropdown
+        "RadioButton": str,  # Single selection radio buttons
+        "Radio": str,  # Alternative spelling in API
         # File types
         "File": str,  # File URLs/paths as strings
         "Image": str,  # Image URLs/paths as strings
+        # Special types
+        "Account": str,  # Account lookup field (returns account ID as string)
     }
 
-    # Mapping from dataType to Python type (when available)
+    # Mapping from dataType to Python type (comprehensive Neon CRM support)
     DATA_TYPE_TO_PYTHON_TYPE = {
+        # Text types
         "String": str,
+        "Text": str,
+        "Email": str,
+        "Phone": str,
+        "Area_Code": str,
+        "Name": str,
+        # Numeric types
         "Integer": int,
+        "Whole_Number": int,
         "Decimal": float,
+        "Float": float,
+        "Currency": float,
+        # Boolean types
         "Boolean": bool,
+        # Date/Time types
         "Date": str,
         "DateTime": str,
+        "Time": str,
+        # Collection types
         "Array": list,
     }
 
@@ -109,8 +129,11 @@ class CustomFieldTypeMapper:
 
         if target_type == list:
             if isinstance(value, str):
-                # Assume comma-separated values for multi-select
-                return [item.strip() for item in value.split(",") if item.strip()]
+                # Handle both pipe and comma separators for multi-value fields
+                if "|" in value:
+                    return [item.strip() for item in value.split("|") if item.strip()]
+                else:
+                    return [item.strip() for item in value.split(",") if item.strip()]
             elif isinstance(value, list):
                 return value
             else:
@@ -171,6 +194,118 @@ class CustomFieldTypeMapper:
             "pythonTypeName": python_type.__name__ if python_type else None,
             "isNumeric": cls.is_numeric_type(custom_field),
             "isText": cls.is_text_type(custom_field),
+            "isMultiValue": cls.is_multivalue_type(custom_field),
+            "isDate": cls.is_date_type(custom_field),
+            "isFile": cls.is_file_type(custom_field),
             "status": custom_field.get("status"),
             "component": custom_field.get("component"),
+            "requiresOptions": cls.requires_option_values(custom_field),
         }
+
+    @classmethod
+    def is_multivalue_type(cls, custom_field: Dict[str, Any]) -> bool:
+        """Check if a custom field supports multiple values.
+
+        Args:
+            custom_field: Custom field metadata
+
+        Returns:
+            True if the field supports multiple values, False otherwise
+        """
+        display_type = custom_field.get("displayType", "")
+        return display_type in ("Checkbox", "MultiSelect")
+
+    @classmethod
+    def is_date_type(cls, custom_field: Dict[str, Any]) -> bool:
+        """Check if a custom field represents a date/time type.
+
+        Args:
+            custom_field: Custom field metadata
+
+        Returns:
+            True if the field is date/time-based, False otherwise
+        """
+        display_type = custom_field.get("displayType", "")
+        data_type = custom_field.get("dataType", "")
+        return display_type in ("Date", "DateTime", "Time") or data_type in (
+            "Date",
+            "DateTime",
+            "Time",
+        )
+
+    @classmethod
+    def is_file_type(cls, custom_field: Dict[str, Any]) -> bool:
+        """Check if a custom field represents a file type.
+
+        Args:
+            custom_field: Custom field metadata
+
+        Returns:
+            True if the field is file-based, False otherwise
+        """
+        display_type = custom_field.get("displayType", "")
+        return display_type in ("File", "Image")
+
+    @classmethod
+    def requires_option_values(cls, custom_field: Dict[str, Any]) -> bool:
+        """Check if a custom field requires optionValues in the API payload.
+
+        Args:
+            custom_field: Custom field metadata
+
+        Returns:
+            True if the field should use optionValues format, False if it should use value format
+        """
+        display_type = custom_field.get("displayType", "")
+        return display_type in (
+            "Checkbox",
+            "MultiSelect",
+            "DropDown",
+            "Dropdown",
+            "RadioButton",
+            "Radio",
+        )
+
+    @classmethod
+    def get_payload_format(cls, custom_field: Dict[str, Any]) -> str:
+        """Get the appropriate API payload format for a custom field.
+
+        Args:
+            custom_field: Custom field metadata
+
+        Returns:
+            "optionValues" for selection-based fields, "value" for text/numeric fields
+        """
+        return "optionValues" if cls.requires_option_values(custom_field) else "value"
+
+    @classmethod
+    def format_multivalue_string(cls, values: List[str], separator: str = "|") -> str:
+        """Format a list of values into a multi-value string.
+
+        Args:
+            values: List of string values
+            separator: Separator to use (default: "|")
+
+        Returns:
+            Formatted multi-value string
+        """
+        return separator.join(str(v).strip() for v in values if str(v).strip())
+
+    @classmethod
+    def parse_multivalue_string(cls, value_string: str) -> List[str]:
+        """Parse a multi-value string into a list of values.
+
+        Args:
+            value_string: String with pipe or comma-separated values
+
+        Returns:
+            List of individual values
+        """
+        if not value_string:
+            return []
+
+        # Handle both pipe and comma separators
+        if "|" in value_string:
+            return [item.strip() for item in value_string.split("|") if item.strip()]
+        else:
+            return [item.strip() for item in value_string.split(",") if item.strip()]
