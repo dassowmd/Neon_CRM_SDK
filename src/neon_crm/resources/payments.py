@@ -2,16 +2,16 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import SearchableResource
 from ..governance import ResourceType
+from .base import BaseResource, SearchableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class PaymentsResource(SearchableResource):
+class PaymentsResource(BaseResource):
     """Resource for managing payments."""
-    
+
     _resource_type = ResourceType.PAYMENTS
 
     def __init__(self, client: "NeonClient") -> None:
@@ -20,8 +20,9 @@ class PaymentsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         payment_status: Optional[str] = None,
         payment_method: Optional[str] = None,
         start_date: Optional[str] = None,
@@ -31,7 +32,7 @@ class PaymentsResource(SearchableResource):
         """List payments with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             payment_status: Filter by payment status
             payment_method: Filter by payment method
@@ -54,4 +55,6 @@ class PaymentsResource(SearchableResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
