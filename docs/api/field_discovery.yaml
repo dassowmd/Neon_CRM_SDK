@@ -1,0 +1,480 @@
+# Field Discovery and Intelligent Matching Documentation
+
+version: "1.0.0"
+description: |
+  Comprehensive documentation for the Neon CRM SDK's intelligent field discovery and
+  fuzzy search capabilities. This system provides automatic field name correction,
+  semantic matching, and helpful suggestions when working with field names.
+
+field_discovery:
+  overview: |
+    The Neon CRM SDK includes sophisticated field discovery capabilities that help
+    users work with field names even when they contain typos, use different naming
+    conventions, or need conceptual matching.
+
+  core_features:
+    - automatic_typo_correction
+    - case_variation_handling
+    - semantic_field_matching
+    - abbreviation_expansion
+    - intelligent_suggestions
+    - real_time_validation
+
+  algorithms:
+    fuzzy_matching:
+      description: "Character and word-level similarity matching for typo correction"
+
+      levenshtein_distance:
+        description: "Edit distance algorithm for character-level typo correction"
+        use_cases:
+          - "'frist_name' → 'first_name' (missing character)"
+          - "'emial' → 'email' (transposed characters)"
+          - "'volunter' → 'volunteer' (missing character)"
+        threshold: 0.8
+        examples:
+          - input: "frist_name"
+            output: "first_name"
+            score: 0.9
+            reason: "Single character insertion"
+          - input: "last_nam"
+            output: "last_name"
+            score: 0.85
+            reason: "Single character missing"
+
+      word_overlap:
+        description: "Word-based similarity for different naming conventions"
+        use_cases:
+          - "'firstName' → 'first_name' (camelCase to snake_case)"
+          - "'emailAddr' → 'email_address' (abbreviation expansion)"
+          - "'phone_num' → 'phone_number' (word completion)"
+        threshold: 0.7
+        examples:
+          - input: "firstName"
+            output: "first_name"
+            score: 0.95
+            reason: "Perfect word match with case conversion"
+          - input: "emailAddr"
+            output: "email_address"
+            score: 0.8
+            reason: "Word overlap with abbreviation"
+
+      starts_with_matching:
+        description: "Prefix-based matching for partial field names"
+        use_cases:
+          - "'vol' → 'volunteer_interests' (prefix matching)"
+          - "'addr' → 'address' (abbreviation prefix)"
+          - "'mem' → 'membership_type' (short prefix)"
+        threshold: 0.2
+        examples:
+          - input: "vol"
+            outputs: ["volunteer_interests", "volunteer_hours", "volunteer_activities"]
+            reason: "Prefix match on 'volunteer'"
+
+      contains_matching:
+        description: "Substring matching for field names containing the query"
+        use_cases:
+          - "'volunteer' found in 'volunteer_activities'"
+          - "'email' found in 'primary_email_address'"
+          - "'date' found in 'creation_date', 'modified_date'"
+        threshold: 0.3
+        examples:
+          - input: "volunteer"
+            outputs: ["volunteer_interests", "volunteer_hours", "company_volunteer_policy"]
+            reason: "Contains 'volunteer' substring"
+
+    semantic_matching:
+      description: "Meaning-based field discovery using synonyms and concepts"
+
+      abbreviation_expansion:
+        description: "Automatic expansion of common abbreviations"
+        mappings:
+          ph: ["phone", "telephone"]
+          addr: ["address", "location"]
+          num: ["number"]
+          vol: ["volunteer"]
+          pref: ["preference", "preferences"]
+          org: ["organization", "organization_name"]
+          dept: ["department"]
+          mgr: ["manager"]
+          info: ["information"]
+          desc: ["description"]
+          cat: ["category"]
+          stat: ["status"]
+          acct: ["account"]
+          ref: ["reference"]
+          temp: ["template", "temporary"]
+        examples:
+          - input: "ph_num"
+            expansions: ["phone_number", "telephone_number"]
+            reason: "ph → phone, num → number"
+
+      synonym_matching:
+        description: "Conceptual matching using field meaning"
+        synonym_groups:
+          address:
+            - location
+            - residence
+            - place
+            - home_address
+            - work_location
+            - mailing_address
+          phone:
+            - telephone
+            - mobile
+            - cell
+            - contact_number
+          email:
+            - mail
+            - electronic_mail
+            - email_address
+            - contact_email
+          name:
+            - title
+            - label
+            - identifier
+          date:
+            - time
+            - timestamp
+            - when
+            - datetime
+          amount:
+            - value
+            - price
+            - cost
+            - total
+            - sum
+        examples:
+          - input: "address"
+            semantic_matches: ["home_location", "work_residence", "mailing_place"]
+            scores: [0.8, 0.7, 0.6]
+            reason: "Conceptual similarity to location/residence concepts"
+
+      meaningful_word_extraction:
+        description: "Extract meaningful words from compound field names"
+        patterns:
+          camelCase: "firstName → ['first', 'name']"
+          snake_case: "email_address → ['email', 'address']"
+          kebab_case: "phone-number → ['phone', 'number']"
+          mixed: "homeAddr1 → ['home', 'address', '1']"
+        examples:
+          - input: "homeEmailAddr"
+            extracted_words: ["home", "email", "address"]
+            matches: ["home_email_address", "primary_email_address", "contact_email"]
+
+validation_integration:
+  description: |
+    Field discovery is integrated throughout the SDK's validation system,
+    providing intelligent suggestions when validation fails.
+
+  search_field_validation:
+    trigger: "Invalid field name in search request"
+    behavior: |
+      1. Validates field name against available search fields
+      2. If invalid, generates fuzzy and semantic suggestions
+      3. Logs helpful suggestions at INFO level
+      4. Returns validation error with field suggestions
+
+    example_flow: |
+      # User provides invalid field name
+      search_request = {
+        'searchFields': [{'field': 'frist_name', 'operator': 'EQUAL', 'value': 'John'}]
+      }
+
+      # SDK validation process:
+      # 1. Check if 'frist_name' is valid → FALSE
+      # 2. Generate suggestions: ['first_name', 'last_name'] (fuzzy)
+      # 3. Log: "Search field 'frist_name' not found. Did you mean: first_name, last_name?"
+      # 4. Return validation error with suggestions
+
+  custom_field_lookup:
+    trigger: "Custom field not found by name"
+    behavior: |
+      1. Searches for custom field by exact name match
+      2. If not found, generates fuzzy and semantic suggestions
+      3. Logs helpful suggestions at INFO level
+      4. Returns None (preserves original behavior)
+
+    example_flow: |
+      # User looks up custom field with typo
+      field = client.custom_fields.find_by_name_and_category('volunter', 'Account')
+
+      # SDK lookup process:
+      # 1. Search for exact match 'volunter' → NOT FOUND
+      # 2. Generate suggestions: ['volunteer_interests', 'volunteer_hours'] (fuzzy)
+      # 3. Log: "Custom field 'volunter' not found in category 'Account'. Did you mean: volunteer_interests?"
+      # 4. Return None
+
+  output_field_validation:
+    trigger: "Invalid output field in search request"
+    behavior: |
+      1. Validates output field names against available fields
+      2. If invalid, generates suggestions for each invalid field
+      3. Logs suggestions for invalid fields
+      4. Returns validation errors with suggestions
+
+api_endpoints:
+  description: "REST API endpoints that provide field discovery functionality"
+
+  fuzzy_search:
+    endpoint: "POST /customFields/search"
+    description: "Search custom fields using fuzzy matching algorithms"
+    request:
+      query: "Search term (supports typos and variations)"
+      category: "Optional custom field category filter"
+      threshold: "Minimum similarity score (0.0-1.0, default: 0.3)"
+      max_results: "Maximum results to return (default: 10)"
+    response:
+      type: "array"
+      items:
+        field: "Custom field object"
+        similarity_score: "Similarity score (0.0-1.0)"
+        match_type: "Type of match (fuzzy, semantic, exact)"
+    example:
+      request: |
+        POST /customFields/search
+        {
+          "query": "volunter",
+          "category": "Account",
+          "threshold": 0.3,
+          "max_results": 5
+        }
+      response: |
+        [
+          {
+            "field": {"id": 123, "name": "Volunteer Interests"},
+            "similarity_score": 0.85,
+            "match_type": "fuzzy"
+          },
+          {
+            "field": {"id": 124, "name": "Volunteer Hours"},
+            "similarity_score": 0.82,
+            "match_type": "fuzzy"
+          }
+        ]
+
+  field_suggestions:
+    endpoint: "POST /customFields/suggest"
+    description: "Get intelligent suggestions for invalid field names"
+    request:
+      invalid_name: "Invalid or misspelled field name"
+      category: "Optional custom field category"
+      max_suggestions: "Maximum suggestions to return (default: 5)"
+    response:
+      fuzzy_suggestions: "Array of typo corrections and similar names"
+      semantic_suggestions: "Array of conceptually related field names"
+    example:
+      request: |
+        POST /customFields/suggest
+        {
+          "invalid_name": "addr_info",
+          "category": "Account",
+          "max_suggestions": 3
+        }
+      response: |
+        {
+          "fuzzy_suggestions": ["address_info", "address_line"],
+          "semantic_suggestions": ["home_location", "work_location", "mailing_address"]
+        }
+
+  search_fields_discovery:
+    endpoint: "GET /accounts/searchFields"
+    description: "Get available search fields with fuzzy matching metadata"
+    response:
+      standardFields: "Array of standard field definitions"
+      customFields: "Array of custom field definitions"
+      fuzzyAliases: "Common variations each field matches"
+    example:
+      response: |
+        {
+          "standardFields": [
+            {
+              "name": "first_name",
+              "type": "string",
+              "operators": ["EQUAL", "CONTAIN", "NOT_EQUAL"],
+              "fuzzyAliases": ["firstName", "frist_name", "fname"]
+            }
+          ],
+          "customFields": [
+            {
+              "id": 123,
+              "name": "Volunteer Interests",
+              "type": "text",
+              "fuzzyAliases": ["volunteer_interests", "vol_interests", "volunter"]
+            }
+          ]
+        }
+
+usage_examples:
+  description: "Practical examples of field discovery in action"
+
+  typo_correction:
+    scenario: "User makes typo in field name"
+    code: |
+      # Python SDK usage
+      search_request = {
+        'searchFields': [
+          {'field': 'frist_name', 'operator': 'EQUAL', 'value': 'John'}
+        ]
+      }
+
+      try:
+        results = client.accounts.search(search_request)
+      except ValueError as e:
+        # SDK automatically logs: "Search field 'frist_name' not found. Did you mean: first_name?"
+        print(f"Validation error: {e}")
+        # Show user the logged suggestions
+
+    api_call: |
+      # Direct API call
+      POST /accounts/search
+      {
+        "searchFields": [
+          {"field": "frist_name", "operator": "EQUAL", "value": "John"}
+        ]
+      }
+
+      # Response includes suggestions
+      400 Bad Request
+      {
+        "errors": ["Field 'frist_name' is not valid"],
+        "fieldSuggestions": {
+          "frist_name": ["first_name", "last_name"]
+        }
+      }
+
+  case_conversion:
+    scenario: "User uses different naming convention"
+    code: |
+      # User uses camelCase, SDK expects snake_case
+      custom_field = client.custom_fields.find_by_name_and_category('firstName', 'Account')
+
+      # SDK logs: "Custom field 'firstName' not found. Did you mean: first_name?"
+      # Returns None but provides helpful guidance
+
+  semantic_search:
+    scenario: "User searches by concept rather than exact name"
+    code: |
+      # Find fields related to "address" concept
+      address_fields = client.custom_fields.semantic_search_by_name(
+        'address',
+        category='Account',
+        threshold=0.1
+      )
+
+      # Returns fields like: home_location, work_location, mailing_address
+      for field, score in address_fields:
+        print(f"{field['name']}: {score:.2f}")
+
+  abbreviation_expansion:
+    scenario: "User uses common abbreviations"
+    code: |
+      # SDK automatically expands abbreviations
+      search_request = {
+        'searchFields': [
+          {'field': 'ph_num', 'operator': 'NOT_BLANK'}
+        ]
+      }
+
+      # SDK suggests: phone_number, telephone_number
+      # Logs helpful expansion suggestions
+
+performance_considerations:
+  caching:
+    description: "Field discovery uses intelligent caching for performance"
+    strategies:
+      custom_fields: "5-10 minute TTL cache for custom field metadata"
+      search_fields: "Cached search field definitions per resource"
+      validation_results: "Cached validation state to avoid repeated API calls"
+
+  thresholds:
+    fuzzy_matching: 0.3  # Balance between accuracy and recall
+    semantic_matching: 0.1  # More permissive for conceptual matches
+    suggestion_generation: 0.4  # Higher threshold for final suggestions
+
+  optimization:
+    early_termination: "Stop processing when exact match found"
+    batch_processing: "Process multiple field validations efficiently"
+    lazy_loading: "Load field metadata only when needed"
+
+error_handling:
+  graceful_degradation:
+    description: "Field discovery gracefully handles errors without breaking functionality"
+    fallback_behavior:
+      - "If fuzzy search fails, return empty suggestions"
+      - "If API unavailable, use static field definitions"
+      - "If caching fails, proceed with direct API calls"
+      - "Log errors at DEBUG level to avoid noise"
+
+  suggestion_quality:
+    minimum_score: "Only return suggestions above threshold"
+    deduplication: "Remove duplicate suggestions between fuzzy and semantic"
+    ranking: "Sort suggestions by relevance score"
+    context_awareness: "Consider field category and resource type"
+
+integration_patterns:
+  logging_integration:
+    description: "Seamless integration with SDK logging system"
+    log_levels:
+      INFO: "Field suggestions for user visibility"
+      DEBUG: "Detailed fuzzy search algorithm steps"
+      WARNING: "Validation failures and error conditions"
+
+    log_format: |
+      INFO: "Search field 'frist_name' not found for resource 'account'. Did you mean: first_name, last_name?"
+      DEBUG: "Fuzzy search found 3 candidates: first_name (0.9), last_name (0.7), full_name (0.5)"
+
+  validation_integration:
+    description: "Deep integration with SDK validation framework"
+    workflow:
+      1. "User submits request with field names"
+      2. "Validator checks field validity"
+      3. "If invalid, trigger field discovery"
+      4. "Generate and log suggestions"
+      5. "Return validation error with context"
+      6. "User sees helpful suggestions in logs"
+
+  error_message_enhancement:
+    description: "Enhanced error messages with intelligent suggestions"
+    before: "Field 'frist_name' is not valid for resource 'account'"
+    after: "Field 'frist_name' is not valid for resource 'account'. Did you mean: first_name, last_name?"
+
+configuration:
+  tunable_parameters:
+    fuzzy_threshold:
+      default: 0.3
+      description: "Minimum similarity score for fuzzy matches"
+      range: "0.0 - 1.0"
+
+    semantic_threshold:
+      default: 0.1
+      description: "Minimum similarity score for semantic matches"
+      range: "0.0 - 1.0"
+
+    max_suggestions:
+      default: 5
+      description: "Maximum number of suggestions to return"
+      range: "1 - 20"
+
+    case_sensitive:
+      default: false
+      description: "Whether to perform case-sensitive matching"
+      values: [true, false]
+
+    enable_logging:
+      default: true
+      description: "Whether to log field suggestions"
+      values: [true, false]
+
+best_practices:
+  for_developers:
+    - "Use fuzzy search for user-facing field input"
+    - "Log suggestions at INFO level for user visibility"
+    - "Set appropriate thresholds based on use case"
+    - "Handle validation errors gracefully with suggestions"
+    - "Cache field metadata for performance"
+
+  for_users:
+    - "Check log output for field name suggestions"
+    - "Use semantic search for concept-based discovery"
+    - "Try abbreviations when unsure of full field names"
+    - "Use fuzzy search APIs for interactive field selection"

@@ -1,0 +1,1491 @@
+{
+  "version": "1.0.0",
+  "generated_at": "auto-generated",
+  "sdk_info": {
+    "name": "Neon CRM Python SDK",
+    "version": "1.0.0",
+    "description": "Python SDK for Neon CRM with intelligent field discovery"
+  },
+  "resources": {
+    "accounts": {
+      "class_name": "AccountsResource",
+      "endpoint": "/accounts",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [
+        "get_contacts",
+        "get_donations",
+        "get_event_registrations",
+        "get_memberships",
+        "get_orders",
+        "get_pledges"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "link": {
+          "parameters": [
+            "company_id"
+          ],
+          "doc": "Link an individual account to a company.\n\nArgs:\n    individual_id: ID of the individual account\n    company_id: ID of the company account\n\nReturns:\n    The response from the link operation"
+        },
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        },
+        "unlink": {
+          "parameters": [
+            "company_id"
+          ],
+          "doc": "Remove an individual account from a company.\n\nArgs:\n    individual_id: ID of the individual account\n    company_id: ID of the company account\n\nReturns:\n    The response from the unlink operation"
+        }
+      },
+      "type": "specialized"
+    },
+    "activities": {
+      "class_name": "ActivitiesResource",
+      "endpoint": "/activities",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
+    },
+    "addresses": {
+      "class_name": "AddressesResource",
+      "endpoint": "/addresses",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "patch",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {},
+      "type": "crud"
+    },
+    "campaigns": {
+      "class_name": "CampaignsResource",
+      "endpoint": "/campaigns",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {},
+      "type": "crud"
+    },
+    "custom_fields": {
+      "class_name": "CustomFieldsResource",
+      "endpoint": "/customFields",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_by_category",
+        "get_group",
+        "get_groups_by_category"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "find_by_name_and_category": {
+          "parameters": [
+            "category"
+          ],
+          "doc": "Find a custom field by name within a specific category.\n\nArgs:\n    field_name: The name of the custom field to find\n    category: The category to search within\n\nReturns:\n    The custom field data if found, None otherwise"
+        },
+        "find_group_by_name": {
+          "parameters": [],
+          "doc": "Find a custom field group by name.\n\nArgs:\n    group_name: The name of the custom field group to find\n\nReturns:\n    The custom field group data if found, None otherwise"
+        },
+        "find_group_by_name_and_category": {
+          "parameters": [
+            "category"
+          ],
+          "doc": "Find a custom field group by name within a specific category.\n\nArgs:\n    group_name: The name of the custom field group to find\n    category: The category to search within\n\nReturns:\n    The custom field group data if found, None otherwise"
+        },
+        "fuzzy_search_by_name": {
+          "parameters": [
+            "category",
+            "threshold",
+            "max_results",
+            "case_sensitive"
+          ],
+          "doc": "Search custom fields by name using fuzzy matching.\n\nArgs:\n    query: The search query for field names\n    category: Optional category to limit search scope\n    threshold: Minimum similarity score (0.0-1.0) to include in results\n    max_results: Maximum number of results to return\n    case_sensitive: Whether to perform case-sensitive matching\n\nReturns:\n    List of (field_dict, similarity_score) tuples sorted by score\n\nExample:\n    # Search for fields similar to \"volunteer\"\n    results = client.custom_fields.fuzzy_search_by_name(\"volunteer\")\n    for field, score in results:\n        print(f\"{field['name']} (ID: {field['id']}) - Score: {score:.2f}\")\n\n    # Search within specific category\n    results = client.custom_fields.fuzzy_search_by_name(\n        \"email\", category=\"Account\", threshold=0.5\n    )"
+        },
+        "list_all_categories": {
+          "parameters": [
+            "page_size",
+            "limit",
+            "kwargs"
+          ],
+          "doc": "Iterate through custom fields from all categories.\n\nArgs:\n    current_page: Page number to start from (0-indexed)\n    page_size: Number of items per page\n    limit: Maximum number of items to return across all categories\n    **kwargs: Additional query parameters\n\nYields:\n    Individual custom field dictionaries from all categories"
+        },
+        "list_groups": {
+          "parameters": [
+            "page_size",
+            "limit",
+            "category",
+            "kwargs"
+          ],
+          "doc": "List custom field groups.\n\nArgs:\n    current_page: Page number to start from (0-indexed)\n    page_size: Number of items per page\n    limit: Maximum number of items to return\n    category: Filter by category (Account, Donation, Event, etc.) - maps to 'component' API parameter\n    **kwargs: Additional query parameters\n\nYields:\n    Individual custom field group dictionaries"
+        },
+        "semantic_search_by_name": {
+          "parameters": [
+            "category",
+            "threshold",
+            "max_results"
+          ],
+          "doc": "Search custom fields using semantic similarity.\n\nArgs:\n    query: The search query for field names\n    category: Optional category to limit search scope\n    threshold: Minimum semantic similarity score (0.0-1.0)\n    max_results: Maximum number of results to return\n\nReturns:\n    List of (field_dict, similarity_score) tuples sorted by score\n\nExample:\n    # Search for fields with similar meaning to \"address\"\n    results = client.custom_fields.semantic_search_by_name(\"address\")\n    for field, score in results:\n        print(f\"{field['name']} (ID: {field['id']}) - Score: {score:.2f}\")"
+        }
+      },
+      "type": "specialized"
+    },
+    "custom_objects": {
+      "class_name": "CustomObjectsResource",
+      "endpoint": "/customObjects",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_by_type"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {},
+      "type": "crud"
+    },
+    "donations": {
+      "class_name": "DonationsResource",
+      "endpoint": "/donations",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
+    },
+    "events": {
+      "class_name": "EventsResource",
+      "endpoint": "/events",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [
+        "get_categories",
+        "get_registrations"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
+    },
+    "grants": {
+      "class_name": "GrantsResource",
+      "endpoint": "/grants",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [
+        "get_active",
+        "get_by_funder"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
+    },
+    "households": {
+      "class_name": "HouseholdsResource",
+      "endpoint": "/households",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "add_member": {
+          "parameters": [
+            "account_id"
+          ],
+          "doc": "Add a member to a household.\n\nArgs:\n    household_id: The household ID\n    account_id: The account ID to add\n\nReturns:\n    The response from the add member operation"
+        },
+        "remove_member": {
+          "parameters": [
+            "account_id"
+          ],
+          "doc": "Remove a member from a household.\n\nArgs:\n    household_id: The household ID\n    account_id: The account ID to remove\n\nReturns:\n    The response from the remove member operation"
+        }
+      },
+      "type": "specialized"
+    },
+    "memberships": {
+      "class_name": "MembershipsResource",
+      "endpoint": "/memberships",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_levels",
+        "get_terms"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "calculate": {
+          "parameters": [
+            "calculation_type"
+          ],
+          "doc": "Perform a calculation using the resource's calculation endpoint.\n\nArgs:\n    calculation_data: The data to use for the calculation\n    calculation_type: Optional calculation type suffix (e.g., \"Fee\", \"Dates\")\n\nReturns:\n    The calculation result data"
+        },
+        "calculate_dates": {
+          "parameters": [],
+          "doc": "Calculate membership term start and end dates.\n\nArgs:\n    calculation_data: The membership data for date calculation\n\nReturns:\n    The calculated dates"
+        },
+        "calculate_fee": {
+          "parameters": [],
+          "doc": "Calculate the cost of a membership.\n\nArgs:\n    calculation_data: The membership data for fee calculation\n\nReturns:\n    The calculated fee"
+        }
+      },
+      "type": "specialized"
+    },
+    "online_store": {
+      "class_name": "OnlineStoreResource",
+      "endpoint": "/store",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_order",
+        "get_product",
+        "get_transaction"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "list_catalogs": {
+          "parameters": [
+            "page_size",
+            "limit",
+            "kwargs"
+          ],
+          "doc": "List store catalogs.\n\nArgs:\n    current_page: Page number to start from (0-indexed)\n    page_size: Number of items per page\n    limit: Maximum number of items to return\n    **kwargs: Additional query parameters\n\nYields:\n    Individual catalog dictionaries"
+        },
+        "list_categories": {
+          "parameters": [
+            "page_size",
+            "limit",
+            "kwargs"
+          ],
+          "doc": "List store categories.\n\nArgs:\n    current_page: Page number to start from (0-indexed)\n    page_size: Number of items per page\n    limit: Maximum number of items to return\n    **kwargs: Additional query parameters\n\nYields:\n    Individual category dictionaries"
+        },
+        "list_orders": {
+          "parameters": [
+            "page_size",
+            "limit",
+            "status",
+            "customer_id",
+            "kwargs"
+          ],
+          "doc": "List store orders.\n\nArgs:\n    current_page: Page number to start from (0-indexed)\n    page_size: Number of items per page\n    limit: Maximum number of items to return\n    status: Filter by order status\n    customer_id: Filter by customer ID\n    **kwargs: Additional query parameters\n\nYields:\n    Individual order dictionaries"
+        },
+        "list_products": {
+          "parameters": [
+            "page_size",
+            "limit",
+            "product_status",
+            "category",
+            "kwargs"
+          ],
+          "doc": "List online store products.\n\nArgs:\n    current_page: Page number to start from (0-indexed)\n    page_size: Number of items per page\n    limit: Maximum number of items to return\n    product_status: Filter by product status\n    category: Filter by product category\n    **kwargs: Additional query parameters\n\nYields:\n    Individual product dictionaries"
+        },
+        "list_transactions": {
+          "parameters": [
+            "page_size",
+            "limit",
+            "start_date",
+            "end_date",
+            "status",
+            "kwargs"
+          ],
+          "doc": "List store transactions.\n\nArgs:\n    current_page: Page number to start from (0-indexed)\n    page_size: Number of items per page\n    limit: Maximum number of items to return\n    start_date: Filter by start date (YYYY-MM-DD format)\n    end_date: Filter by end date (YYYY-MM-DD format)\n    status: Filter by transaction status\n    **kwargs: Additional query parameters\n\nYields:\n    Individual transaction dictionaries"
+        }
+      },
+      "type": "specialized"
+    },
+    "orders": {
+      "class_name": "OrdersResource",
+      "endpoint": "/orders",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "search",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "calculate": {
+          "parameters": [
+            "calculation_type"
+          ],
+          "doc": "Perform a calculation using the resource's calculation endpoint.\n\nArgs:\n    calculation_data: The data to use for the calculation\n    calculation_type: Optional calculation type suffix (e.g., \"Fee\", \"Dates\")\n\nReturns:\n    The calculation result data"
+        },
+        "calculate_order_total": {
+          "parameters": [],
+          "doc": "Calculate the total cost of an order.\n\nArgs:\n    order_data: The order data for calculation\n\nReturns:\n    The calculated order totals"
+        },
+        "search_paginated": {
+          "parameters": [
+            "page_size",
+            "max_pages",
+            "validate"
+          ],
+          "doc": "Search with explicit pagination control.\n\nArgs:\n    search_request: The search request parameters\n    page_size: Number of results per page\n    max_pages: Maximum number of pages to retrieve (None for all)\n    validate: Whether to validate the search request\n\nYields:\n    Individual resource dictionaries from search results"
+        }
+      },
+      "type": "specialized"
+    },
+    "payments": {
+      "class_name": "PaymentsResource",
+      "endpoint": "/payments",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {},
+      "type": "crud"
+    },
+    "pledges": {
+      "class_name": "PledgesResource",
+      "endpoint": "/pledges",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {},
+      "type": "crud"
+    },
+    "properties": {
+      "class_name": "PropertiesResource",
+      "endpoint": "/properties",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_activity_statuses",
+        "get_address_types",
+        "get_company_types",
+        "get_countries",
+        "get_current_system_user",
+        "get_event_categories",
+        "get_event_topics",
+        "get_funds",
+        "get_genders",
+        "get_individual_types",
+        "get_organization_profile",
+        "get_prefixes",
+        "get_property",
+        "get_purposes",
+        "get_relation_types",
+        "get_solicitation_methods",
+        "get_sources",
+        "get_state_provinces",
+        "get_system_timezones",
+        "get_system_users"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {},
+      "type": "crud"
+    },
+    "recurring_donations": {
+      "class_name": "RecurringDonationsResource",
+      "endpoint": "/recurring",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_active",
+        "get_by_frequency"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "cancel": {
+          "parameters": [],
+          "doc": "Cancel a recurring donation.\n\nArgs:\n    donation_id: The recurring donation ID\n\nReturns:\n    The response from the cancel operation"
+        }
+      },
+      "type": "specialized"
+    },
+    "soft_credits": {
+      "class_name": "SoftCreditsResource",
+      "endpoint": "/softCredits",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_by_account",
+        "get_by_donation"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {},
+      "type": "crud"
+    },
+    "volunteers": {
+      "class_name": "VolunteersResource",
+      "endpoint": "/volunteers",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {},
+      "type": "crud"
+    },
+    "webhooks": {
+      "class_name": "WebhooksResource",
+      "endpoint": "/webhooks",
+      "operations": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "update"
+      ],
+      "relationships": [
+        "get_event_types"
+      ],
+      "custom_fields": true,
+      "fuzzy_search": true,
+      "specialized_methods": {
+        "create_webhook": {
+          "parameters": [
+            "event_types",
+            "secret",
+            "description"
+          ],
+          "doc": "Create a new webhook.\n\nArgs:\n    url: The webhook URL to call\n    event_types: List of event types to subscribe to\n    secret: Optional secret for webhook verification\n    description: Optional description of the webhook\n\nReturns:\n    The created webhook data"
+        },
+        "test_webhook": {
+          "parameters": [],
+          "doc": "Test a webhook by sending a test event.\n\nArgs:\n    webhook_id: The webhook ID to test\n\nReturns:\n    The test result"
+        },
+        "update_webhook": {
+          "parameters": [
+            "url",
+            "event_types",
+            "secret",
+            "description",
+            "status"
+          ],
+          "doc": "Update an existing webhook.\n\nArgs:\n    webhook_id: The webhook ID\n    url: The webhook URL to call\n    event_types: List of event types to subscribe to\n    secret: Optional secret for webhook verification\n    description: Optional description of the webhook\n    status: Webhook status (active, inactive)\n\nReturns:\n    The updated webhook data"
+        }
+      },
+      "type": "specialized"
+    }
+  },
+  "enums": {
+    "AddressType": {
+      "type": "string",
+      "enum": [
+        "HOME",
+        "WORK",
+        "BILLING",
+        "MAILING",
+        "SHIPPING",
+        "OTHER"
+      ],
+      "description": "Address type enumeration (common values from Swagger)."
+    },
+    "AnonymousType": {
+      "type": "string",
+      "enum": [
+        "FALSE",
+        "DONOR_NAME_ANONYMOUS",
+        "DONATION_AMOUNT_ANONYMOUS"
+      ],
+      "description": "Anonymous donation type enumeration."
+    },
+    "CustomFieldCategory": {
+      "type": "string",
+      "enum": [
+        "ACCOUNT",
+        "DONATION",
+        "EVENT",
+        "ATTENDEE",
+        "INDIVIDUAL",
+        "COMPANY",
+        "ACTIVITY",
+        "MEMBERSHIP",
+        "PRODUCT",
+        "PROSPECT",
+        "GRANT"
+      ],
+      "description": "Custom field category enumeration."
+    },
+    "DonationStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELED",
+        "DEFERRED",
+        "REFUNDED"
+      ],
+      "description": "Donation status enumeration."
+    },
+    "Enum": {
+      "type": "string",
+      "enum": [],
+      "description": "Create a collection of name/value pairs.\n\nExample enumeration:\n\n>>> class Color(Enum):\n...     RED = 1\n...     BLUE = 2\n...     GREEN = 3\n\nAccess them by:\n\n- attribute access:\n\n  >>> Color.RED\n  <Color.RED: 1>\n\n- value lookup:\n\n  >>> Color(1)\n  <Color.RED: 1>\n\n- name lookup:\n\n  >>> Color['RED']\n  <Color.RED: 1>\n\nEnumerations can be iterated over, and know how many members they have:\n\n>>> len(Color)\n3\n\n>>> list(Color)\n[<Color.RED: 1>, <Color.BLUE: 2>, <Color.GREEN: 3>]\n\nMethods can be added to enumerations, and members can have their own\nattributes -- see the documentation for details."
+    },
+    "EventStatus": {
+      "type": "string",
+      "enum": [
+        "DRAFT",
+        "PUBLISHED",
+        "CANCELED",
+        "COMPLETED"
+      ],
+      "description": "Event status enumeration (common values)."
+    },
+    "Gender": {
+      "type": "string",
+      "enum": [
+        "MALE",
+        "FEMALE",
+        "OTHER",
+        "PREFER_NOT_TO_SAY"
+      ],
+      "description": "Gender enumeration (common values)."
+    },
+    "PaymentStatus": {
+      "type": "string",
+      "enum": [
+        "PENDING",
+        "PROCESSING",
+        "SUCCEEDED",
+        "FAILED",
+        "ERROR",
+        "SCHEDULED",
+        "CANCELED",
+        "DEFERRED",
+        "REFUNDED",
+        "PARTIALLY_REFUNDED",
+        "DISPUTE_LOST",
+        "HELD_FOR_REVIEW"
+      ],
+      "description": "Payment status enumeration."
+    },
+    "PhoneType": {
+      "type": "string",
+      "enum": [
+        "HOME",
+        "WORK",
+        "MOBILE",
+        "OTHER"
+      ],
+      "description": "Phone number type enumeration."
+    },
+    "SearchOperator": {
+      "type": "string",
+      "enum": [
+        "EQUAL",
+        "NOT_EQUAL",
+        "BLANK",
+        "NOT_BLANK",
+        "LESS_THAN",
+        "GREATER_THAN",
+        "LESS_AND_EQUAL",
+        "GREATER_AND_EQUAL",
+        "IN_RANGE",
+        "NOT_IN_RANGE",
+        "CONTAIN",
+        "NOT_CONTAIN"
+      ],
+      "description": "Search operator enumeration.\n\nNote about IN_RANGE and NOT_IN_RANGE operators:\nDespite the name, these operators behave like IN_ARRAY/NOT_IN_ARRAY operations.\nThey check if a field value matches any value in a provided list, rather than\nchecking if a value falls within a numeric range.\n\nExample:\n    # This checks if Status is \"Active\" OR \"Pending\" (not a range)\n    {\"field\": \"Status\", \"operator\": \"IN_RANGE\", \"value\": [\"Active\", \"Pending\"]}\n\n    # For actual numeric ranges, use comparison operators instead:\n    {\"field\": \"Amount\", \"operator\": \"GREATER_THAN\", \"value\": 100}\n    {\"field\": \"Amount\", \"operator\": \"LESS_THAN\", \"value\": 500}"
+    },
+    "SortDirection": {
+      "type": "string",
+      "enum": [
+        "ASC",
+        "DESC"
+      ],
+      "description": "Sort direction enumeration."
+    },
+    "UserType": {
+      "type": "string",
+      "enum": [
+        "INDIVIDUAL",
+        "COMPANY"
+      ],
+      "description": "Account user type enumeration."
+    }
+  },
+  "typed_dicts": {
+    "AccountData": {
+      "type": "object",
+      "title": "AccountData",
+      "properties": {
+        "individualAccount": {
+          "type": "string"
+        },
+        "companyAccount": {
+          "type": "string"
+        },
+        "loginName": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "timestamps": {
+          "type": "string"
+        },
+        "addresses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "consent": {
+          "type": "object"
+        },
+        "customFields": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [],
+      "description": "Account creation data."
+    },
+    "AccountListResponse": {
+      "type": "object",
+      "title": "AccountListResponse",
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pagination": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "accounts",
+        "pagination"
+      ],
+      "description": "Response structure for GET /accounts."
+    },
+    "AccountResponse": {
+      "type": "object",
+      "title": "AccountResponse",
+      "properties": {
+        "accountId": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "companyName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "userType": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Account response structure from API."
+    },
+    "Address": {
+      "type": "object",
+      "title": "Address",
+      "properties": {
+        "addressId": {
+          "type": "string"
+        },
+        "addressType": {
+          "type": "string"
+        },
+        "streetAddress1": {
+          "type": "string"
+        },
+        "streetAddress2": {
+          "type": "string"
+        },
+        "addressLine1": {
+          "type": "string"
+        },
+        "addressLine2": {
+          "type": "string"
+        },
+        "addressLine3": {
+          "type": "string"
+        },
+        "addressLine4": {
+          "type": "string"
+        },
+        "city": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        },
+        "zipCode": {
+          "type": "string"
+        },
+        "postalCode": {
+          "type": "string"
+        },
+        "country": {
+          "type": "string"
+        },
+        "isPrimaryAddress": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "description": "Address data structure."
+    },
+    "CodeNamePair": {
+      "type": "object",
+      "title": "CodeNamePair",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Common structure for Code/Name pairs (e.g., state/province)."
+    },
+    "CompanyAccount": {
+      "type": "object",
+      "title": "CompanyAccount",
+      "properties": {
+        "accountType": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "companyName": {
+          "type": "string"
+        },
+        "organizationType": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        },
+        "fax": {
+          "type": "string"
+        },
+        "email1": {
+          "type": "string"
+        },
+        "email2": {
+          "type": "string"
+        },
+        "email3": {
+          "type": "string"
+        },
+        "phone1": {
+          "type": "string"
+        },
+        "phone2": {
+          "type": "string"
+        },
+        "phone3": {
+          "type": "string"
+        },
+        "phone1Type": {
+          "type": "string"
+        },
+        "phone2Type": {
+          "type": "string"
+        },
+        "phone3Type": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Company account data structure."
+    },
+    "CompleteAccountPayload": {
+      "type": "object",
+      "title": "CompleteAccountPayload",
+      "properties": {
+        "individualAccount": {
+          "type": "string"
+        },
+        "companyAccount": {
+          "type": "string"
+        },
+        "addresses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source": {
+          "type": "string"
+        },
+        "timestamps": {
+          "type": "string"
+        },
+        "loginName": {
+          "type": "string"
+        },
+        "consent": {
+          "type": "object"
+        },
+        "customFields": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [],
+      "description": "Complete account creation payload with all optional fields."
+    },
+    "Contact": {
+      "type": "object",
+      "title": "Contact",
+      "properties": {
+        "contactId": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "isPrimaryContact": {
+          "type": "boolean"
+        }
+      },
+      "required": [],
+      "description": "Contact data structure for company accounts."
+    },
+    "CreateCompanyAccountPayload": {
+      "type": "object",
+      "title": "CreateCompanyAccountPayload",
+      "properties": {
+        "companyAccount": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "companyAccount"
+      ],
+      "description": "Payload for creating a company account."
+    },
+    "CreateIndividualAccountPayload": {
+      "type": "object",
+      "title": "CreateIndividualAccountPayload",
+      "properties": {
+        "individualAccount": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "individualAccount"
+      ],
+      "description": "Payload for creating an individual account."
+    },
+    "DonationData": {
+      "type": "object",
+      "title": "DonationData",
+      "properties": {
+        "amount": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "object"
+        },
+        "fund": {
+          "type": "object"
+        },
+        "purpose": {
+          "type": "object"
+        },
+        "acknowledgee": {
+          "type": "object"
+        },
+        "tribute": {
+          "type": "object"
+        },
+        "anonymousType": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Donation data structure."
+    },
+    "DonationRequest": {
+      "type": "object",
+      "title": "DonationRequest",
+      "properties": {
+        "accountId": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string"
+        },
+        "campaign": {
+          "type": "string"
+        },
+        "fund": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "anonymousType": {
+          "type": "string"
+        },
+        "note": {
+          "type": "string"
+        },
+        "sendAcknowledgeEmail": {
+          "type": "boolean"
+        },
+        "sendAcknowledgeLetter": {
+          "type": "boolean"
+        },
+        "payLater": {
+          "type": "boolean"
+        },
+        "payments": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [],
+      "description": "Donation creation request structure."
+    },
+    "EventData": {
+      "type": "object",
+      "title": "EventData",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "eventDates": {
+          "type": "object"
+        },
+        "publishEvent": {
+          "type": "boolean"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "object"
+        }
+      },
+      "required": [],
+      "description": "Event data structure."
+    },
+    "EventRequest": {
+      "type": "object",
+      "title": "EventRequest",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "eventDates": {
+          "type": "object"
+        },
+        "publishEvent": {
+          "type": "boolean"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "category": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Event creation request structure."
+    },
+    "IdNamePair": {
+      "type": "object",
+      "title": "IdNamePair",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Common structure for ID/Name pairs used throughout the API."
+    },
+    "IndividualAccount": {
+      "type": "object",
+      "title": "IndividualAccount",
+      "properties": {
+        "accountType": {
+          "type": "string"
+        },
+        "firstName": {
+          "type": "string"
+        },
+        "lastName": {
+          "type": "string"
+        },
+        "middleName": {
+          "type": "string"
+        },
+        "prefix": {
+          "type": "string"
+        },
+        "suffix": {
+          "type": "string"
+        },
+        "salutation": {
+          "type": "string"
+        },
+        "preferredName": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "website": {
+          "type": "string"
+        },
+        "jobTitle": {
+          "type": "string"
+        },
+        "gender": {
+          "type": "string"
+        },
+        "dateOfBirth": {
+          "type": "string"
+        },
+        "deceased": {
+          "type": "boolean"
+        },
+        "primaryContact": {
+          "type": "object"
+        },
+        "email1": {
+          "type": "string"
+        },
+        "email2": {
+          "type": "string"
+        },
+        "email3": {
+          "type": "string"
+        },
+        "phone1": {
+          "type": "string"
+        },
+        "phone2": {
+          "type": "string"
+        },
+        "phone3": {
+          "type": "string"
+        },
+        "phone1Type": {
+          "type": "string"
+        },
+        "phone2Type": {
+          "type": "string"
+        },
+        "phone3Type": {
+          "type": "string"
+        },
+        "fax": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Individual account data structure."
+    },
+    "MembershipData": {
+      "type": "object",
+      "title": "MembershipData",
+      "properties": {
+        "membershipType": {
+          "type": "object"
+        },
+        "enrollmentDate": {
+          "type": "string"
+        },
+        "expirationDate": {
+          "type": "string"
+        },
+        "membershipLevel": {
+          "type": "object"
+        },
+        "status": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Membership data structure."
+    },
+    "PaginatedResponse": {
+      "type": "object",
+      "title": "PaginatedResponse",
+      "properties": {
+        "pagination": {
+          "type": "object"
+        },
+        "searchResults": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "pagination",
+        "searchResults"
+      ],
+      "description": "Structure of paginated API responses."
+    },
+    "PaginationInfo": {
+      "type": "object",
+      "title": "PaginationInfo",
+      "properties": {
+        "currentPage": {
+          "type": "integer"
+        },
+        "pageSize": {
+          "type": "integer"
+        },
+        "sortColumn": {
+          "type": "string"
+        },
+        "sortDirection": {
+          "type": "string"
+        },
+        "totalPages": {
+          "type": "integer"
+        },
+        "totalResults": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "currentPage",
+        "pageSize",
+        "sortColumn",
+        "sortDirection",
+        "totalPages",
+        "totalResults"
+      ],
+      "description": "Pagination information structure."
+    },
+    "PaginationParams": {
+      "type": "object",
+      "title": "PaginationParams",
+      "properties": {
+        "currentPage": {
+          "type": "integer"
+        },
+        "pageSize": {
+          "type": "integer"
+        }
+      },
+      "required": [],
+      "description": "Parameters for paginated requests."
+    },
+    "SearchField": {
+      "type": "object",
+      "title": "SearchField",
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "operator": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "operator",
+        "value"
+      ],
+      "description": "A search field specification."
+    },
+    "SearchRequest": {
+      "type": "object",
+      "title": "SearchRequest",
+      "properties": {
+        "searchFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outputFields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "pagination": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Request structure for search endpoints."
+    },
+    "Source": {
+      "type": "object",
+      "title": "Source",
+      "properties": {
+        "sourceId": {
+          "type": "integer"
+        },
+        "sourceName": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Source tracking information."
+    },
+    "Timestamps": {
+      "type": "object",
+      "title": "Timestamps",
+      "properties": {
+        "createdDateTime": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "description": "Custom timestamp information."
+    }
+  },
+  "capabilities": {
+    "fuzzy_search": true,
+    "semantic_search": true,
+    "custom_fields": true,
+    "relationship_traversal": true,
+    "intelligent_validation": true,
+    "auto_suggestion": true,
+    "caching": true
+  }
+}

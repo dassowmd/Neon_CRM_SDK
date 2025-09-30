@@ -1,14 +1,14 @@
 """Memberships resource for the Neon CRM SDK."""
 
-from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
+from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional
 
-from .base import SearchableResource
+from .base import ListableResource, CalculationResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class MembershipsResource(SearchableResource):
+class MembershipsResource(ListableResource, CalculationResource):
     """Resource for managing memberships."""
 
     def __init__(self, client: "NeonClient") -> None:
@@ -17,8 +17,9 @@ class MembershipsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         membership_status: Optional[str] = None,
         membership_type_id: Optional[int] = None,
         start_date: Optional[str] = None,
@@ -28,7 +29,7 @@ class MembershipsResource(SearchableResource):
         """List memberships with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             membership_status: Filter by membership status
             membership_type_id: Filter by membership type ID
@@ -51,4 +52,46 @@ class MembershipsResource(SearchableResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
+
+    def calculate_dates(self, calculation_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate membership term start and end dates.
+
+        Args:
+            calculation_data: The membership data for date calculation
+
+        Returns:
+            The calculated dates
+        """
+        return self.calculate(calculation_data, "Dates")
+
+    def calculate_fee(self, calculation_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate the cost of a membership.
+
+        Args:
+            calculation_data: The membership data for fee calculation
+
+        Returns:
+            The calculated fee
+        """
+        return self.calculate(calculation_data, "Fee")
+
+    def get_levels(self) -> List[Dict[str, Any]]:
+        """Get all membership levels.
+
+        Returns:
+            List of membership level dictionaries
+        """
+        response = self._client.get("/memberships/levels")
+        return response.get("membershipLevels", []) if response else []
+
+    def get_terms(self) -> List[Dict[str, Any]]:
+        """Get all membership terms.
+
+        Returns:
+            List of membership term dictionaries
+        """
+        response = self._client.get("/memberships/terms")
+        return response.get("membershipTerms", []) if response else []

@@ -46,6 +46,7 @@ dev = [
     "mypy>=1.0.0",
     "ruff>=0.1.0",
     "black>=23.0.0",
+    "flake8>=6.0.0",
     "pre-commit>=3.0.0",
 ]
 docs = [
@@ -55,6 +56,9 @@ docs = [
     "mkdocs-literate-nav>=0.6.0",
     "mkdocs-section-index>=0.3.0",
     "mkdocstrings[python]>=0.24.0",
+]
+semantic = [
+    "spacy>=3.4.0",
 ]
 
 [project.urls]
@@ -90,6 +94,18 @@ extend-exclude = '''
 [tool.ruff]
 target-version = "py38"
 line-length = 88
+exclude = [
+    ".git",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "venv",
+    "*.ipynb",          # Exclude all Jupyter notebooks
+    "examples/",        # Exclude examples directory
+]
 
 [tool.ruff.lint]
 select = [
@@ -105,10 +121,26 @@ ignore = [
     "E501",  # line too long, handled by black
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex
+    "I001",  # import block is un-sorted or un-formatted
+    "F401",  # imported but unused
+    "F841",  # local variable assigned but never used
+    "E402",  # module level import not at top of file
+    "B904",  # raise ... from ... missing
+    "B905",  # zip without explicit strict parameter
+    "UP006", # use list instead of List for type annotations
+    "UP007", # use X | Y for union types
+    "E722",  # bare except
+    "E741",  # ambiguous variable name
+    "F541",  # f-string missing placeholders
+    "B007",  # unused loop control variable
+    "F811",  # redefined while unused
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"examples/*.ipynb" = ["E402", "F401", "F841", "I001", "E722", "B905"]
+"tests/*.py" = ["F401", "F841", "E402", "B904", "E722"]
+"*.ipynb" = ["E402", "F401", "F841", "I001", "E722", "B905"]
 
 [tool.mypy]
 python_version = "3.8"
@@ -145,6 +177,9 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
+    "regression: marks tests as regression tests that use real API",
+    "readonly: marks tests as read-only operations (safe for production)",
+    "writeops: marks tests as write operations (modifies database)",
 ]
 
 [tool.coverage.run]

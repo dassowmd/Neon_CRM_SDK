@@ -2,13 +2,13 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import SearchableResource
+from .base import BaseResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class SoftCreditsResource(SearchableResource):
+class SoftCreditsResource(BaseResource):
     """Resource for managing soft credits."""
 
     def __init__(self, client: "NeonClient") -> None:
@@ -17,8 +17,9 @@ class SoftCreditsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         donation_id: Optional[int] = None,
         account_id: Optional[int] = None,
         campaign_id: Optional[int] = None,
@@ -29,7 +30,7 @@ class SoftCreditsResource(SearchableResource):
         """List soft credits with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             donation_id: Filter by donation ID
             account_id: Filter by account ID (the credited account)
@@ -55,7 +56,9 @@ class SoftCreditsResource(SearchableResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def get_by_account(self, account_id: int) -> Iterator[Dict[str, Any]]:
         """Get soft credits for a specific account.

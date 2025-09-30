@@ -2,23 +2,24 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import SearchableResource
+from .base import ListableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class RecurringDonationsResource(SearchableResource):
+class RecurringDonationsResource(ListableResource):
     """Resource for managing recurring donations."""
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the recurring donations resource."""
-        super().__init__(client, "/recurringDonations")
+        super().__init__(client, "/recurring")
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         donation_status: Optional[str] = None,
         frequency: Optional[str] = None,
         campaign_id: Optional[int] = None,
@@ -29,7 +30,7 @@ class RecurringDonationsResource(SearchableResource):
         """List recurring donations with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             donation_status: Filter by donation status
             frequency: Filter by frequency (monthly, quarterly, annually, etc.)
@@ -55,7 +56,9 @@ class RecurringDonationsResource(SearchableResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def get_active(self) -> Iterator[Dict[str, Any]]:
         """Get all active recurring donations.

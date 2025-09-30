@@ -2,13 +2,13 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import SearchableResource
+from .base import ListableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class CampaignsResource(SearchableResource):
+class CampaignsResource(ListableResource):
     """Resource for managing campaigns."""
 
     def __init__(self, client: "NeonClient") -> None:
@@ -17,8 +17,9 @@ class CampaignsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         campaign_status: Optional[str] = None,
         campaign_type: Optional[str] = None,
         **kwargs: Any,
@@ -26,7 +27,7 @@ class CampaignsResource(SearchableResource):
         """List campaigns with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             campaign_status: Filter by campaign status
             campaign_type: Filter by campaign type
@@ -43,4 +44,6 @@ class CampaignsResource(SearchableResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )

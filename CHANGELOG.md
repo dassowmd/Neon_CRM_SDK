@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Resources Included
 - Accounts (with contact management)
-- Donations  
+- Donations
 - Events (legacy events)
 - Memberships
 - Activities
