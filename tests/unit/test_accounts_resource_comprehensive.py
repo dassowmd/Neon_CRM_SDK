@@ -6,6 +6,7 @@ import pytest
 
 from neon_crm.resources.accounts import AccountsResource
 from neon_crm.types import UserType
+from neon_crm.governance import create_user_permissions, Role
 
 
 class TestAccountsResourceBasics:
@@ -14,6 +15,17 @@ class TestAccountsResourceBasics:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.org_id = "test_org"
+        self.mock_client.api_key = "test_key"
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
+        self.mock_client.org_id = "test_org"
+        self.mock_client.api_key = "test_key"
+        # Set up permissions to allow all operations
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = AccountsResource(self.mock_client)
 
     def test_initialization(self):
@@ -69,12 +81,12 @@ class TestAccountsResourceBasics:
         with pytest.raises(ValueError) as exc_info:
             list(self.resource.list(user_type="INVALID_TYPE"))
 
-        assert "must be one of" in str(exc_info.value)
+        assert "Invalid user_type" in str(exc_info.value)
 
     def test_list_with_additional_filters(self):
         """Test listing accounts with additional filters."""
         self.mock_client.get.return_value = {
-            "accounts": [{"accountId": 123}],
+            "accounts": [{"accountId": 123, "userType": "INDIVIDUAL"}],
             "pagination": {"currentPage": 0, "totalPages": 1},
         }
 
@@ -90,8 +102,8 @@ class TestAccountsResourceBasics:
         call_args = self.mock_client.get.call_args
         params = call_args[1]["params"]
         assert params["userType"] == "INDIVIDUAL"
-        assert params["first_name"] == "John"
-        assert params["last_name"] == "Doe"
+        assert params["firstName"] == "John"
+        assert params["lastName"] == "Doe"
 
     def test_get_account(self):
         """Test getting a specific account."""
@@ -169,6 +181,11 @@ class TestAccountsResourceRelationships:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.org_id = "test_org"
+        self.mock_client.api_key = "test_key"
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = AccountsResource(self.mock_client)
 
     def test_get_donations(self):
@@ -238,6 +255,11 @@ class TestAccountsResourceLinking:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.org_id = "test_org"
+        self.mock_client.api_key = "test_key"
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = AccountsResource(self.mock_client)
 
     def test_link_accounts(self):
@@ -281,6 +303,11 @@ class TestAccountsResourceSearch:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.org_id = "test_org"
+        self.mock_client.api_key = "test_key"
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = AccountsResource(self.mock_client)
 
     def test_search_accounts(self):
@@ -342,6 +369,11 @@ class TestAccountsResourceValidation:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.org_id = "test_org"
+        self.mock_client.api_key = "test_key"
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = AccountsResource(self.mock_client)
 
     def test_validate_user_type_enum(self):
@@ -397,6 +429,11 @@ class TestAccountsResourceCustomFields:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.org_id = "test_org"
+        self.mock_client.api_key = "test_key"
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = AccountsResource(self.mock_client)
 
     def test_list_custom_fields(self):
@@ -454,6 +491,11 @@ class TestAccountsResourceIntegration:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.org_id = "test_org"
+        self.mock_client.api_key = "test_key"
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = AccountsResource(self.mock_client)
 
     def test_end_to_end_account_creation(self):
