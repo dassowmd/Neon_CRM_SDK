@@ -2,18 +2,17 @@
 
 from typing import TYPE_CHECKING, Any, Dict
 
-from .base import PropertiesResource as BasePropertiesResource
+from ..governance import ResourceType
+from .base import BaseResource, PropertiesResource as BasePropertiesResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
 class PropertiesResource(BasePropertiesResource):
-    """Resource for accessing system properties and configuration data.
+    """Resource for managing Neon CRM properties and configuration data."""
 
-    This resource provides access to read-only system configuration
-    such as countries, states, genders, etc.
-    """
+    _resource_type = ResourceType.PROPERTIES
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the properties resource."""

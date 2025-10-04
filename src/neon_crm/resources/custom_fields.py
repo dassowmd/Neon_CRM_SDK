@@ -50,12 +50,17 @@ class FieldNotFoundError(Exception):
         super().__init__(message)
 
 
+from ..governance import ResourceType
+from .base import BaseResource
+
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
 class CustomFieldsResource(ListableResource):
     """Resource for managing custom fields."""
+
+    _resource_type = ResourceType.CUSTOM_FIELDS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the custom fields resource."""

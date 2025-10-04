@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional
 
+from ..governance import ResourceType
 from .base import ListableResource, SearchableResource
 
 if TYPE_CHECKING:
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 class EventsResource(ListableResource, SearchableResource):
     """Resource for managing events (legacy events only)."""
+
+    _resource_type = ResourceType.EVENTS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the events resource."""

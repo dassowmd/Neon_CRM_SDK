@@ -51,6 +51,15 @@ from .resources import (
     WebhooksResource,
 )
 from .types import Environment
+from .governance import (
+    PermissionContext,
+    UserPermissions,
+    PermissionConfig,
+    Role,
+    ResourceType,
+    Permission,
+    create_user_permissions,
+)
 
 
 class NeonClient:
@@ -70,6 +79,11 @@ class NeonClient:
         log_level: Optional[str] = None,
         enable_caching: bool = True,
         enable_field_cache: Optional[bool] = None,
+        user_permissions: Optional[UserPermissions] = None,
+        permission_config: Optional[PermissionConfig] = None,
+        default_role: Optional[Union[str, Role]] = None,
+        permission_overrides: Optional[Dict[Union[str, ResourceType], set]] = None,
+        enable_governance: Optional[bool] = None,
     ) -> None:
         """Initialize the Neon CRM client.
 
@@ -85,6 +99,16 @@ class NeonClient:
             config_path: Path to configuration file. Defaults to ~/.neon/config.json.
             log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL). If not provided, will look in NEON_LOG_LEVEL env var, defaults to INFO.
             enable_caching: Whether to enable caching for custom fields, objects, etc. (default: True).
+            enable_field_cache: Whether to enable field discovery caching (default: True unless NEON_DISABLE_FIELD_CACHE=true).
+            user_permissions: (Advanced) User permissions for access control. Use default_role instead for simpler configuration.
+            permission_config: (Advanced) Permission configuration system. If not provided, uses default.
+            default_role: Default role for all operations. Can be a Role enum or string ('viewer', 'editor', 'admin', 'fundraiser', 'event_manager', 'volunteer_coordinator').
+                         If not provided, will look in NEON_DEFAULT_ROLE env var. If still not set, defaults to 'viewer' (read-only).
+            permission_overrides: Dict mapping resource types to sets of permissions to override the default role.
+                                 Example: {ResourceType.DONATIONS: {Permission.READ, Permission.WRITE}}
+                                 Can also use strings: {"donations": {"read", "write"}}
+            enable_governance: Whether to enable governance checks. If not provided, will look in NEON_ENABLE_GOVERNANCE env var.
+                              Defaults to True. Set to False to disable permission checks (not recommended).
         """
         # Setup logging first
         if log_level:
@@ -133,6 +157,29 @@ class NeonClient:
         self.timeout = config["timeout"]
         self.max_retries = config["max_retries"]
 
+        # Set up governance
+        self.permission_config = permission_config or PermissionConfig()
+        self.governance_enabled = self._determine_governance_enabled(enable_governance)
+
+        # Configure user permissions
+        if user_permissions:
+            # Advanced usage: user provided explicit permissions
+            self.user_permissions = user_permissions
+        elif self.governance_enabled or default_role or permission_overrides:
+            # Simplified usage: create permissions from role and overrides
+            self.user_permissions = self._create_permissions_from_config(
+                default_role, permission_overrides
+            )
+        else:
+            # No governance configured
+            self.user_permissions = None
+
+        # Set permissions in context so permission checks can access them
+        if self.user_permissions:
+            from .governance.access_control import _current_permissions
+
+            _current_permissions.set(self.user_permissions)
+
         # Set base URL
         if config["base_url"]:
             self.base_url = config["base_url"]
@@ -168,6 +215,122 @@ class NeonClient:
         self.soft_credits = SoftCreditsResource(self)
         self.volunteers = VolunteersResource(self)
         self.webhooks = WebhooksResource(self)
+
+    def _determine_governance_enabled(self, enable_governance: Optional[bool]) -> bool:
+        """Determine if governance should be enabled based on parameters and environment.
+
+        Args:
+            enable_governance: Explicit governance setting from initialization
+
+        Returns:
+            True if governance should be enabled
+        """
+        if enable_governance is not None:
+            return enable_governance
+
+        # Check environment variable
+        env_value = os.getenv("NEON_ENABLE_GOVERNANCE", "").lower()
+        if env_value in ("true", "1", "yes"):
+            return True
+        elif env_value in ("false", "0", "no"):
+            return False
+
+        # Default to True - governance enabled by default
+        return True
+
+    def _create_permissions_from_config(
+        self,
+        default_role: Optional[Union[str, Role]],
+        permission_overrides: Optional[Dict[Union[str, ResourceType], set]],
+    ) -> UserPermissions:
+        """Create user permissions from simplified configuration.
+
+        Args:
+            default_role: Role name or Role enum
+            permission_overrides: Resource permission overrides
+
+        Returns:
+            UserPermissions object
+        """
+        # Determine the role
+        if default_role is None:
+            # Check environment variable
+            role_str = os.getenv("NEON_DEFAULT_ROLE", "viewer").lower()
+        elif isinstance(default_role, Role):
+            role_str = default_role.value
+        else:
+            role_str = str(default_role).lower()
+
+        # Parse role
+        try:
+            role = Role(role_str)
+        except ValueError:
+            self._logger.warning(
+                f"Invalid role '{role_str}', defaulting to 'viewer' (read-only)"
+            )
+            role = Role.VIEWER
+
+        # Process permission overrides
+        processed_overrides = {}
+        if permission_overrides:
+            for resource_key, permissions in permission_overrides.items():
+                # Convert resource key to ResourceType
+                if isinstance(resource_key, ResourceType):
+                    resource = resource_key
+                else:
+                    try:
+                        resource = ResourceType(str(resource_key).lower())
+                    except ValueError:
+                        self._logger.warning(
+                            f"Invalid resource type '{resource_key}', skipping override"
+                        )
+                        continue
+
+                # Convert permissions to Permission enums
+                perm_set = set()
+                for perm in permissions:
+                    if isinstance(perm, Permission):
+                        perm_set.add(perm)
+                    else:
+                        try:
+                            perm_set.add(Permission(str(perm).lower()))
+                        except ValueError:
+                            self._logger.warning(
+                                f"Invalid permission '{perm}', skipping"
+                            )
+                            continue
+
+                processed_overrides[resource] = perm_set
+
+        # Create and return permissions
+        return create_user_permissions(
+            user_id="client_user", role=role, custom_overrides=processed_overrides
+        )
+
+    def set_user_permissions(self, permissions: UserPermissions):
+        """Set user permissions for this client session.
+
+        Args:
+            permissions: UserPermissions object containing user's access rights
+        """
+        self.user_permissions = permissions
+        if permissions and not self.governance_enabled:
+            self.governance_enabled = True
+
+    def set_user_by_id(self, user_id: str) -> bool:
+        """Set user permissions by looking up user ID in the permission config.
+
+        Args:
+            user_id: The user identifier to look up
+
+        Returns:
+            True if user was found and permissions set, False otherwise
+        """
+        permissions = self.permission_config.get_user_permissions(user_id)
+        if permissions:
+            self.user_permissions = permissions
+            return True
+        return False
 
     def _calculate_retry_delay(
         self, attempt: int, retry_after: Optional[int] = None
@@ -369,14 +532,26 @@ class NeonClient:
                 # Check if client is closed and recreate if needed
                 self._recreate_client_if_needed()
 
-                response = self._client.request(
-                    method=method,
-                    url=url,
-                    params=params,
-                    json=json_data,
-                    headers=request_headers,
-                )
-                return self._handle_response(response)
+                # Set permission context if governance is enabled and permissions are available
+                if self.governance_enabled and self.user_permissions:
+                    with PermissionContext(self.user_permissions):
+                        response = self._client.request(
+                            method=method,
+                            url=url,
+                            params=params,
+                            json=json_data,
+                            headers=request_headers,
+                        )
+                        return self._handle_response(response)
+                else:
+                    response = self._client.request(
+                        method=method,
+                        url=url,
+                        params=params,
+                        json=json_data,
+                        headers=request_headers,
+                    )
+                    return self._handle_response(response)
 
             except NeonRateLimitError as e:
                 last_exception = e
