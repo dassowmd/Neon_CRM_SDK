@@ -3,17 +3,16 @@
 from typing import TYPE_CHECKING
 
 from .base import SearchableResource
+from ..governance import ResourceType
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
 class DonationsResource(SearchableResource):
-    """Resource for managing donations.
+    """Resource for managing donations."""
 
-    Note: Donations only support search operations, not list operations.
-    Use the search() method to retrieve donations with specific criteria.
-    """
+    _resource_type = ResourceType.DONATIONS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the donations resource."""

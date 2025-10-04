@@ -2,7 +2,8 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import ListableResource
+from ..governance import ResourceType
+from .base import ListableResource, SearchableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 class VolunteersResource(ListableResource):
     """Resource for managing volunteers."""
+
+    _resource_type = ResourceType.VOLUNTEERS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the volunteers resource."""

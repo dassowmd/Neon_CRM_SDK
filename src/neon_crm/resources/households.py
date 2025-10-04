@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 from .base import BaseResource
+from ..governance import ResourceType
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 class HouseholdsResource(BaseResource):
     """Resource for managing households."""
+
+    _resource_type = ResourceType.HOUSEHOLDS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the households resource."""

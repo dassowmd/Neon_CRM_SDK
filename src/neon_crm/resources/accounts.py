@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Union
 
+from ..governance import ResourceType
 from ..types import UserType
 from .base import ListableResource, RelationshipResource, SearchableResource
 
@@ -11,6 +12,8 @@ if TYPE_CHECKING:
 
 class AccountsResource(ListableResource, SearchableResource):
     """Resource for managing accounts (contacts and organizations)."""
+
+    _resource_type = ResourceType.ACCOUNTS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the accounts resource."""

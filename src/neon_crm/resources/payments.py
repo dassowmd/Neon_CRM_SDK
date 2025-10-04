@@ -2,7 +2,8 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import BaseResource
+from ..governance import ResourceType
+from .base import BaseResource, SearchableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 class PaymentsResource(BaseResource):
     """Resource for managing payments."""
+
+    _resource_type = ResourceType.PAYMENTS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the payments resource."""

@@ -1,6 +1,6 @@
 # Makefile for Neon CRM Python SDK
 
-.PHONY: help install install-dev test test-unit test-regression-readonly test-regression-writeops test-regression-all test-verbose test-watch list-regression-resources test-resource test-resource-readonly test-resource-writeops lint format type-check clean build publish-test publish docs serve-docs example clean-notebooks
+.PHONY: help install install-dev test test-unit test-regression-readonly test-regression-writeops test-regression-all test-verbose test-watch list-regression-resources test-resource test-resource-readonly test-resource-writeops test-notebooks test-notebooks-examples test-notebooks-analysis lint format type-check clean build publish-test publish docs serve-docs example clean-notebooks
 
 # Default target
 help:
@@ -23,6 +23,11 @@ help:
 	@echo "  test-regression-all        Run all regression tests (read-only + write operations)"
 	@echo "  test-verbose  Run tests with verbose output"
 	@echo "  test-watch    Run tests in watch mode"
+	@echo ""
+	@echo "Notebook Testing:"
+	@echo "  test-notebooks              Execute all notebooks to verify they run without errors"
+	@echo "  test-notebooks-examples     Execute only example notebooks"
+	@echo "  test-notebooks-analysis     Execute only analysis notebooks"
 	@echo ""
 	@echo "Resource-specific Testing:"
 	@echo "  list-regression-resources  List all available regression test resources"
@@ -234,6 +239,27 @@ test-verbose:
 test-watch:
 	@echo "Running tests in watch mode..."
 	$(PYTHON) -m pytest_watch tests/ -- --cov=neon_crm
+
+# Notebook testing
+test-notebooks:
+	@echo "🧪 Executing all notebooks as regression tests..."
+	@echo "⚠️  This will execute all example and analysis notebooks."
+	@echo "   Notebooks will be executed in-place and may modify cell outputs."
+	@echo "   Set NEON_ORG_ID and NEON_API_KEY environment variables to test with real API."
+	@echo ""
+	$(PYTHON) test_notebooks_execution.py
+
+test-notebooks-examples:
+	@echo "🧪 Executing example notebooks..."
+	@echo "⚠️  This will execute all notebooks in examples/ directory."
+	@echo ""
+	$(PYTHON) test_notebooks_execution.py --pattern "examples/*.ipynb"
+
+test-notebooks-analysis:
+	@echo "🧪 Executing analysis notebooks..."
+	@echo "⚠️  This will execute all notebooks in analysis/ directory."
+	@echo ""
+	$(PYTHON) test_notebooks_execution.py --pattern "analysis/*.ipynb"
 
 # Build and distribution
 clean: docs-clean

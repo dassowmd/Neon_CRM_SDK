@@ -2,7 +2,8 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import BaseResource
+from ..governance import ResourceType
+from .base import BaseResource, SearchableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 
 class CustomObjectsResource(BaseResource):
     """Resource for managing custom objects."""
+
+    _resource_type = ResourceType.CUSTOM_OBJECTS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the custom objects resource."""

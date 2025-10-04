@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple
 from urllib.parse import urljoin
 
 from ..fuzzy_search import FieldFuzzySearch
+from ..governance import Permission, ResourceType, PermissionChecker
 from ..logging import NeonLogger
 from ..types import CustomFieldCategory, SearchRequest
 from ..validation import SearchRequestValidator
@@ -15,6 +16,11 @@ if TYPE_CHECKING:
 
 class BaseResource:
     """Base class for all API resources."""
+
+    # Each resource should define its ResourceType
+    _resource_type: ResourceType = (
+        ResourceType.ACCOUNTS
+    )  # Default, should be overridden
 
     def __init__(self, client: "NeonClient", endpoint: str) -> None:
         """Initialize the resource.
@@ -49,6 +55,9 @@ class BaseResource:
         Returns:
             The resource data
         """
+        # Check permissions
+        PermissionChecker.ensure_permission(self._resource_type, Permission.READ)
+
         url = self._build_url(str(resource_id))
         return self._client.get(url)
 
@@ -61,6 +70,9 @@ class BaseResource:
         Returns:
             The created resource data
         """
+        # Check permissions
+        PermissionChecker.ensure_permission(self._resource_type, Permission.WRITE)
+
         return self._client.post(self._endpoint, json_data=data)
 
     def update(
@@ -96,6 +108,9 @@ class BaseResource:
         Returns:
             The updated resource data
         """
+        # Check permissions
+        PermissionChecker.ensure_permission(self._resource_type, Permission.UPDATE)
+
         url = self._build_url(str(resource_id))
         return self._client.put(url, json_data=data)
 
@@ -109,6 +124,9 @@ class BaseResource:
         Returns:
             The updated resource data
         """
+        # Check permissions
+        PermissionChecker.ensure_permission(self._resource_type, Permission.UPDATE)
+
         url = self._build_url(str(resource_id))
         return self._client.patch(url, json_data=data)
 
@@ -121,6 +139,9 @@ class BaseResource:
         Returns:
             The deletion response
         """
+        # Check permissions
+        PermissionChecker.ensure_permission(self._resource_type, Permission.DELETE)
+
         url = self._build_url(str(resource_id))
         return self._client.delete(url)
 
@@ -1256,6 +1277,9 @@ class SearchableResource(BaseResource):
         Raises:
             ValueError: If validation is enabled and the search request is invalid
         """
+        # Check permissions
+        PermissionChecker.ensure_permission(self._resource_type, Permission.READ)
+
         import time
 
         self._logger.debug(
@@ -1293,7 +1317,6 @@ class SearchableResource(BaseResource):
                 raise ValueError(f"Invalid search request: {'; '.join(errors)}")
 
             self._logger.debug(f"Search validation passed in {validation_time:.3f}s")
-
         url = self._build_url("search")
 
         # Start with the first page

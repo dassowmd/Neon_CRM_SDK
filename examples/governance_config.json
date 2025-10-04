@@ -1,0 +1,49 @@
+{
+  "role_overrides": {
+    "editor": {
+      "webhooks": ["read", "write", "update"],
+      "custom_fields": ["read", "write", "update", "delete"]
+    }
+  },
+  "users": {
+    "john_fundraiser": {
+      "role": "fundraiser",
+      "permissions": {
+        "events": ["read"],
+        "volunteers": ["read", "write"]
+      }
+    },
+    "sarah_admin": {
+      "role": "admin"
+    },
+    "mike_event_manager": {
+      "role": "event_manager",
+      "permissions": {
+        "donations": ["read", "write"],
+        "payments": ["read"]
+      }
+    },
+    "lisa_volunteer_coordinator": {
+      "role": "volunteer_coordinator"
+    },
+    "readonly_analyst": {
+      "role": "viewer",
+      "permissions": {
+        "donations": ["read"],
+        "campaigns": ["read"],
+        "events": ["read"],
+        "volunteers": ["read"]
+      }
+    }
+  },
+  "custom_permissions": {
+    "donations": {
+      "high_value_donations": ["admin"],
+      "regular_donations": ["read", "write", "update"]
+    },
+    "accounts": {
+      "vip_accounts": ["admin"],
+      "regular_accounts": ["read", "write", "update"]
+    }
+  }
+}
