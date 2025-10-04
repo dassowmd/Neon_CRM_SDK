@@ -1,0 +1,691 @@
+openapi: 3.0.3
+info:
+  title: Neon CRM SDK
+  version: 1.0.0
+  description: |
+    Python SDK for Neon CRM with intelligent field discovery and fuzzy search capabilities.
+
+    ## Key Features
+    - **Intelligent Field Matching**: Fuzzy search handles typos and suggests corrections
+    - **Semantic Search**: Find related fields using meaning rather than exact names
+    - **Custom Field Integration**: Dynamic custom field discovery and validation
+    - **Relationship Traversal**: Navigate between related resources seamlessly
+
+    ## Resource Types
+    - **Searchable**: Advanced search with fuzzy field matching (accounts, donations, events, activities, memberships)
+    - **CRUD**: Standard create, read, update, delete operations (addresses, campaigns, grants, etc.)
+    - **Specialized**: Domain-specific operation patterns (online_store, custom_fields, webhooks)
+
+  contact:
+    name: Neon CRM SDK
+    url: https://github.com/your-org/neon-crm-sdk
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.neoncrm.com/v2
+    description: Neon CRM Production API
+  - url: https://sandbox.neoncrm.com/v2
+    description: Neon CRM Sandbox API
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: "Use 'Bearer {api_key}' format"
+
+  schemas:
+    # Core Search Types
+    SearchRequest:
+      type: object
+      description: "Advanced search request with intelligent field matching"
+      properties:
+        searchFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchField'
+          description: "Search criteria with fuzzy field name support"
+        outputFields:
+          type: array
+          items:
+            type: string
+          description: "Fields to return (supports fuzzy matching)"
+        pagination:
+          $ref: '#/components/schemas/PaginationParams'
+      example:
+        searchFields:
+          - field: "first_name"  # Supports "frist_name", "firstName", etc.
+            operator: "CONTAIN"
+            value: "John"
+          - field: "email_addr"  # Auto-suggests "email_address"
+            operator: "NOT_BLANK"
+        outputFields: ["first_name", "last_name", "email", "address"]
+        pagination:
+          currentPage: 0
+          pageSize: 50
+
+    SearchField:
+      type: object
+      required: [field, operator]
+      properties:
+        field:
+          type: string
+          description: |
+            Field name with intelligent matching support:
+            - Handles typos: 'frist_name' → 'first_name'
+            - Case variations: 'firstName' → 'first_name'
+            - Semantic matching: 'address' finds 'home_address', 'work_location'
+          example: "first_name"
+        operator:
+          $ref: '#/components/schemas/SearchOperator'
+        value:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: array
+          description: "Search value (type depends on field and operator)"
+
+    SearchOperator:
+      type: string
+      enum:
+        - EQUAL
+        - NOT_EQUAL
+        - BLANK
+        - NOT_BLANK
+        - LESS_THAN
+        - GREATER_THAN
+        - LESS_AND_EQUAL
+        - GREATER_AND_EQUAL
+        - IN_RANGE
+        - NOT_IN_RANGE
+        - CONTAIN
+        - NOT_CONTAIN
+      description: "Search operators with field type validation"
+
+    UserType:
+      type: string
+      enum:
+        - INDIVIDUAL
+        - COMPANY
+      description: "Account type classification"
+
+    CustomFieldCategory:
+      type: string
+      enum:
+        - Account
+        - Donation
+        - Event
+        - Attendee
+        - Individual
+        - Company
+        - Activity
+        - Membership
+        - Product
+        - Prospect
+        - Grant
+      description: "Custom field categories with fuzzy search support"
+
+    PaginationParams:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+          minimum: 0
+          default: 0
+          description: "Zero-indexed page number"
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 200
+          default: 50
+          description: "Number of items per page"
+
+    # Resource Schemas
+    Account:
+      type: object
+      description: "Account (Individual or Company contact)"
+      properties:
+        accountId:
+          type: integer
+          description: "Unique account identifier"
+        firstName:
+          type: string
+          description: "Individual first name"
+        lastName:
+          type: string
+          description: "Individual last name"
+        email:
+          type: string
+          format: email
+          description: "Primary email address"
+        userType:
+          $ref: '#/components/schemas/UserType'
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+          description: "Dynamic custom fields with fuzzy name matching"
+      example:
+        accountId: 12345
+        firstName: "John"
+        lastName: "Doe"
+        email: "john.doe@example.com"
+        userType: "INDIVIDUAL"
+
+    Donation:
+      type: object
+      description: "Financial contribution record"
+      properties:
+        donationId:
+          type: integer
+          description: "Unique donation identifier"
+        accountId:
+          type: integer
+          description: "Associated account ID"
+        amount:
+          type: number
+          format: float
+          description: "Donation amount"
+        donationDate:
+          type: string
+          format: date
+          description: "Date of donation"
+        campaignId:
+          type: integer
+          description: "Associated campaign ID"
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+
+    Event:
+      type: object
+      description: "Event or activity record"
+      properties:
+        id:
+          type: integer
+          description: "Unique event identifier"
+        name:
+          type: string
+          description: "Event name"
+        startDate:
+          type: string
+          format: date-time
+          description: "Event start date and time"
+        endDate:
+          type: string
+          format: date-time
+          description: "Event end date and time"
+        customFields:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomFieldValue'
+
+    CustomFieldValue:
+      type: object
+      description: "Dynamic custom field with intelligent name resolution"
+      properties:
+        id:
+          type: integer
+          description: "Custom field definition ID"
+        name:
+          type: string
+          description: "Field name (supports fuzzy matching on lookup)"
+        value:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: array
+          description: "Field value (type depends on field definition)"
+
+    FieldDefinition:
+      type: object
+      description: "Search field metadata with matching capabilities"
+      properties:
+        name:
+          type: string
+          description: "Canonical field name"
+        type:
+          type: string
+          enum: [string, number, boolean, date, array]
+          description: "Field data type"
+        operators:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchOperator'
+          description: "Valid operators for this field"
+        description:
+          type: string
+          description: "Human-readable field description"
+        examples:
+          type: array
+          items:
+            type: string
+          description: "Example values"
+        fuzzyAliases:
+          type: array
+          items:
+            type: string
+          description: "Common variations and typos this field matches"
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: "Error message"
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: "Suggested corrections (for field name errors)"
+        code:
+          type: string
+          description: "Error code"
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  # Searchable Resources
+  /accounts:
+    get:
+      summary: "List accounts with intelligent filtering"
+      description: |
+        List accounts with support for fuzzy field name matching and intelligent suggestions.
+
+        **Fuzzy Search Features:**
+        - Typo correction: 'frist_name' → 'first_name'
+        - Case handling: 'firstName' → 'first_name'
+        - Semantic matching: 'address' finds address-related fields
+
+        **Required Parameters:**
+        - user_type: Must specify INDIVIDUAL or COMPANY
+      tags: [Searchable Resources]
+      parameters:
+        - name: user_type
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/UserType'
+          description: "Account type filter - REQUIRED by API"
+          example: "INDIVIDUAL"
+        - name: email
+          in: query
+          schema:
+            type: string
+          description: "Email filter (supports fuzzy matching)"
+          example: "john@example.com"
+        - name: first_name
+          in: query
+          schema:
+            type: string
+          description: "First name filter (supports fuzzy matching)"
+        - name: last_name
+          in: query
+          schema:
+            type: string
+          description: "Last name filter (supports fuzzy matching)"
+        - name: current_page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+          description: "Maximum total results to return"
+      responses:
+        '200':
+          description: "Account list with pagination"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accounts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Account'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationParams'
+        '400':
+          description: "Invalid parameters with field suggestions"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "Invalid field 'frist_name'"
+                suggestions: ["first_name", "last_name"]
+
+    post:
+      summary: "Create new account"
+      tags: [Searchable Resources]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+      responses:
+        '201':
+          description: "Account created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+
+  /accounts/{id}:
+    get:
+      summary: "Get account by ID"
+      tags: [Searchable Resources]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: "Account details"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+
+  /accounts/search:
+    post:
+      summary: "Advanced account search with fuzzy field matching"
+      description: |
+        Perform advanced search with intelligent field name resolution:
+
+        **Field Name Intelligence:**
+        - Automatically corrects typos in field names
+        - Provides suggestions for invalid fields
+        - Logs helpful suggestions at INFO level
+        - Supports semantic field matching
+      tags: [Searchable Resources]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SearchRequest'
+      responses:
+        '200':
+          description: "Search results"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  searchResults:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Account'
+                  pagination:
+                    $ref: '#/components/schemas/PaginationParams'
+        '400':
+          description: "Search validation errors with suggestions"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                  fieldSuggestions:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        type: string
+                    description: "Field name suggestions for invalid fields"
+
+  /accounts/searchFields:
+    get:
+      summary: "Get available search fields with fuzzy matching info"
+      description: "Returns metadata about searchable fields including fuzzy aliases"
+      tags: [Field Discovery]
+      responses:
+        '200':
+          description: "Available search fields"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FieldDefinition'
+
+  # Custom Fields with Fuzzy Search
+  /customFields:
+    get:
+      summary: "List custom fields with intelligent filtering"
+      description: |
+        List custom fields with fuzzy name matching support.
+
+        **Features:**
+        - Search by partial field names
+        - Category-based filtering
+        - Fuzzy name resolution
+      tags: [Custom Fields]
+      parameters:
+        - name: category
+          in: query
+          schema:
+            $ref: '#/components/schemas/CustomFieldCategory'
+          description: "Filter by field category"
+        - name: field_type
+          in: query
+          schema:
+            type: string
+          description: "Filter by field type"
+        - name: fuzzy_search
+          in: query
+          schema:
+            type: string
+          description: "Fuzzy search field names"
+      responses:
+        '200':
+          description: "Custom fields list"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    category:
+                      $ref: '#/components/schemas/CustomFieldCategory'
+                    fieldType:
+                      type: string
+
+  /customFields/search:
+    post:
+      summary: "Fuzzy search custom fields by name"
+      description: |
+        Search custom fields using fuzzy matching algorithms:
+
+        **Algorithms:**
+        - Levenshtein distance for typo correction
+        - Word overlap matching
+        - Semantic similarity matching
+        - Abbreviation expansion
+      tags: [Custom Fields, Field Discovery]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: "Search query (supports typos and variations)"
+                  example: "volunter"
+                category:
+                  $ref: '#/components/schemas/CustomFieldCategory'
+                threshold:
+                  type: number
+                  minimum: 0.0
+                  maximum: 1.0
+                  default: 0.3
+                  description: "Minimum similarity score"
+                max_results:
+                  type: integer
+                  default: 10
+                  description: "Maximum results to return"
+      responses:
+        '200':
+          description: "Fuzzy search results"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: object
+                      description: "Custom field data"
+                    similarity_score:
+                      type: number
+                      description: "Similarity score (0.0-1.0)"
+                    match_type:
+                      type: string
+                      enum: [fuzzy, semantic, exact]
+                      description: "Type of match found"
+
+  /customFields/suggest:
+    post:
+      summary: "Get field name suggestions"
+      description: "Get intelligent suggestions for invalid or misspelled field names"
+      tags: [Field Discovery]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                invalid_name:
+                  type: string
+                  description: "Invalid or misspelled field name"
+                  example: "volunter_intrests"
+                category:
+                  $ref: '#/components/schemas/CustomFieldCategory'
+                max_suggestions:
+                  type: integer
+                  default: 5
+      responses:
+        '200':
+          description: "Field name suggestions"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  fuzzy_suggestions:
+                    type: array
+                    items:
+                      type: string
+                    description: "Typo corrections and similar names"
+                  semantic_suggestions:
+                    type: array
+                    items:
+                      type: string
+                    description: "Conceptually related field names"
+
+  # CRUD-Only Resources Example
+  /addresses/{id}:
+    get:
+      summary: "Get address by ID"
+      description: "CRUD-only resource - no list endpoint available"
+      tags: [CRUD Resources]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: "Address details"
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  street:
+                    type: string
+                  city:
+                    type: string
+                  state:
+                    type: string
+                  zipCode:
+                    type: string
+
+  # Specialized Resources Example
+  /store/products:
+    get:
+      summary: "List online store products"
+      description: "Specialized resource with multi-endpoint pattern"
+      tags: [Specialized Resources]
+      responses:
+        '200':
+          description: "Products list"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                    name:
+                      type: string
+                    price:
+                      type: number
+
+tags:
+  - name: Searchable Resources
+    description: |
+      Resources with advanced search capabilities and fuzzy field matching.
+      Includes: accounts, donations, events, activities, memberships
+  - name: CRUD Resources
+    description: |
+      Resources with standard create, read, update, delete operations.
+      Includes: addresses, campaigns, grants, households, orders, payments, pledges, volunteers
+  - name: Specialized Resources
+    description: |
+      Resources with unique operational patterns.
+      Includes: online_store, custom_fields, webhooks
+  - name: Custom Fields
+    description: "Dynamic custom field management with intelligent discovery"
+  - name: Field Discovery
+    description: "Intelligent field name matching and suggestion APIs"

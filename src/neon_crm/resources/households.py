@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 from .base import BaseResource
+from ..governance import ResourceType
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -11,21 +12,24 @@ if TYPE_CHECKING:
 class HouseholdsResource(BaseResource):
     """Resource for managing households."""
 
+    _resource_type = ResourceType.HOUSEHOLDS
+
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the households resource."""
         super().__init__(client, "/households")
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         household_name: Optional[str] = None,
         **kwargs: Any,
     ) -> Iterator[Dict[str, Any]]:
         """List households with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             household_name: Filter by household name
             **kwargs: Additional query parameters
@@ -39,7 +43,9 @@ class HouseholdsResource(BaseResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def add_member(self, household_id: int, account_id: int) -> Dict[str, Any]:
         """Add a member to a household.

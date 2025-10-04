@@ -209,7 +209,9 @@ __marimo__/
 # API documentation file
 neon_crm_api_docs.html
 /.idea/
-
-# Version bump temporary files
-.bumpversion.tmp
 /expanded_api_docs.html
+/Todo.md
+/examples/field_names_discovered.json
+/examples/field_names_summary.txt
+/analysis/*.md
+/analysis/*.png

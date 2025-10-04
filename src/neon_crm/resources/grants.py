@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 from .base import SearchableResource
+from ..governance import ResourceType
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -11,14 +12,17 @@ if TYPE_CHECKING:
 class GrantsResource(SearchableResource):
     """Resource for managing grants."""
 
+    _resource_type = ResourceType.GRANTS
+
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the grants resource."""
         super().__init__(client, "/grants")
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         grant_status: Optional[str] = None,
         funder_name: Optional[str] = None,
         start_date: Optional[str] = None,
@@ -28,7 +32,7 @@ class GrantsResource(SearchableResource):
         """List grants with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             grant_status: Filter by grant status
             funder_name: Filter by funder name
@@ -51,7 +55,9 @@ class GrantsResource(SearchableResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def get_by_funder(self, funder_name: str) -> Iterator[Dict[str, Any]]:
         """Get grants from a specific funder.

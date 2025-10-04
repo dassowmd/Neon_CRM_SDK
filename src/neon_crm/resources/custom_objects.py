@@ -2,14 +2,17 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
-from .base import SearchableResource
+from ..governance import ResourceType
+from .base import BaseResource, SearchableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class CustomObjectsResource(SearchableResource):
+class CustomObjectsResource(BaseResource):
     """Resource for managing custom objects."""
+
+    _resource_type = ResourceType.CUSTOM_OBJECTS
 
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the custom objects resource."""
@@ -17,8 +20,9 @@ class CustomObjectsResource(SearchableResource):
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         object_type: Optional[str] = None,
         status: Optional[str] = None,
         **kwargs: Any,
@@ -26,7 +30,7 @@ class CustomObjectsResource(SearchableResource):
         """List custom objects with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             object_type: Filter by object type
             status: Filter by status
@@ -43,7 +47,9 @@ class CustomObjectsResource(SearchableResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def get_by_type(self, object_type: str) -> Iterator[Dict[str, Any]]:
         """Get custom objects of a specific type.

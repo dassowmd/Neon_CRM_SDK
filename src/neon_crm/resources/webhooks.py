@@ -3,6 +3,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional
 
 from .base import BaseResource
+from ..governance import ResourceType
 
 if TYPE_CHECKING:
     from ..client import NeonClient
@@ -11,14 +12,17 @@ if TYPE_CHECKING:
 class WebhooksResource(BaseResource):
     """Resource for managing webhooks."""
 
+    _resource_type = ResourceType.WEBHOOKS
+
     def __init__(self, client: "NeonClient") -> None:
         """Initialize the webhooks resource."""
         super().__init__(client, "/webhooks")
 
     def list(
         self,
-        current_page: int = 1,
+        current_page: int = 0,
         page_size: int = 50,
+        limit: Optional[int] = None,
         event_type: Optional[str] = None,
         status: Optional[str] = None,
         **kwargs: Any,
@@ -26,7 +30,7 @@ class WebhooksResource(BaseResource):
         """List webhooks with optional filtering.
 
         Args:
-            current_page: Page number to start from (1-indexed)
+            current_page: Page number to start from (0-indexed)
             page_size: Number of items per page
             event_type: Filter by event type
             status: Filter by status (active, inactive)
@@ -43,7 +47,9 @@ class WebhooksResource(BaseResource):
 
         params.update(kwargs)
 
-        return super().list(current_page=current_page, page_size=page_size, **params)
+        return super().list(
+            current_page=current_page, page_size=page_size, limit=limit, **params
+        )
 
     def create_webhook(
         self,
