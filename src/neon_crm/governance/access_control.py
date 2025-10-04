@@ -1,7 +1,7 @@
 """Access control decorators and context management."""
 
 import functools
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 from contextvars import ContextVar
 
 from ..exceptions import NeonAPIError

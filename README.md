@@ -96,48 +96,59 @@ donations = client.accounts.get_donations(account_id=12345)
 
 ## Access Control & Governance
 
-The SDK includes a comprehensive governance system for controlling user access to different resources and actions:
+The SDK includes a comprehensive governance system for controlling user access to different resources and actions.
+
+### Simple Role-Based Setup (Recommended)
 
 ```python
-from neon_crm.governance import Role, create_user_permissions
+# Create a client with viewer (read-only) permissions
+# Governance is enabled by default
+client = NeonClient(
+    org_id="your_org_id",
+    api_key="your_api_key",
+    default_role="viewer"  # or 'editor', 'admin', 'fundraiser', etc.
+)
 
-# Set up user permissions
-fundraiser_permissions = create_user_permissions("user123", Role.FUNDRAISER)
-client.set_user_permissions(fundraiser_permissions)
+# All operations are automatically checked against viewer permissions
+accounts = list(client.accounts.list())  # ✓ Allowed - viewers can read
+# client.accounts.create({...})          # ✗ Blocked - viewers can't create
+```
 
-# All API calls will now be checked against user permissions
-try:
-    accounts = list(client.accounts.list())  # ✓ Allowed for fundraisers
-    donations = client.donations.create(data)  # ✓ Allowed for fundraisers
-    # client.accounts.delete(123)  # ✗ Would raise PermissionError
-except PermissionError as e:
-    print(f"Access denied: {e}")
+### Environment Variable Configuration
+
+```bash
+# .env file
+NEON_DEFAULT_ROLE=editor
+```
+
+```python
+# Automatically uses role from .env
+client = NeonClient()
 ```
 
 ### Available Roles
-- **VIEWER** - Read-only access
-- **EDITOR** - Read and modify most resources
-- **FUNDRAISER** - Full access to donation-related activities
-- **EVENT_MANAGER** - Full control over events and registrations
-- **VOLUNTEER_COORDINATOR** - Manage volunteers and activities
-- **ADMIN** - Full access to all resources
+- **viewer** - Read-only access to most resources
+- **editor** - Read and write access to most resources
+- **admin** - Full access to all resources
+- **fundraiser** - Full access to donation-related activities
+- **event_manager** - Full control over events and registrations
+- **volunteer_coordinator** - Manage volunteers and activities
 
-### Custom Permissions
+### Role with Permission Overrides
+
+Start with a base role and customize specific resources:
+
 ```python
-from neon_crm.governance import ResourceType, Permission
-
-# Create custom permissions
-custom_permissions = create_user_permissions(
-    "special_user",
-    Role.VIEWER,  # Base role
-    custom_overrides={
-        ResourceType.EVENTS: {Permission.ADMIN},  # Full event access
-        ResourceType.CAMPAIGNS: {Permission.READ, Permission.WRITE}  # Campaign write access
+client = NeonClient(
+    default_role="viewer",  # Base: read-only
+    permission_overrides={
+        "donations": {"read", "write"},  # Can create donations
+        "campaigns": {"read", "write"}   # Can create campaigns
     }
 )
 ```
 
-See [GOVERNANCE.md](GOVERNANCE.md) for complete documentation.
+**📚 See [docs/permissions.md](docs/permissions.md) for complete documentation, advanced usage, and best practices.**
 
 ## Async Usage
 
@@ -904,3 +915,40 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Documentation**: [Full documentation](https://neon-crm-python.readthedocs.io)
 - **Issues**: [GitHub Issues](https://github.com/your-username/neon-crm-python/issues)
 - **Neon CRM API Docs**: [Official API Documentation](https://developer.neoncrm.com/api/general/)
+
+## Using Just (Optional)
+
+This project includes both a `Makefile` and a `justfile`. The `justfile` provides the same commands with cleaner syntax.
+
+### Installing Just
+
+```bash
+# macOS
+brew install just
+
+# Linux
+cargo install just
+
+# Or see: https://github.com/casey/just
+```
+
+### Using Just
+
+```bash
+# List all commands
+just
+
+# Run tests
+just test
+
+# Set up dev environment
+just setup-dev
+
+# Test notebooks
+just test-notebooks
+
+# See all commands
+just --list
+```
+
+All `make` commands work identically with `just` (e.g., `make test` → `just test`).
