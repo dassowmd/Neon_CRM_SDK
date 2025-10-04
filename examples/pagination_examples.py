@@ -245,21 +245,21 @@ def pagination_performance_tips():
        - Use page sizes between 50-200 for best performance
        - Smaller pages (10-25) for interactive display
        - Larger pages (100-500) for bulk processing
-       
+
     2. MEMORY MANAGEMENT:
        - The SDK yields items one at a time to avoid loading all data into memory
        - Process items as they come rather than collecting into lists
-       
+
     3. API EFFICIENCY:
        - Use search with outputFields to get only needed fields
        - Apply filters at the API level rather than in Python
        - Cache results when possible to avoid repeated API calls
-       
+
     4. ERROR HANDLING:
        - Implement retry logic for transient network errors
        - Handle rate limiting gracefully
        - Save progress periodically for long-running processes
-       
+
     5. EXAMPLE PATTERNS:
     """
     )

@@ -1,9 +1,9 @@
 """Properties resource for the Neon CRM SDK."""
 
-from typing import TYPE_CHECKING, Any, Dict
+from typing import TYPE_CHECKING
 
 from ..governance import ResourceType
-from .base import BaseResource, PropertiesResource as BasePropertiesResource
+from .base import PropertiesResource as BasePropertiesResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient

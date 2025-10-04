@@ -2,6 +2,7 @@
 
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Tuple, Union
 
+from ..governance import ResourceType
 from ..fuzzy_search import FieldFuzzySearch
 from ..types import CustomFieldCategory
 from .base import ListableResource
@@ -49,9 +50,6 @@ class FieldNotFoundError(Exception):
 
         super().__init__(message)
 
-
-from ..governance import ResourceType
-from .base import BaseResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient

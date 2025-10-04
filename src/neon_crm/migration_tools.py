@@ -13,7 +13,6 @@ import time
 
 from .custom_field_manager import (
     CustomFieldValueManager,
-    CustomFieldUpdate,
     BatchResult,
 )
 from .custom_field_validation import CustomFieldValidator, ValidationResult
@@ -556,9 +555,9 @@ class CustomFieldMigrationManager:
 
                 # Create a transform function to extract the specific option
                 option_value = mapping_config["option"]
-                transform_fn = (
-                    lambda x, opt=option_value: opt
-                )  # Closure to capture option_value
+
+                def transform_fn(x, opt=option_value):
+                    return opt  # Closure to capture option_value
 
                 mappings.append(
                     MigrationMapping(

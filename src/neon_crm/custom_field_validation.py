@@ -4,7 +4,7 @@ This module provides comprehensive validation for custom field values,
 including type checking, range validation, and business rule validation.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime
 import re
@@ -90,7 +90,6 @@ class CustomFieldValidator:
         """
         field_name = field_metadata.get("name", "unknown")
         display_type = field_metadata.get("displayType", "")
-        data_type = field_metadata.get("dataType", "")
 
         errors = []
         warnings = []

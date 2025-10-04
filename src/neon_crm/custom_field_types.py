@@ -4,7 +4,7 @@ This module provides utilities for mapping Neon CRM custom field types
 to Python types and validation rules.
 """
 
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type
 
 
 class CustomFieldTypeMapper:
@@ -122,12 +122,12 @@ class CustomFieldTypeMapper:
             return value
 
         # Handle special cases
-        if target_type == bool:
+        if target_type is bool:
             if isinstance(value, str):
                 return value.lower() in ("true", "yes", "1", "on")
             return bool(value)
 
-        if target_type == list:
+        if target_type is list:
             if isinstance(value, str):
                 # Handle both pipe and comma separators for multi-value fields
                 if "|" in value:
@@ -170,7 +170,7 @@ class CustomFieldTypeMapper:
             True if the field is text-based, False otherwise
         """
         python_type = cls.get_python_type(custom_field)
-        return python_type == str
+        return python_type is str
 
     @classmethod
     def get_field_info(cls, custom_field: Dict[str, Any]) -> Dict[str, Any]:

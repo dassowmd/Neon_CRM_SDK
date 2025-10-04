@@ -3,6 +3,9 @@ Replace the data collection function in your notebook with this corrected versio
 Copy and paste this function into your Jupyter notebook.
 """
 
+import pandas as pd
+from datetime import datetime
+
 
 def collect_comprehensive_data_corrected(client, years_back=3):
     """

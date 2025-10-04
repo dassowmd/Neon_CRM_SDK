@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional
 
 from ..governance import ResourceType
-from .base import BaseResource, SearchableResource
+from .base import BaseResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
