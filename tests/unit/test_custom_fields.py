@@ -374,63 +374,63 @@ class TestCustomFieldTypeMapper:
         custom_field = {"dataType": "String", "displayType": "Text"}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == str
+        assert result is str
 
     def test_get_python_type_with_integer_data_type(self):
         """Test get_python_type with Integer dataType."""
         custom_field = {"dataType": "Integer", "displayType": "Number"}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == int
+        assert result is int
 
     def test_get_python_type_with_boolean_data_type(self):
         """Test get_python_type with Boolean dataType."""
         custom_field = {"dataType": "Boolean", "displayType": "Checkbox"}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == bool
+        assert result is bool
 
     def test_get_python_type_fallback_to_display_type(self):
         """Test get_python_type falls back to displayType when dataType is null."""
         custom_field = {"dataType": None, "displayType": "Number"}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == int
+        assert result is int
 
     def test_get_python_type_fallback_to_display_type_currency(self):
         """Test get_python_type falls back to displayType for Currency."""
         custom_field = {"dataType": None, "displayType": "Currency"}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == float
+        assert result is float
 
     def test_get_python_type_fallback_to_display_type_checkbox(self):
         """Test get_python_type falls back to displayType for Checkbox."""
         custom_field = {"dataType": None, "displayType": "Checkbox"}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == bool
+        assert result is bool
 
     def test_get_python_type_fallback_to_display_type_text(self):
         """Test get_python_type falls back to displayType for Text."""
         custom_field = {"dataType": None, "displayType": "Text"}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == str
+        assert result is str
 
     def test_get_python_type_default_fallback(self):
         """Test get_python_type returns str as default fallback."""
         custom_field = {"dataType": None, "displayType": "UnknownType"}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == str
+        assert result is str
 
     def test_get_python_type_missing_both_types(self):
         """Test get_python_type when both dataType and displayType are missing."""
         custom_field = {}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == str
+        assert result is str
 
     def test_get_field_info_complete(self):
         """Test get_field_info with complete field data."""
@@ -529,23 +529,23 @@ class TestCustomFieldTypeMapper:
         }
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == str  # dataType should win
+        assert result is str  # dataType should win
 
     def test_case_sensitivity(self):
         """Test that type mapping is case-sensitive as expected."""
         # Test exact case match
         custom_field = {"dataType": "String"}
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == str
+        assert result is str
 
         # Test case that doesn't match (should fall back)
         custom_field = {"dataType": "string"}  # lowercase
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == str  # Should fall back to default
+        assert result is str  # Should fall back to default
 
     def test_edge_case_empty_strings(self):
         """Test handling of empty string values."""
         custom_field = {"dataType": "", "displayType": ""}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result == str  # Should fall back to default
+        assert result is str  # Should fall back to default

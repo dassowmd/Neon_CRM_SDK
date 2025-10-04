@@ -8,7 +8,7 @@ This module provides utilities to map between different field name formats:
 This ensures backward compatibility while supporting the correct API field names.
 """
 
-from typing import Dict, List, Optional, Set
+from typing import Dict, List
 
 
 class FieldNameMapper:
@@ -93,8 +93,6 @@ class FieldNameMapper:
         "Auto Renew": "autoRenew",
         "Term": "term",
         "Transaction ID": "transactionId",
-        # Campaign fields
-        "Campaign ID": "id",
         "Campaign Code": "code",
         "Campaign Goal": "goal",
         "Campaign Start Date": "startDate",

@@ -3,6 +3,9 @@ Corrected feature engineering function that works with actual field names.
 Copy this into your notebook to replace the existing feature engineering function.
 """
 
+import pandas as pd
+from datetime import datetime
+
 
 def engineer_donor_features_corrected(raw_data):
     """
