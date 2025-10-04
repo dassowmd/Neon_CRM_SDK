@@ -7,6 +7,7 @@ import sys
 import os
 
 sys.path.append("../src")
+
 from neon_crm import NeonClient
 
 # Initialize client
@@ -44,7 +45,7 @@ try:
         print(f"   💰 Donation-related fields: {donation_fields[:10]}")
 
     else:
-        print(f"   ⚠️  No accounts returned (but no error)")
+        print("   ⚠️  No accounts returned (but no error)")
 except Exception as e:
     print(f"   ❌ ERROR: {e}")
 
