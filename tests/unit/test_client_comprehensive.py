@@ -44,7 +44,7 @@ class TestNeonClientInitialization:
 
         assert client.org_id == "test_org"
         assert client.api_key == "test_key"
-        assert client.base_url == "https://api.neoncrm.com/v2"
+        assert client.base_url == "https://api.neoncrm.com/v2/"
         assert client.timeout == 30
 
     def test_initialization_from_config(self):
@@ -56,6 +56,10 @@ class TestNeonClientInitialization:
                 "api_key": "config_key",
                 "base_url": "https://config.api.com",
                 "timeout": 45,
+                "active_profile": "default",
+                "environment": "production",
+                "api_version": "v2",
+                "max_retries": 3,
             }
             mock_config_loader.return_value = mock_loader
 
@@ -190,13 +194,22 @@ class TestNeonClientIntegration:
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "accounts": [{"accountId": 123, "firstName": "John"}],
+            "accounts": [
+                {"accountId": 123, "firstName": "John", "userType": "INDIVIDUAL"}
+            ],
             "pagination": {"currentPage": 0, "totalPages": 1},
         }
         mock_request.return_value = mock_response
 
         # This should work end-to-end
-        accounts = list(client.accounts.list(limit=1))
+        from neon_crm.governance import create_user_permissions, Role, PermissionContext
+
+        client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
+
+        with PermissionContext(client.user_permissions):
+            accounts = list(client.accounts.list(user_type="INDIVIDUAL", limit=1))
 
         assert len(accounts) == 1
         assert accounts[0]["accountId"] == 123

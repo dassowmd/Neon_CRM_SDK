@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from neon_crm.resources.custom_fields import CustomFieldsResource
 from neon_crm.types import CustomFieldCategory
 from neon_crm.custom_field_types import CustomFieldTypeMapper
+from neon_crm.governance import create_user_permissions, Role, PermissionContext
 
 
 class TestCustomFieldsResource:
@@ -13,6 +14,9 @@ class TestCustomFieldsResource:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = CustomFieldsResource(self.mock_client)
 
     def test_initialization(self):

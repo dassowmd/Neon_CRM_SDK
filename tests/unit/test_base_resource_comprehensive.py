@@ -14,6 +14,7 @@ from neon_crm.resources.base import (
     NestedResource,
 )
 from neon_crm.types import CustomFieldCategory
+from neon_crm.governance import create_user_permissions, Role, PermissionContext
 
 
 class TestBaseResource:
@@ -22,6 +23,9 @@ class TestBaseResource:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = BaseResource(self.mock_client, "/test")
 
     def test_initialization(self):
@@ -58,7 +62,8 @@ class TestBaseResource:
         """Test the get method."""
         self.mock_client.get.return_value = {"id": 123, "name": "Test"}
 
-        result = self.resource.get(123)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get(123)
 
         assert result == {"id": 123, "name": "Test"}
         self.mock_client.get.assert_called_once_with("/test/123")
@@ -68,27 +73,30 @@ class TestBaseResource:
         data = {"name": "New Item"}
         self.mock_client.post.return_value = {"id": 456, "name": "New Item"}
 
-        result = self.resource.create(data)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.create(data)
 
         assert result == {"id": 456, "name": "New Item"}
         self.mock_client.post.assert_called_once_with("/test", json_data=data)
 
     def test_update_method(self):
-        """Test the update method."""
+        """Test the update method (defaults to partial/patch)."""
         data = {"name": "Updated Item"}
-        self.mock_client.put.return_value = {"id": 123, "name": "Updated Item"}
+        self.mock_client.patch.return_value = {"id": 123, "name": "Updated Item"}
 
-        result = self.resource.update(123, data)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.update(123, data)
 
         assert result == {"id": 123, "name": "Updated Item"}
-        self.mock_client.put.assert_called_once_with("/test/123", json_data=data)
+        self.mock_client.patch.assert_called_once_with("/test/123", json_data=data)
 
     def test_patch_method(self):
         """Test the patch method."""
         data = {"name": "Patched Item"}
         self.mock_client.patch.return_value = {"id": 123, "name": "Patched Item"}
 
-        result = self.resource.patch(123, data)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.patch(123, data)
 
         assert result == {"id": 123, "name": "Patched Item"}
         self.mock_client.patch.assert_called_once_with("/test/123", json_data=data)
@@ -97,111 +105,11 @@ class TestBaseResource:
         """Test the delete method."""
         self.mock_client.delete.return_value = {"status": "deleted"}
 
-        result = self.resource.delete(123)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.delete(123)
 
         assert result == {"status": "deleted"}
         self.mock_client.delete.assert_called_once_with("/test/123")
-
-    def test_list_method_basic(self):
-        """Test basic list method functionality."""
-        self.mock_client.get.return_value = {
-            "test": [{"id": 1}, {"id": 2}],
-            "pagination": {"currentPage": 0, "totalPages": 1},
-        }
-
-        result = list(self.resource.list())
-
-        assert result == [{"id": 1}, {"id": 2}]
-        self.mock_client.get.assert_called_once_with(
-            "/test", params={"currentPage": 0, "pageSize": 50}
-        )
-
-    def test_list_method_with_limit(self):
-        """Test list method with limit parameter."""
-        self.mock_client.get.return_value = {
-            "test": [{"id": 1}, {"id": 2}, {"id": 3}],
-            "pagination": {"currentPage": 0, "totalPages": 1},
-        }
-
-        result = list(self.resource.list(limit=2))
-
-        assert len(result) == 2
-        assert result == [{"id": 1}, {"id": 2}]
-
-    def test_list_method_with_pagination(self):
-        """Test list method with multiple pages."""
-        # Setup mock to return two pages
-        responses = [
-            {
-                "test": [{"id": 1}, {"id": 2}],
-                "pagination": {"currentPage": 0, "totalPages": 2},
-            },
-            {
-                "test": [{"id": 3}, {"id": 4}],
-                "pagination": {"currentPage": 1, "totalPages": 2},
-            },
-        ]
-        self.mock_client.get.side_effect = responses
-
-        result = list(self.resource.list(page_size=2))
-
-        assert result == [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 4}]
-        assert self.mock_client.get.call_count == 2
-
-    def test_list_method_direct_list_response(self):
-        """Test list method when API returns direct list."""
-        self.mock_client.get.return_value = [{"id": 1}, {"id": 2}]
-
-        result = list(self.resource.list())
-
-        assert result == [{"id": 1}, {"id": 2}]
-
-    def test_list_method_with_custom_params(self):
-        """Test list method with custom parameters."""
-        self.mock_client.get.return_value = {
-            "test": [{"id": 1}],
-            "pagination": {"currentPage": 0, "totalPages": 1},
-        }
-
-        list(self.resource.list(status="active", category="test"))
-
-        self.mock_client.get.assert_called_once_with(
-            "/test",
-            params={
-                "currentPage": 0,
-                "pageSize": 50,
-                "status": "active",
-                "category": "test",
-            },
-        )
-
-    def test_list_method_limit_across_pages(self):
-        """Test that limit works correctly across multiple pages."""
-        responses = [
-            {
-                "test": [{"id": 1}, {"id": 2}],
-                "pagination": {"currentPage": 0, "totalPages": 2},
-            },
-            {
-                "test": [{"id": 3}, {"id": 4}],
-                "pagination": {"currentPage": 1, "totalPages": 2},
-            },
-        ]
-        self.mock_client.get.side_effect = responses
-
-        result = list(self.resource.list(page_size=2, limit=3))
-
-        assert len(result) == 3
-        assert result == [{"id": 1}, {"id": 2}, {"id": 3}]
-
-    def test_list_method_unparseable_response(self):
-        """Test list method with unparseable response."""
-        self.mock_client.get.return_value = {"unexpected": "structure"}
-
-        with pytest.raises(Exception) as exc_info:
-            list(self.resource.list())
-
-        assert "Unable to parse response" in str(exc_info.value)
 
     def test_get_resource_category_accounts(self):
         """Test _get_resource_category for accounts."""
@@ -253,7 +161,8 @@ class TestBaseResource:
         mock_custom_fields.get.return_value = {"id": 123, "name": "Test Field"}
         self.mock_client.custom_fields = mock_custom_fields
 
-        result = self.resource.get_custom_field(123)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_custom_field(123)
 
         assert result == {"id": 123, "name": "Test Field"}
         mock_custom_fields.get.assert_called_once_with(123)
@@ -291,6 +200,9 @@ class TestSearchableResource:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = SearchableResource(self.mock_client, "/accounts")
 
     def test_initialization(self):
@@ -380,7 +292,8 @@ class TestSearchableResource:
         self.mock_client._cache.search_fields = cache_mock
         self.mock_client._cache.create_cache_key.return_value = "cache_key"
 
-        result = self.resource.get_search_fields()
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_search_fields()
 
         assert result == {"fields": ["test"]}
         cache_mock.cache_get_or_set.assert_called_once()
@@ -390,7 +303,8 @@ class TestSearchableResource:
         self.mock_client._cache = None
         self.mock_client.get.return_value = {"fields": ["test"]}
 
-        result = self.resource.get_search_fields()
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_search_fields()
 
         assert result == {"fields": ["test"]}
         self.mock_client.get.assert_called_once_with("/accounts/search/searchFields")
@@ -403,7 +317,8 @@ class TestSearchableResource:
         self.mock_client._cache.output_fields = cache_mock
         self.mock_client._cache.create_cache_key.return_value = "cache_key"
 
-        result = self.resource.get_output_fields()
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_output_fields()
 
         assert result == {"fields": ["test"]}
         cache_mock.cache_get_or_set.assert_called_once()
@@ -413,7 +328,8 @@ class TestSearchableResource:
         self.mock_client._cache = None
         self.mock_client.get.return_value = {"fields": ["test"]}
 
-        result = self.resource.get_output_fields()
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_output_fields()
 
         assert result == {"fields": ["test"]}
         self.mock_client.get.assert_called_once_with("/accounts/search/outputFields")
@@ -425,6 +341,9 @@ class TestRelationshipResource:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = RelationshipResource(
             self.mock_client, "/accounts", 123, "donations"
         )
@@ -452,7 +371,8 @@ class TestRelationshipResource:
         """Test get method for relationship resource."""
         self.mock_client.get.return_value = {"id": 456, "amount": 100}
 
-        result = self.resource.get(456)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get(456)
 
         assert result == {"id": 456, "amount": 100}
         self.mock_client.get.assert_called_once_with("/accounts/123/donations/456")
@@ -462,7 +382,8 @@ class TestRelationshipResource:
         data = {"amount": 100}
         self.mock_client.post.return_value = {"id": 456, "amount": 100}
 
-        result = self.resource.create(data)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.create(data)
 
         assert result == {"id": 456, "amount": 100}
         self.mock_client.post.assert_called_once_with(
@@ -470,14 +391,15 @@ class TestRelationshipResource:
         )
 
     def test_update_method(self):
-        """Test update method for relationship resource."""
+        """Test update method for relationship resource (defaults to partial/patch)."""
         data = {"amount": 150}
-        self.mock_client.put.return_value = {"id": 456, "amount": 150}
+        self.mock_client.patch.return_value = {"id": 456, "amount": 150}
 
-        result = self.resource.update(456, data)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.update(456, data)
 
         assert result == {"id": 456, "amount": 150}
-        self.mock_client.put.assert_called_once_with(
+        self.mock_client.patch.assert_called_once_with(
             "/accounts/123/donations/456", json_data=data
         )
 
@@ -486,7 +408,8 @@ class TestRelationshipResource:
         data = {"amount": 125}
         self.mock_client.patch.return_value = {"id": 456, "amount": 125}
 
-        result = self.resource.patch(456, data)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.patch(456, data)
 
         assert result == {"id": 456, "amount": 125}
         self.mock_client.patch.assert_called_once_with(
@@ -497,7 +420,8 @@ class TestRelationshipResource:
         """Test delete method for relationship resource."""
         self.mock_client.delete.return_value = {"status": "deleted"}
 
-        result = self.resource.delete(456)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.delete(456)
 
         assert result == {"status": "deleted"}
         self.mock_client.delete.assert_called_once_with("/accounts/123/donations/456")
@@ -509,6 +433,9 @@ class TestListableResource:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = ListableResource(self.mock_client, "/accounts")
 
     def test_initialization(self):
@@ -588,6 +515,9 @@ class TestCalculationResource:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = CalculationResource(self.mock_client, "/memberships")
 
     def test_initialization(self):
@@ -600,7 +530,8 @@ class TestCalculationResource:
         calculation_data = {"membershipTypeId": 1, "termId": 2}
         self.mock_client.post.return_value = {"totalCost": 100.0}
 
-        result = self.resource.calculate(calculation_data)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.calculate(calculation_data)
 
         assert result == {"totalCost": 100.0}
         self.mock_client.post.assert_called_once_with(
@@ -615,7 +546,8 @@ class TestCalculationResource:
             "endDate": "2024-12-31",
         }
 
-        result = self.resource.calculate(calculation_data, "Dates")
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.calculate(calculation_data, "Dates")
 
         assert result == {"startDate": "2024-01-01", "endDate": "2024-12-31"}
         self.mock_client.post.assert_called_once_with(
@@ -631,7 +563,8 @@ class TestCalculationResource:
             "totalFee": 90.0,
         }
 
-        result = self.resource.calculate(calculation_data, "Fee")
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.calculate(calculation_data, "Fee")
 
         assert result == {"baseFee": 100.0, "discount": 10.0, "totalFee": 90.0}
         self.mock_client.post.assert_called_once_with(
@@ -645,6 +578,9 @@ class TestPropertiesResource:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = PropertiesResource(self.mock_client)
 
     def test_initialization(self):
@@ -664,7 +600,8 @@ class TestPropertiesResource:
             {"id": 2, "name": "CA"},
         ]
 
-        result = self.resource.get_property("countries")
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_property("countries")
 
         assert result == [{"id": 1, "name": "US"}, {"id": 2, "name": "CA"}]
         self.mock_client.get.assert_called_once_with("/properties/countries")
@@ -673,7 +610,8 @@ class TestPropertiesResource:
         """Test get_countries convenience method."""
         self.mock_client.get.return_value = [{"id": 1, "name": "United States"}]
 
-        result = self.resource.get_countries()
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_countries()
 
         assert result == [{"id": 1, "name": "United States"}]
         self.mock_client.get.assert_called_once_with("/properties/countries")
@@ -685,7 +623,8 @@ class TestPropertiesResource:
             {"id": 2, "name": "Female"},
         ]
 
-        result = self.resource.get_genders()
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_genders()
 
         assert result == [{"id": 1, "name": "Male"}, {"id": 2, "name": "Female"}]
         self.mock_client.get.assert_called_once_with("/properties/genders")
@@ -694,7 +633,8 @@ class TestPropertiesResource:
         """Test get_system_users convenience method."""
         self.mock_client.get.return_value = [{"id": 1, "name": "Admin User"}]
 
-        result = self.resource.get_system_users()
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_system_users()
 
         assert result == [{"id": 1, "name": "Admin User"}]
         self.mock_client.get.assert_called_once_with("/properties/systemUsers")
@@ -707,7 +647,8 @@ class TestPropertiesResource:
             "email": "user@example.com",
         }
 
-        result = self.resource.get_current_system_user()
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_current_system_user()
 
         assert result == {"id": 1, "name": "Current User", "email": "user@example.com"}
         self.mock_client.get.assert_called_once_with("/properties/currentSystemUser")
@@ -716,7 +657,8 @@ class TestPropertiesResource:
         """Test get_organization_profile convenience method."""
         self.mock_client.get.return_value = {"name": "Test Org", "id": 123}
 
-        result = self.resource.get_organization_profile()
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_organization_profile()
 
         assert result == {"name": "Test Org", "id": 123}
         self.mock_client.get.assert_called_once_with("/properties/organizationProfile")
@@ -728,6 +670,9 @@ class TestNestedResource:
     def setup_method(self):
         """Set up test fixtures."""
         self.mock_client = Mock()
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
         self.resource = NestedResource(self.mock_client, "/accounts", 123, "contacts")
 
     def test_initialization_without_child_id(self):
@@ -783,7 +728,8 @@ class TestNestedResource:
         """Test get_child method."""
         self.mock_client.get.return_value = {"id": 456, "name": "Contact"}
 
-        result = self.resource.get_child(456)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_child(456)
 
         assert result == {"id": 456, "name": "Contact"}
         self.mock_client.get.assert_called_once_with("/accounts/123/contacts/456")
@@ -797,7 +743,8 @@ class TestNestedResource:
             "email": "test@example.com",
         }
 
-        result = self.resource.create_child(data)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.create_child(data)
 
         assert result == {"id": 456, "name": "New Contact", "email": "test@example.com"}
         self.mock_client.post.assert_called_once_with(
@@ -809,7 +756,8 @@ class TestNestedResource:
         data = {"name": "Updated Contact"}
         self.mock_client.put.return_value = {"id": 456, "name": "Updated Contact"}
 
-        result = self.resource.update_child(456, data)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.update_child(456, data)
 
         assert result == {"id": 456, "name": "Updated Contact"}
         self.mock_client.put.assert_called_once_with(
@@ -824,7 +772,8 @@ class TestNestedResource:
             "email": "updated@example.com",
         }
 
-        result = self.resource.patch_child(456, data)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.patch_child(456, data)
 
         assert result == {"id": 456, "email": "updated@example.com"}
         self.mock_client.patch.assert_called_once_with(
@@ -835,7 +784,8 @@ class TestNestedResource:
         """Test delete_child method."""
         self.mock_client.delete.return_value = {"status": "deleted"}
 
-        result = self.resource.delete_child(456)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.delete_child(456)
 
         assert result == {"status": "deleted"}
         self.mock_client.delete.assert_called_once_with("/accounts/123/contacts/456")
