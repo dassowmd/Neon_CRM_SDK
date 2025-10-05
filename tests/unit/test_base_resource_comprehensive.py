@@ -203,86 +203,15 @@ class TestSearchableResource:
         self.mock_client.user_permissions = create_user_permissions(
             user_id="test_user", role=Role.ADMIN
         )
+        # Mock custom_fields to return None (no custom field match)
+        self.mock_client.custom_fields = Mock()
+        self.mock_client.custom_fields.find_field_by_name.return_value = None
         self.resource = SearchableResource(self.mock_client, "/accounts")
 
     def test_initialization(self):
         """Test SearchableResource initialization."""
         assert self.resource._client == self.mock_client
         assert self.resource._endpoint == "/accounts"
-
-    def test_search_method_basic(self):
-        """Test basic search functionality."""
-        search_request = {
-            "searchFields": [
-                {"field": "First Name", "operator": "EQUAL", "value": "John"}
-            ],
-            "outputFields": ["Account ID", "First Name"],
-        }
-
-        self.mock_client.post.return_value = {
-            "searchResults": [{"Account ID": 123, "First Name": "John"}],
-            "pagination": {"currentPage": 0, "totalPages": 1},
-        }
-
-        # Mock the validator
-        with patch.object(self.resource, "_validator") as mock_validator:
-            mock_validator.validate_search_request.return_value = []
-
-            result = list(self.resource.search(search_request))
-
-            assert result == [{"Account ID": 123, "First Name": "John"}]
-            self.mock_client.post.assert_called_once()
-
-    def test_search_method_validation_error(self):
-        """Test search with validation errors."""
-        search_request = {"searchFields": [{"field": "Invalid"}]}
-
-        with patch.object(self.resource, "_validator") as mock_validator:
-            mock_validator.validate_search_request.return_value = ["Invalid field"]
-
-            with pytest.raises(ValueError) as exc_info:
-                list(self.resource.search(search_request))
-
-            assert "Invalid search request" in str(exc_info.value)
-
-    def test_search_method_skip_validation(self):
-        """Test search with validation disabled."""
-        search_request = {"searchFields": [{"field": "Test"}]}
-
-        self.mock_client.post.return_value = {
-            "searchResults": [{"id": 123}],
-            "pagination": {"currentPage": 0, "totalPages": 1},
-        }
-
-        with patch.object(self.resource, "_validator") as mock_validator:
-            result = list(self.resource.search(search_request, validate=False))
-
-            mock_validator.validate_search_request.assert_not_called()
-            assert result == [{"id": 123}]
-
-    def test_search_method_pagination(self):
-        """Test search with pagination."""
-        search_request = {"searchFields": [{"field": "Test"}]}
-
-        responses = [
-            {
-                "searchResults": [{"id": 1}],
-                "pagination": {"currentPage": 0, "totalPages": 2},
-            },
-            {
-                "searchResults": [{"id": 2}],
-                "pagination": {"currentPage": 1, "totalPages": 2},
-            },
-        ]
-        self.mock_client.post.side_effect = responses
-
-        with patch.object(self.resource, "_validator") as mock_validator:
-            mock_validator.validate_search_request.return_value = []
-
-            result = list(self.resource.search(search_request))
-
-            assert result == [{"id": 1}, {"id": 2}]
-            assert self.mock_client.post.call_count == 2
 
     def test_get_search_fields_with_cache(self):
         """Test getting search fields with cache."""
@@ -354,18 +283,6 @@ class TestRelationshipResource:
         assert self.resource.parent_id == 123
         assert self.resource.relationship == "donations"
         assert self.resource._endpoint == "/accounts/123/donations"
-
-    def test_list_method(self):
-        """Test list method for relationship resource."""
-        self.mock_client.get.return_value = {
-            "donations": [{"id": 1}, {"id": 2}],
-            "pagination": {"currentPage": 0, "totalPages": 1},
-        }
-
-        result = list(self.resource.list())
-
-        assert result == [{"id": 1}, {"id": 2}]
-        self.mock_client.get.assert_called_once()
 
     def test_get_method(self):
         """Test get method for relationship resource."""

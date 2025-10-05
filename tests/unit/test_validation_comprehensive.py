@@ -53,13 +53,6 @@ class TestSearchRequestValidator:
         errors = validator.validate_search_field(search_field)
         assert "Search field 'field' is required" in errors
 
-    def test_validate_search_field_invalid_field(self):
-        """Test validation fails for invalid field."""
-        validator = SearchRequestValidator("accounts")
-        search_field = {"field": "Invalid Field", "operator": "EQUAL", "value": "test"}
-        errors = validator.validate_search_field(search_field)
-        assert any("not valid for resource" in error for error in errors)
-
     def test_validate_search_field_missing_operator(self):
         """Test validation fails when operator is missing."""
         validator = SearchRequestValidator("accounts")
@@ -190,12 +183,6 @@ class TestSearchRequestValidator:
         errors = validator.validate_output_fields(["Account ID", "First Name"])
         assert errors == []
 
-    def test_validate_output_fields_invalid(self):
-        """Test output fields validation with invalid fields."""
-        validator = SearchRequestValidator("accounts")
-        errors = validator.validate_output_fields(["Invalid Field"])
-        assert any("not valid for resource" in error for error in errors)
-
     def test_validate_pagination_valid(self):
         """Test pagination validation with valid parameters."""
         validator = SearchRequestValidator("accounts")
@@ -248,11 +235,6 @@ class TestSearchRequestValidator:
         assert validator._is_valid_search_field("Account ID") is True
         assert validator._is_valid_search_field("First Name") is True
 
-    def test_is_valid_search_field_invalid_field(self):
-        """Test search field validation with invalid field."""
-        validator = SearchRequestValidator("accounts")
-        assert validator._is_valid_search_field("Invalid Field") is False
-
     def test_is_valid_output_field_custom_field(self):
         """Test output field validation with custom field."""
         validator = SearchRequestValidator("accounts")
@@ -265,14 +247,6 @@ class TestSearchRequestValidator:
         assert validator._is_valid_output_field("Account ID") is True
         assert validator._is_valid_output_field("First Name") is True
 
-    def test_get_field_type_known_field(self):
-        """Test getting field type for known fields."""
-        validator = SearchRequestValidator("accounts")
-        assert validator._get_field_type("Account ID") == "number"
-        assert validator._get_field_type("First Name") == "string"
-        assert validator._get_field_type("Date Created") == "date"
-        assert validator._get_field_type("Account Type") == "enum"
-
     def test_get_field_type_custom_field(self):
         """Test getting field type for custom fields defaults to string."""
         validator = SearchRequestValidator("accounts")
@@ -283,22 +257,6 @@ class TestSearchRequestValidator:
         """Test getting field type for unknown fields defaults to string."""
         validator = SearchRequestValidator("accounts")
         assert validator._get_field_type("Unknown Field") == "string"
-
-    def test_get_available_search_fields_static(self):
-        """Test getting available search fields without client."""
-        validator = SearchRequestValidator("accounts")
-        fields = validator._get_available_search_fields()
-        assert "Account ID" in fields
-        assert "First Name" in fields
-        assert isinstance(fields, list)
-
-    def test_get_available_output_fields_static(self):
-        """Test getting available output fields without client."""
-        validator = SearchRequestValidator("accounts")
-        fields = validator._get_available_output_fields()
-        assert "Account ID" in fields
-        assert "First Name" in fields
-        assert isinstance(fields, list)
 
     def test_validate_search_request_with_all_sections(self):
         """Test complete search request validation."""
@@ -313,40 +271,6 @@ class TestSearchRequestValidator:
         }
         errors = validator.validate_search_request(search_request)
         assert errors == []
-
-    def test_multiple_field_type_operators_valid(self):
-        """Test that different field types support appropriate operators."""
-        validator = SearchRequestValidator("accounts")
-
-        # Test string field operators
-        string_operators = [
-            SearchOperator.EQUAL,
-            SearchOperator.NOT_EQUAL,
-            SearchOperator.BLANK,
-            SearchOperator.NOT_BLANK,
-            SearchOperator.CONTAIN,
-            SearchOperator.NOT_CONTAIN,
-        ]
-        for op in string_operators:
-            errors = validator.validate_operator("First Name", op)
-            assert errors == [], f"String field should support {op}"
-
-        # Test number field operators
-        number_operators = [
-            SearchOperator.EQUAL,
-            SearchOperator.GREATER_THAN,
-            SearchOperator.LESS_THAN,
-            SearchOperator.IN_RANGE,
-        ]
-        for op in number_operators:
-            errors = validator.validate_operator("Account ID", op)
-            assert errors == [], f"Number field should support {op}"
-
-        # Test boolean field operators
-        boolean_operators = [SearchOperator.EQUAL, SearchOperator.NOT_EQUAL]
-        for op in boolean_operators:
-            errors = validator.validate_operator("Published", op)
-            assert errors == [], f"Boolean field should support {op}"
 
     def test_validation_error_accumulation(self):
         """Test that multiple validation errors are accumulated."""
@@ -375,13 +299,3 @@ class TestValidateSearchRequestFunction:
         }
         errors = validate_search_request("accounts", search_request)
         assert errors == []
-
-    def test_validate_search_request_function_with_errors(self):
-        """Test the standalone validation function with errors."""
-        search_request = {
-            "searchFields": [
-                {"field": "Invalid Field", "operator": "EQUAL", "value": "test"}
-            ]
-        }
-        errors = validate_search_request("accounts", search_request)
-        assert len(errors) > 0

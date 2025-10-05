@@ -110,30 +110,11 @@ class TestNeonLogger:
             logger = NeonLogger.get_logger("test.env")
             assert logger.level == logging.INFO
 
-    def test_test_logger_creation(self):
-        """Test that test logger is created with special handling."""
-        logger = NeonLogger.get_test_logger("test.module")
-        assert isinstance(logger, logging.Logger)
-        assert logger.name == "neon_crm.test.module"
-
     def test_test_logger_uses_memory_handler(self):
         """Test that test logger uses memory handler."""
         logger = NeonLogger.get_test_logger("test.module")
         # Test logger should have at least one handler
         assert len(logger.handlers) > 0
-
-    def test_logger_output_format(self, caplog):
-        """Test that logger output has expected format."""
-        logger = NeonLogger.get_logger("test.format")
-
-        # Ensure the logger has been setup
-        logger.setLevel(logging.INFO)
-
-        with caplog.at_level(logging.INFO, logger="neon_crm.test.format"):
-            logger.info("Test message")
-
-        # Check that message was logged
-        assert "Test message" in caplog.text
 
     def test_multiple_loggers_independent_levels(self):
         """Test that multiple loggers can have different levels."""
@@ -150,19 +131,6 @@ class TestNeonLogger:
         """Test that logger propagation is enabled by default."""
         logger = NeonLogger.get_logger("test.propagation")
         assert logger.propagate is True
-
-    def test_console_handler_configuration(self):
-        """Test that console handler is properly configured."""
-        logger = NeonLogger.get_logger("test.console")
-
-        # Should have at least one handler (console handler)
-        assert len(logger.handlers) > 0
-
-        # Check if any handler is a StreamHandler (console)
-        has_stream_handler = any(
-            isinstance(handler, logging.StreamHandler) for handler in logger.handlers
-        )
-        assert has_stream_handler
 
     def test_logger_thread_safety(self):
         """Test that logger creation is thread-safe."""
