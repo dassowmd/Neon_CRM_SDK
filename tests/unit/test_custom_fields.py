@@ -26,15 +26,12 @@ class TestCustomFieldsResource:
 
     def test_list_without_filters(self):
         """Test listing custom fields without filters."""
-        # Mock the parent list method
-        with patch.object(self.resource, "_BaseResource__init__") as mock_init:
-            mock_init.return_value = None
-
         mock_list = Mock()
         mock_list.return_value = iter([{"id": 1, "name": "Field 1"}])
 
-        with patch("neon_crm.resources.base.BaseResource.list", mock_list):
-            list(self.resource.list(current_page=0, page_size=50))
+        with patch("neon_crm.resources.base.ListableResource.list", mock_list):
+            with PermissionContext(self.mock_client.user_permissions):
+                list(self.resource.list(current_page=0, page_size=50))
 
         mock_list.assert_called_once_with(current_page=0, page_size=50, limit=None)
 
@@ -43,8 +40,9 @@ class TestCustomFieldsResource:
         mock_list = Mock()
         mock_list.return_value = iter([{"id": 1, "name": "Field 1", "type": "text"}])
 
-        with patch("neon_crm.resources.base.BaseResource.list", mock_list):
-            list(self.resource.list(field_type="text"))
+        with patch("neon_crm.resources.base.ListableResource.list", mock_list):
+            with PermissionContext(self.mock_client.user_permissions):
+                list(self.resource.list(field_type="text"))
 
         mock_list.assert_called_once_with(
             current_page=0, page_size=50, limit=None, fieldType="text"
@@ -55,11 +53,12 @@ class TestCustomFieldsResource:
         mock_list = Mock()
         mock_list.return_value = iter([{"id": 1, "name": "Field 1"}])
 
-        with patch("neon_crm.resources.base.BaseResource.list", mock_list):
-            list(self.resource.list(category=CustomFieldCategory.ACCOUNT))
+        with patch("neon_crm.resources.base.ListableResource.list", mock_list):
+            with PermissionContext(self.mock_client.user_permissions):
+                list(self.resource.list(category=CustomFieldCategory.ACCOUNT))
 
         mock_list.assert_called_once_with(
-            current_page=0, page_size=50, limit=None, category="ACCOUNT"
+            current_page=0, page_size=50, limit=None, category="Account"
         )
 
     def test_list_with_category_string_filter(self):
@@ -67,8 +66,9 @@ class TestCustomFieldsResource:
         mock_list = Mock()
         mock_list.return_value = iter([{"id": 1, "name": "Field 1"}])
 
-        with patch("neon_crm.resources.base.BaseResource.list", mock_list):
-            list(self.resource.list(category="DONATION"))
+        with patch("neon_crm.resources.base.ListableResource.list", mock_list):
+            with PermissionContext(self.mock_client.user_permissions):
+                list(self.resource.list(category="DONATION"))
 
         mock_list.assert_called_once_with(
             current_page=0, page_size=50, limit=None, category="DONATION"
@@ -79,22 +79,23 @@ class TestCustomFieldsResource:
         mock_list = Mock()
         mock_list.return_value = iter([{"id": 1, "name": "Field 1"}])
 
-        with patch("neon_crm.resources.base.BaseResource.list", mock_list):
-            list(
-                self.resource.list(
-                    field_type="text",
-                    category=CustomFieldCategory.ACCOUNT,
-                    limit=10,
-                    extra_param="value",
+        with patch("neon_crm.resources.base.ListableResource.list", mock_list):
+            with PermissionContext(self.mock_client.user_permissions):
+                list(
+                    self.resource.list(
+                        field_type="text",
+                        category=CustomFieldCategory.ACCOUNT,
+                        limit=10,
+                        extra_param="value",
+                    )
                 )
-            )
 
         mock_list.assert_called_once_with(
             current_page=0,
             page_size=50,
             limit=10,
             fieldType="text",
-            category="ACCOUNT",
+            category="Account",
             extra_param="value",
         )
 
@@ -133,7 +134,7 @@ class TestCustomFieldsResource:
 
         assert result == {"id": 1, "name": "Test Field"}
         self.mock_client._cache.create_cache_key.assert_called_once_with(
-            "custom_field", "ACCOUNT", "Test Field"
+            "custom_field", "Account", "Test Field"
         )
         cache_mock.cache_get_or_set.assert_called_once()
 
@@ -247,7 +248,8 @@ class TestCustomFieldsResource:
 
         self.mock_client.get.return_value = mock_field
 
-        result = self.resource.get_field_options(123)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_field_options(123)
 
         expected_options = [
             {"id": 1, "label": "Option 1", "value": "opt1"},
@@ -262,14 +264,15 @@ class TestCustomFieldsResource:
 
         self.mock_client.get.return_value = mock_field
 
-        result = self.resource.get_field_options(123)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_field_options(123)
 
         assert result == []
 
     def test_list_groups(self):
         """Test listing custom field groups."""
         mock_response = {
-            "customFieldGroups": [
+            "groups": [
                 {"id": 1, "name": "Group 1"},
                 {"id": 2, "name": "Group 2"},
             ],
@@ -278,7 +281,8 @@ class TestCustomFieldsResource:
 
         self.mock_client.get.return_value = mock_response
 
-        result = list(self.resource.list_groups())
+        with PermissionContext(self.mock_client.user_permissions):
+            result = list(self.resource.list_groups())
 
         assert len(result) == 2
         assert result[0]["name"] == "Group 1"
@@ -289,17 +293,18 @@ class TestCustomFieldsResource:
     def test_list_groups_with_category_filter(self):
         """Test listing custom field groups with category filter."""
         mock_response = {
-            "customFieldGroups": [{"id": 1, "name": "Account Group"}],
+            "groups": [{"id": 1, "name": "Account Group"}],
             "pagination": {"currentPage": 0, "totalPages": 1},
         }
 
         self.mock_client.get.return_value = mock_response
 
-        list(self.resource.list_groups(category=CustomFieldCategory.ACCOUNT))
+        with PermissionContext(self.mock_client.user_permissions):
+            list(self.resource.list_groups(category=CustomFieldCategory.ACCOUNT))
 
         self.mock_client.get.assert_called_once_with(
             "/customFields/groups",
-            params={"currentPage": 0, "pageSize": 50, "component": "ACCOUNT"},
+            params={"currentPage": 0, "pageSize": 50, "component": "Account"},
         )
 
     def test_get_group(self):
@@ -308,7 +313,8 @@ class TestCustomFieldsResource:
 
         self.mock_client.get.return_value = mock_response
 
-        result = self.resource.get_group(1)
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_group(1)
 
         assert result == mock_response
         self.mock_client.get.assert_called_once_with("/customFields/groups/1")
@@ -350,7 +356,7 @@ class TestCustomFieldsResource:
 
         assert result == {"id": 1, "name": "Test Group"}
         self.mock_client._cache.create_cache_key.assert_called_once_with(
-            "custom_field_group", "ACCOUNT", "Test Group"
+            "custom_field_group", "Account", "Test Group"
         )
 
     def test_find_group_by_name_and_category_without_cache(self):
@@ -362,7 +368,9 @@ class TestCustomFieldsResource:
             {"id": 2, "name": "Test Group"},
         ]
 
-        with patch.object(self.resource, "list_field_groups", return_value=mock_groups):
+        with patch.object(
+            self.resource, "get_groups_by_category", return_value=iter(mock_groups)
+        ):
             result = self.resource.find_group_by_name_and_category(
                 "Test Group", "ACCOUNT"
             )
@@ -413,7 +421,7 @@ class TestCustomFieldTypeMapper:
         custom_field = {"dataType": None, "displayType": "Checkbox"}
 
         result = CustomFieldTypeMapper.get_python_type(custom_field)
-        assert result is bool
+        assert result is list  # Multi-select checkboxes return lists
 
     def test_get_python_type_fallback_to_display_type_text(self):
         """Test get_python_type falls back to displayType for Text."""
@@ -446,13 +454,14 @@ class TestCustomFieldTypeMapper:
 
         result = CustomFieldTypeMapper.get_field_info(custom_field)
 
-        expected = {
-            "dataType": "String",
-            "displayType": "Text",
-            "pythonType": str,
-            "pythonTypeName": "str",
-        }
-        assert result == expected
+        # Verify key fields are present and correct
+        assert result["dataType"] == "String"
+        assert result["displayType"] == "Text"
+        assert result["pythonType"] is str
+        assert result["pythonTypeName"] == "str"
+        assert result["name"] == "Test Field"
+        assert result["isText"] is True
+        assert result["isNumeric"] is False
 
     def test_get_field_info_with_null_data_type(self):
         """Test get_field_info when dataType is null."""
@@ -464,13 +473,13 @@ class TestCustomFieldTypeMapper:
 
         result = CustomFieldTypeMapper.get_field_info(custom_field)
 
-        expected = {
-            "dataType": None,
-            "displayType": "Number",
-            "pythonType": int,
-            "pythonTypeName": "int",
-        }
-        assert result == expected
+        # Verify key fields are present and correct
+        assert result["dataType"] is None
+        assert result["displayType"] == "Number"
+        assert result["pythonType"] is int
+        assert result["pythonTypeName"] == "int"
+        assert result["name"] == "Test Numeric Field"
+        assert result["isNumeric"] is True
 
     def test_get_field_info_minimal(self):
         """Test get_field_info with minimal field data."""
@@ -478,13 +487,12 @@ class TestCustomFieldTypeMapper:
 
         result = CustomFieldTypeMapper.get_field_info(custom_field)
 
-        expected = {
-            "dataType": None,
-            "displayType": None,
-            "pythonType": str,
-            "pythonTypeName": "str",
-        }
-        assert result == expected
+        # Verify key fields - defaults to str when no type info provided
+        assert result["dataType"] is None
+        assert result["displayType"] is None
+        assert result["pythonType"] is str
+        assert result["pythonTypeName"] == "str"
+        assert result["name"] == "Minimal Field"
 
     def test_data_type_mapping_coverage(self):
         """Test that all known dataTypes are mapped."""

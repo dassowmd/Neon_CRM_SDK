@@ -561,14 +561,15 @@ class TestRelationshipResource:
         """Test CRUD operations for relationship resource."""
         resource = RelationshipResource(mock_client, "/accounts", 123, "contacts")
 
-        # Test create
-        test_data = {"firstName": "John", "lastName": "Doe"}
-        mock_client.post.return_value = {"id": 456, **test_data}
+        with PermissionContext(mock_client.user_permissions):
+            # Test create
+            test_data = {"firstName": "John", "lastName": "Doe"}
+            mock_client.post.return_value = {"id": 456, **test_data}
 
-        result = resource.create(test_data)
-        assert result["firstName"] == "John"
+            result = resource.create(test_data)
+            assert result["firstName"] == "John"
 
-        # Test get
-        mock_client.get.return_value = {"id": 456, "firstName": "John"}
-        result = resource.get(456)
-        assert result["id"] == 456
+            # Test get
+            mock_client.get.return_value = {"id": 456, "firstName": "John"}
+            result = resource.get(456)
+            assert result["id"] == 456
