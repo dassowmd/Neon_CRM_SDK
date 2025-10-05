@@ -25,14 +25,14 @@ class TestNeonClientInitialization:
     def test_initialization_with_all_params(self):
         """Test client initialization with all parameters."""
         client = NeonClient(
-            organization_id="test_org",
+            org_id="test_org",
             api_key="test_key",
             base_url="https://custom.api.com",
             timeout=30,
             enable_caching=True,
         )
 
-        assert client.organization_id == "test_org"
+        assert client.org_id == "test_org"
         assert client.api_key == "test_key"
         assert client.base_url == "https://custom.api.com"
         assert client.timeout == 30
@@ -40,9 +40,9 @@ class TestNeonClientInitialization:
 
     def test_initialization_minimal_params(self):
         """Test client initialization with minimal parameters."""
-        client = NeonClient(organization_id="test_org", api_key="test_key")
+        client = NeonClient(org_id="test_org", api_key="test_key")
 
-        assert client.organization_id == "test_org"
+        assert client.org_id == "test_org"
         assert client.api_key == "test_key"
         assert client.base_url == "https://api.neoncrm.com/v2"
         assert client.timeout == 30
@@ -52,7 +52,7 @@ class TestNeonClientInitialization:
         with patch("neon_crm.client.ConfigLoader") as mock_config_loader:
             mock_loader = Mock()
             mock_loader.get_config.return_value = {
-                "organization_id": "config_org",
+                "org_id": "config_org",
                 "api_key": "config_key",
                 "base_url": "https://config.api.com",
                 "timeout": 45,
@@ -61,14 +61,14 @@ class TestNeonClientInitialization:
 
             client = NeonClient()
 
-            assert client.organization_id == "config_org"
+            assert client.org_id == "config_org"
             assert client.api_key == "config_key"
             assert client.base_url == "https://config.api.com"
             assert client.timeout == 45
 
     def test_resource_initialization(self):
         """Test that all resource managers are initialized."""
-        client = NeonClient(organization_id="test", api_key="test")
+        client = NeonClient(org_id="test", api_key="test")
 
         # Check that all major resources are available
         assert hasattr(client, "accounts")
@@ -90,14 +90,12 @@ class TestNeonClientInitialization:
 
     def test_caching_enabled(self):
         """Test client with caching enabled."""
-        client = NeonClient(organization_id="test", api_key="test", enable_caching=True)
+        client = NeonClient(org_id="test", api_key="test", enable_caching=True)
         assert client._cache is not None
 
     def test_caching_disabled(self):
         """Test client with caching disabled."""
-        client = NeonClient(
-            organization_id="test", api_key="test", enable_caching=False
-        )
+        client = NeonClient(org_id="test", api_key="test", enable_caching=False)
         assert client._cache is None
 
 
@@ -106,7 +104,7 @@ class TestNeonClientHTTPMethods:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.client = NeonClient(organization_id="test", api_key="test")
+        self.client = NeonClient(org_id="test", api_key="test")
 
     @patch("httpx.Client.request")
     def test_get_request_success(self, mock_request):
@@ -206,7 +204,7 @@ class TestNeonClientErrorHandling:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.client = NeonClient(organization_id="test", api_key="test")
+        self.client = NeonClient(org_id="test", api_key="test")
 
     @patch("httpx.Client.request")
     def test_400_bad_request_error(self, mock_request):
@@ -310,7 +308,7 @@ class TestNeonClientRetryLogic:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.client = NeonClient(organization_id="test", api_key="test")
+        self.client = NeonClient(org_id="test", api_key="test")
 
     @patch("httpx.Client.request")
     @patch("time.sleep")
@@ -394,19 +392,17 @@ class TestNeonClientCaching:
 
     def test_cache_enabled_initialization(self):
         """Test cache initialization when enabled."""
-        client = NeonClient(organization_id="test", api_key="test", enable_caching=True)
+        client = NeonClient(org_id="test", api_key="test", enable_caching=True)
         assert client._cache is not None
 
     def test_cache_disabled_initialization(self):
         """Test cache initialization when disabled."""
-        client = NeonClient(
-            organization_id="test", api_key="test", enable_caching=False
-        )
+        client = NeonClient(org_id="test", api_key="test", enable_caching=False)
         assert client._cache is None
 
     def test_clear_cache_when_enabled(self):
         """Test clearing cache when caching is enabled."""
-        client = NeonClient(organization_id="test", api_key="test", enable_caching=True)
+        client = NeonClient(org_id="test", api_key="test", enable_caching=True)
 
         # Mock the cache
         client._cache = Mock()
@@ -417,9 +413,7 @@ class TestNeonClientCaching:
 
     def test_clear_cache_when_disabled(self):
         """Test clearing cache when caching is disabled."""
-        client = NeonClient(
-            organization_id="test", api_key="test", enable_caching=False
-        )
+        client = NeonClient(org_id="test", api_key="test", enable_caching=False)
 
         # Should not raise error
         client.clear_cache()
@@ -430,7 +424,7 @@ class TestNeonClientHeaders:
 
     def setup_method(self):
         """Set up test fixtures."""
-        self.client = NeonClient(organization_id="test_org", api_key="test_key")
+        self.client = NeonClient(org_id="test_org", api_key="test_key")
 
     def test_default_headers(self):
         """Test that default headers are set correctly."""
@@ -483,12 +477,12 @@ class TestNeonClientContextManager:
 
     def test_context_manager_usage(self):
         """Test using client as context manager."""
-        with NeonClient(organization_id="test", api_key="test") as client:
+        with NeonClient(org_id="test", api_key="test") as client:
             assert isinstance(client, NeonClient)
 
     def test_context_manager_closes_client(self):
         """Test that context manager properly closes the client."""
-        client = NeonClient(organization_id="test", api_key="test")
+        client = NeonClient(org_id="test", api_key="test")
 
         # Mock the close method
         with patch.object(client, "close") as mock_close:
@@ -499,7 +493,7 @@ class TestNeonClientContextManager:
 
     def test_manual_close(self):
         """Test manually closing the client."""
-        client = NeonClient(organization_id="test", api_key="test")
+        client = NeonClient(org_id="test", api_key="test")
 
         # Mock the httpx client
         client._client = Mock()
@@ -514,7 +508,7 @@ class TestNeonClientIntegration:
 
     def test_real_resource_interaction(self):
         """Test that client properly interacts with resource classes."""
-        client = NeonClient(organization_id="test", api_key="test")
+        client = NeonClient(org_id="test", api_key="test")
 
         # Test that resources can access client methods
         assert client.accounts._client == client
@@ -522,7 +516,7 @@ class TestNeonClientIntegration:
 
     def test_resource_endpoint_configuration(self):
         """Test that resources have correct endpoints."""
-        client = NeonClient(organization_id="test", api_key="test")
+        client = NeonClient(org_id="test", api_key="test")
 
         assert client.accounts._endpoint == "/accounts"
         assert client.donations._endpoint == "/donations"
@@ -532,7 +526,7 @@ class TestNeonClientIntegration:
     @patch("httpx.Client.request")
     def test_end_to_end_list_request(self, mock_request):
         """Test end-to-end list request through resource."""
-        client = NeonClient(organization_id="test", api_key="test")
+        client = NeonClient(org_id="test", api_key="test")
 
         mock_response = Mock()
         mock_response.status_code = 200
