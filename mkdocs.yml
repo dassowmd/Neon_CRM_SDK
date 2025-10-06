@@ -87,6 +87,7 @@ nav:
     - Caching: user-guide/caching.md
     - Logging: user-guide/logging.md
   - API Reference:
+    - Interactive API Explorer: api/interactive.md
     - Client: api/client.md
     - Resources:
       - Accounts: api/resources/accounts.md
