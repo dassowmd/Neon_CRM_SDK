@@ -29,7 +29,7 @@ class TestNeonClientConfigIntegration:
             assert client.org_id == "init_org"
             assert client.api_key == "init_key"
             assert client.environment == "trial"
-            assert client.base_url == "https://trial.neoncrm.com/v2"
+            assert client.base_url == "https://trial.neoncrm.com/v2/"
 
     def test_client_uses_config_file(self):
         """Test that client uses config file when init params not provided."""
@@ -140,7 +140,7 @@ class TestAsyncNeonClientConfigIntegration:
             assert client.org_id == "init_org"
             assert client.api_key == "init_key"
             assert client.environment == "trial"
-            assert client.base_url == "https://trial.neoncrm.com/v2"
+            assert client.base_url == "https://trial.neoncrm.com/v2/"
 
     def test_async_client_uses_config_file(self):
         """Test that async client uses config file when init params not provided."""

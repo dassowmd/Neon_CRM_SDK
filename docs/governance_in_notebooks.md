@@ -235,5 +235,4 @@ client = NeonClient()
 ## Additional Resources
 
 - [Complete Permissions Documentation](permissions.md)
-- [Governance Examples](../examples/governance_example.py)
-- [Basic Usage Examples](../examples/basic_usage.ipynb)
+- [Basic Usage Examples](examples/basic.md)

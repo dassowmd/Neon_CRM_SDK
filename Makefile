@@ -1,6 +1,6 @@
 # Makefile for Neon CRM Python SDK
 
-.PHONY: help install install-dev test test-unit test-regression-readonly test-regression-writeops test-regression-all test-verbose test-watch list-regression-resources test-resource test-resource-readonly test-resource-writeops test-notebooks test-notebooks-examples test-notebooks-analysis lint format type-check clean build publish-test publish docs serve-docs example clean-notebooks
+.PHONY: help install install-dev test test-unit test-regression-readonly test-regression-writeops test-regression-all test-verbose test-watch list-regression-resources test-resource test-resource-readonly test-resource-writeops test-notebooks test-notebooks-examples test-notebooks-analysis lint format type-check clean build publish-test publish docs-build docs-serve docs-check api-schemas api-validate api-serve api-clean example clean-notebooks
 
 # Default target
 help:
@@ -42,11 +42,15 @@ help:
 	@echo "  publish       Publish to PyPI"
 	@echo ""
 	@echo "Documentation:"
-	@echo "  docs          Generate all machine-readable documentation (OpenAPI, schemas, etc.)"
-	@echo "  docs-schemas  Generate JSON schemas from SDK code"
-	@echo "  docs-validate Validate OpenAPI spec and documentation completeness"
-	@echo "  docs-clean    Clean generated documentation files"
-	@echo "  serve-docs    Generate docs and serve OpenAPI spec locally"
+	@echo "  docs-build    Build user documentation website (MkDocs)"
+	@echo "  docs-serve    Serve documentation locally with live reload"
+	@echo "  docs-check    Check documentation build with strict warnings"
+	@echo ""
+	@echo "API Schemas (for tooling):"
+	@echo "  api-schemas   Generate machine-readable API schemas (OpenAPI, JSON)"
+	@echo "  api-validate  Validate OpenAPI specification"
+	@echo "  api-serve     Serve OpenAPI spec in Swagger UI"
+	@echo "  api-clean     Clean generated API schema files"
 	@echo ""
 	@echo "Examples:"
 	@echo "  example       Run the basic usage example"
@@ -287,10 +291,37 @@ publish: build
 	@echo "Make sure you have set up your PyPI credentials in ~/.pypirc"
 	$(PYTHON) -m twine upload dist/*
 
-# Documentation
-docs: docs-schemas docs-validate ## Generate all machine-readable documentation
-	@echo "Building documentation..."
-	@echo "✅ All documentation generated successfully!"
+# Documentation (User-facing website)
+docs-build: ## Build user documentation website (MkDocs)
+	@echo "Installing documentation dependencies..."
+	$(PIP) install -r docs/requirements.txt
+	@echo "Building MkDocs documentation..."
+	mkdocs build
+	@echo "✅ Documentation built in ./site/"
+	@echo "   Open ./site/index.html in your browser to view"
+
+docs-serve: ## Serve documentation locally with live reload
+	@echo "Installing documentation dependencies..."
+	$(PIP) install -r docs/requirements.txt
+	@echo "Starting MkDocs development server..."
+	@echo "📖 Documentation will be available at: http://127.0.0.1:8000"
+	@echo "   Press Ctrl+C to stop the server"
+	@echo "   Changes to markdown files will automatically reload"
+	mkdocs serve
+
+
+docs-check: ## Check documentation build with strict warnings
+	@echo "Installing documentation dependencies..."
+	$(PIP) install -r docs/requirements.txt
+	@echo "Checking MkDocs build with strict mode..."
+	mkdocs build --strict
+	@echo "✅ Documentation build passed strict checks"
+
+# API Schemas (Machine-readable, for tooling)
+api-schemas: ## Generate machine-readable API schemas (OpenAPI, JSON)
+	@echo "Generating machine-readable schemas..."
+	$(PYTHON) tools/generate_schemas.py
+	@echo "✅ API schemas generated successfully!"
 	@echo ""
 	@echo "Generated files:"
 	@echo "  📄 docs/api/openapi.yaml - OpenAPI 3.0 specification"
@@ -301,24 +332,12 @@ docs: docs-schemas docs-validate ## Generate all machine-readable documentation
 	@echo "  📄 docs/api/types.json - Type definitions"
 	@echo "  📄 docs/api/capabilities.json - JSON capabilities matrix"
 
-docs-schemas: ## Generate JSON schemas from SDK code
-	@echo "Generating machine-readable schemas..."
-	$(PYTHON) tools/generate_schemas.py
-
-docs-validate: ## Validate OpenAPI spec and documentation completeness
-	@echo "Validating documentation..."
+api-validate: ## Validate OpenAPI specification
+	@echo "Validating API specifications..."
 	$(PYTHON) tools/validate_openapi.py
 
-docs-clean: ## Clean generated documentation files
-	@echo "Cleaning generated documentation..."
-	@rm -f docs/api/schemas.json
-	@rm -f docs/api/resource_metadata.json
-	@rm -f docs/api/types.json
-	@rm -f docs/api/capabilities.json
-	@echo "✅ Documentation cleaned"
-
-serve-docs: docs ## Generate docs and serve OpenAPI spec locally
-	@echo "Starting documentation server..."
+api-serve: api-schemas ## Serve OpenAPI spec in Swagger UI
+	@echo "Starting API documentation server..."
 	@echo "OpenAPI spec will be available at: http://localhost:8080"
 	@if command -v swagger-ui-serve >/dev/null 2>&1; then \
 		swagger-ui-serve docs/api/openapi.yaml -p 8080; \
@@ -327,8 +346,15 @@ serve-docs: docs ## Generate docs and serve OpenAPI spec locally
 	else \
 		echo "❌ No OpenAPI viewer found. Install swagger-ui-serve or npx"; \
 		echo "You can view the spec at: docs/api/openapi.yaml"; \
-		if [ -d "docs" ]; then cd docs && mkdocs serve; fi; \
 	fi
+
+api-clean: ## Clean generated API schema files
+	@echo "Cleaning generated API schemas..."
+	@rm -f docs/api/schemas.json
+	@rm -f docs/api/resource_metadata.json
+	@rm -f docs/api/types.json
+	@rm -f docs/api/capabilities.json
+	@echo "✅ API schemas cleaned"
 
 setup-docs:
 	@echo "Setting up documentation structure..."
