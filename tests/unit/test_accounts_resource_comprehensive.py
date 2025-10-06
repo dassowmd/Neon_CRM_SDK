@@ -321,8 +321,8 @@ class TestAccountsResourceLinking:
 
         # Verify it returns an AccountContactsResource
         assert contacts_resource is not None
-        assert hasattr(contacts_resource, "_parent_id")
-        assert contacts_resource._parent_id == 123
+        assert hasattr(contacts_resource, "parent_id")
+        assert contacts_resource.parent_id == 123
 
 
 class TestAccountsResourceSearch:
@@ -333,6 +333,7 @@ class TestAccountsResourceSearch:
         self.mock_client = Mock()
         self.mock_client.org_id = "test_org"
         self.mock_client.api_key = "test_key"
+        self.mock_client._cache = None  # Disable caching for these tests
         self.mock_client.user_permissions = create_user_permissions(
             user_id="test_user", role=Role.ADMIN
         )
@@ -354,11 +355,17 @@ class TestAccountsResourceSearch:
             "pagination": {"currentPage": 0, "totalPages": 1},
         }
 
+        # Mock custom_fields to avoid TypeError when checking for custom fields
+        mock_custom_fields = Mock()
+        mock_custom_fields.find_by_name_and_category.return_value = None
+        self.mock_client.custom_fields = mock_custom_fields
+
         # Mock the validator to allow the search
         with patch.object(self.resource, "_validator") as mock_validator:
             mock_validator.validate_search_request.return_value = []
 
-            result = list(self.resource.search(search_request))
+            with PermissionContext(self.mock_client.user_permissions):
+                result = list(self.resource.search(search_request))
 
             assert len(result) == 1
             assert result[0]["Account ID"] == 123
