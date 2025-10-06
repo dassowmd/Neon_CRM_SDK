@@ -147,7 +147,7 @@ No additional setup required - these are automatically configured.
 
 ### 2. Create Release
 
-1. **Create Tag**: 
+1. **Create Tag**:
    ```bash
    git tag v1.0.0
    git push origin v1.0.0

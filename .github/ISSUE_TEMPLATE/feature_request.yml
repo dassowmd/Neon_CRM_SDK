@@ -7,7 +7,7 @@ body:
     attributes:
       value: |
         Thanks for suggesting a new feature for the Neon CRM SDK!
-        
+
   - type: dropdown
     id: type
     attributes:
@@ -22,7 +22,7 @@ body:
         - Other
     validations:
       required: true
-      
+
   - type: textarea
     id: problem
     attributes:
@@ -31,7 +31,7 @@ body:
       placeholder: I'm always frustrated when...
     validations:
       required: true
-      
+
   - type: textarea
     id: solution
     attributes:
@@ -40,13 +40,13 @@ body:
       placeholder: I would like to see...
     validations:
       required: true
-      
+
   - type: textarea
     id: alternatives
     attributes:
       label: Alternatives Considered
       description: Describe any alternative solutions or features you've considered
-      
+
   - type: textarea
     id: example
     attributes:
@@ -55,10 +55,10 @@ body:
       render: python
       placeholder: |
         from neon_crm import NeonClient
-        
+
         client = NeonClient(...)
         # Example of how the new feature would work
-        
+
   - type: textarea
     id: context
     attributes:

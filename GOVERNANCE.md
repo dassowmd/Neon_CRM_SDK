@@ -36,7 +36,7 @@ accounts = list(client.accounts.list())  # ✓ Allowed for fundraisers
 
 - **READ** - View resources
 - **WRITE** - Create new resources
-- **UPDATE** - Modify existing resources  
+- **UPDATE** - Modify existing resources
 - **DELETE** - Remove resources
 - **ADMIN** - Full access (includes all other permissions)
 
@@ -47,7 +47,7 @@ accounts = list(client.accounts.list())  # ✓ Allowed for fundraisers
 - No creation, modification, or deletion rights
 - Suitable for reporting and analysis users
 
-#### EDITOR  
+#### EDITOR
 - Read and modify access to most resources
 - Cannot delete sensitive data
 - Cannot access system configuration
@@ -90,13 +90,13 @@ client.set_user_permissions(fundraiser)
 try:
     # This works - fundraisers can read accounts
     accounts = list(client.accounts.list())
-    
+
     # This works - fundraisers can create donations
     donation = client.donations.create(donation_data)
-    
+
     # This fails - fundraisers can't delete accounts
     # client.accounts.delete(123)  # Raises PermissionError
-    
+
 except PermissionError as e:
     print(f"Access denied: {e}")
 ```
@@ -149,7 +149,7 @@ from neon_crm.governance import PermissionConfig
 config = PermissionConfig("/path/to/config.json")
 
 client = NeonClient(
-    org_id="your_org", 
+    org_id="your_org",
     api_key="your_key",
     permission_config=config
 )
@@ -188,7 +188,7 @@ The system controls access to these resources:
 
 - **ACCOUNTS** - Individual and company contacts
 - **ACTIVITIES** - Activity tracking
-- **CAMPAIGNS** - Fundraising campaigns  
+- **CAMPAIGNS** - Fundraising campaigns
 - **CUSTOM_FIELDS** - Custom field definitions
 - **CUSTOM_OBJECTS** - Custom object definitions
 - **DONATIONS** - Donation records
@@ -298,8 +298,8 @@ if check_permission(ResourceType.DONATIONS, Permission.WRITE):
 ```python
 # Update role permissions globally
 config.update_role_permissions(
-    Role.EDITOR, 
-    ResourceType.WEBHOOKS, 
+    Role.EDITOR,
+    ResourceType.WEBHOOKS,
     {Permission.READ, Permission.WRITE}
 )
 ```
