@@ -16,9 +16,16 @@ on:
       - 'docs/**'
       - 'README.md'
       - 'CHANGELOG.md'
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: 'Deploy to GitHub Pages'
+        required: true
+        default: false
+        type: boolean
 
 permissions:
-  contents: read
+  contents: write  # Need write access to push to gh-pages branch
   pages: write
   id-token: write
 
@@ -56,9 +63,30 @@ jobs:
       run: |
         mkdocs build --strict
 
+    - name: Upload documentation artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./site
+
+  deploy-docs:
+    if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && inputs.deploy == true)
+    needs: build-docs
+    runs-on: ubuntu-latest
+    environment:
+      name: production-docs
+      url: https://dassowmd.github.io/Neon_CRM_SDK/
+    steps:
+    - name: Download documentation artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: github-pages
+        path: ./site
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+
     - name: Deploy to GitHub Pages
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        mkdocs gh-deploy --clean --force
+      id: deployment
+      uses: actions/deploy-pages@v4
+      with:
+        artifact_name: github-pages
