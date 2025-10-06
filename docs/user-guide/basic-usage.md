@@ -665,6 +665,6 @@ def test_viewer_cannot_create_accounts():
 ## Next Steps
 
 - Review [Permissions Guide](../permissions.md) for access control
-- Check [API Reference](../api/README.md) for detailed documentation
+- Check [API Reference](../api/client.md) for detailed documentation
 - See [Examples](../examples/basic.md) for more code samples
 - Read [Advanced Topics](advanced-usage.md) for complex scenarios

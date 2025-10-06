@@ -49,6 +49,11 @@ plugins:
             docstring_style: google
             show_source: true
             show_signature_annotations: true
+  - swagger-ui-tag:
+      background: White
+      docExpansion: none
+      filter: true
+      syntaxHighlightTheme: monokai
 
 markdown_extensions:
   - admonition
@@ -69,11 +74,13 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Getting Started:
+    - Overview: getting-started.md
     - Installation: getting-started/installation.md
     - Quick Start: getting-started/quickstart.md
     - Configuration: getting-started/configuration.md
   - User Guide:
     - Basic Usage: user-guide/basic-usage.md
+    - Advanced Usage: user-guide/advanced-usage.md
     - Custom Fields: user-guide/custom-fields.md
     - Search & Filtering: user-guide/search.md
     - Error Handling: user-guide/error-handling.md
@@ -90,7 +97,11 @@ nav:
     - Exceptions: api/exceptions.md
     - Types: api/types.md
   - Examples:
+    - Overview: examples.md
     - Basic Examples: examples/basic.md
     - Custom Fields Examples: examples/custom-fields.md
+  - Governance:
+    - Permissions: permissions.md
+    - Notebook Usage: governance_in_notebooks.md
   - Contributing: contributing.md
   - Changelog: changelog.md

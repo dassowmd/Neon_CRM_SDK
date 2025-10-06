@@ -506,7 +506,7 @@ If governance isn't being enforced:
 ## Additional Resources
 
 - [API Documentation](https://docs.neoncrm.com/api/)
-- [Configuration Guide](configuration.md)
+- [Configuration Guide](getting-started/configuration.md)
 - [Quick Start Guide](getting-started/quickstart.md)
 
 ## Support
