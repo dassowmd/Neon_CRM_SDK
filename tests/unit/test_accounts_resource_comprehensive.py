@@ -315,20 +315,14 @@ class TestAccountsResourceLinking:
             "/accounts/unlink", json_data={"individualId": 123, "companyId": 456}
         )
 
-    def test_get_linked_accounts(self):
-        """Test getting linked accounts."""
-        self.mock_client.get.return_value = {
-            "linkedAccounts": [
-                {"accountId": 456, "linkType": "household"},
-                {"accountId": 789, "linkType": "organization"},
-            ]
-        }
+    def test_get_contacts(self):
+        """Test getting contacts resource for a company."""
+        contacts_resource = self.resource.get_contacts(123)
 
-        with PermissionContext(self.mock_client.user_permissions):
-            result = self.resource.get_linked_accounts(123)
-
-        assert len(result["linkedAccounts"]) == 2
-        self.mock_client.get.assert_called_once_with("/accounts/123/link")
+        # Verify it returns an AccountContactsResource
+        assert contacts_resource is not None
+        assert hasattr(contacts_resource, "_parent_id")
+        assert contacts_resource._parent_id == 123
 
 
 class TestAccountsResourceSearch:
@@ -364,8 +358,7 @@ class TestAccountsResourceSearch:
         with patch.object(self.resource, "_validator") as mock_validator:
             mock_validator.validate_search_request.return_value = []
 
-            with PermissionContext(self.mock_client.user_permissions):
-                result = list(self.resource.search(search_request))
+            result = list(self.resource.search(search_request))
 
             assert len(result) == 1
             assert result[0]["Account ID"] == 123
