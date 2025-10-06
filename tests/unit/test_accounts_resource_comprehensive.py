@@ -17,6 +17,7 @@ class TestAccountsResourceBasics:
         self.mock_client = Mock()
         self.mock_client.org_id = "test_org"
         self.mock_client.api_key = "test_key"
+        # Set up permissions to allow all operations
         self.mock_client.user_permissions = create_user_permissions(
             user_id="test_user", role=Role.ADMIN
         )
@@ -313,6 +314,90 @@ class TestAccountsResourceLinking:
         self.mock_client.post.assert_called_once_with(
             "/accounts/unlink", json_data={"individualId": 123, "companyId": 456}
         )
+
+    def test_get_linked_accounts(self):
+        """Test getting linked accounts."""
+        self.mock_client.get.return_value = {
+            "linkedAccounts": [
+                {"accountId": 456, "linkType": "household"},
+                {"accountId": 789, "linkType": "organization"},
+            ]
+        }
+
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_linked_accounts(123)
+
+        assert len(result["linkedAccounts"]) == 2
+        self.mock_client.get.assert_called_once_with("/accounts/123/link")
+
+
+class TestAccountsResourceSearch:
+    """Test AccountsResource search functionality."""
+
+    def setup_method(self):
+        """Set up test fixtures."""
+        self.mock_client = Mock()
+        self.mock_client.org_id = "test_org"
+        self.mock_client.api_key = "test_key"
+        self.mock_client.user_permissions = create_user_permissions(
+            user_id="test_user", role=Role.ADMIN
+        )
+        self.resource = AccountsResource(self.mock_client)
+
+    def test_search_accounts(self):
+        """Test searching accounts."""
+        search_request = {
+            "searchFields": [
+                {"field": "First Name", "operator": "EQUAL", "value": "John"}
+            ],
+            "outputFields": ["Account ID", "First Name", "Last Name"],
+        }
+
+        self.mock_client.post.return_value = {
+            "searchResults": [
+                {"Account ID": 123, "First Name": "John", "Last Name": "Doe"}
+            ],
+            "pagination": {"currentPage": 0, "totalPages": 1},
+        }
+
+        # Mock the validator to allow the search
+        with patch.object(self.resource, "_validator") as mock_validator:
+            mock_validator.validate_search_request.return_value = []
+
+            with PermissionContext(self.mock_client.user_permissions):
+                result = list(self.resource.search(search_request))
+
+            assert len(result) == 1
+            assert result[0]["Account ID"] == 123
+
+    def test_get_search_fields(self):
+        """Test getting available search fields."""
+        self.mock_client.get.return_value = {
+            "standardFields": [
+                {"fieldName": "First Name", "fieldType": "string"},
+                {"fieldName": "Account ID", "fieldType": "number"},
+            ],
+            "customFields": [{"fieldName": "Custom Field 1", "fieldType": "text"}],
+        }
+
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_search_fields()
+
+        assert "standardFields" in result
+        assert "customFields" in result
+        self.mock_client.get.assert_called_once_with("/accounts/search/searchFields")
+
+    def test_get_output_fields(self):
+        """Test getting available output fields."""
+        self.mock_client.get.return_value = {
+            "standardFields": [{"fieldName": "First Name"}, {"fieldName": "Last Name"}]
+        }
+
+        with PermissionContext(self.mock_client.user_permissions):
+            result = self.resource.get_output_fields()
+
+        assert "standardFields" in result
+        self.mock_client.get.assert_called_once_with("/accounts/search/outputFields")
 
 
 class TestAccountsResourceValidation:
