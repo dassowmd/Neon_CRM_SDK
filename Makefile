@@ -1,6 +1,6 @@
 # Makefile for Neon CRM Python SDK
 
-.PHONY: help install install-dev test test-unit test-regression-readonly test-regression-writeops test-regression-all test-verbose test-watch list-regression-resources test-resource test-resource-readonly test-resource-writeops test-notebooks test-notebooks-examples test-notebooks-analysis lint format type-check clean build publish-test publish docs-build docs-serve docs-deploy docs-check api-schemas api-validate api-serve api-clean example clean-notebooks
+.PHONY: help install install-dev test test-unit test-regression-readonly test-regression-writeops test-regression-all test-verbose test-watch list-regression-resources test-resource test-resource-readonly test-resource-writeops test-notebooks test-notebooks-examples test-notebooks-analysis lint format type-check clean build publish-test publish docs-build docs-serve docs-check api-schemas api-validate api-serve api-clean example clean-notebooks
 
 # Default target
 help:
@@ -44,7 +44,6 @@ help:
 	@echo "Documentation:"
 	@echo "  docs-build    Build user documentation website (MkDocs)"
 	@echo "  docs-serve    Serve documentation locally with live reload"
-	@echo "  docs-deploy   Deploy documentation to GitHub Pages"
 	@echo "  docs-check    Check documentation build with strict warnings"
 	@echo ""
 	@echo "API Schemas (for tooling):"
@@ -310,12 +309,6 @@ docs-serve: ## Serve documentation locally with live reload
 	@echo "   Changes to markdown files will automatically reload"
 	mkdocs serve
 
-docs-deploy: docs-build ## Deploy documentation to GitHub Pages
-	@echo "Deploying documentation to GitHub Pages..."
-	@echo "⚠️  This will push to the gh-pages branch"
-	@echo "   Make sure you have push access to the repository"
-	mkdocs gh-deploy --clean
-	@echo "✅ Documentation deployed to GitHub Pages"
 
 docs-check: ## Check documentation build with strict warnings
 	@echo "Installing documentation dependencies..."

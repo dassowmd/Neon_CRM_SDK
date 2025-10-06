@@ -1,7 +1,8 @@
 site_name: Neon CRM Python SDK
 site_description: A comprehensive Python SDK for the Neon CRM API v2
 site_author: Neon CRM SDK Team
-repo_url: https://github.com/your-username/neon-crm-python
+repo_url: https://github.com/dassowmd/Neon_CRM_SDK
+site_url: https://dassowmd.github.io/Neon_CRM_SDK/
 
 theme:
   name: material
