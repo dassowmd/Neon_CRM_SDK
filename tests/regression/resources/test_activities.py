@@ -43,18 +43,22 @@ class TestActivitiesReadOnly:
         pytest.skip("Activities resource only supports search operations")
 
     def test_activities_date_filtering(self, regression_client):
-        """Test activity listing with date filtering."""
+        """Test activity search with date filtering."""
         # Test with date range for recent activities
         end_date = datetime.now()
         start_date = end_date - timedelta(days=90)
 
-        activities = list(
-            regression_client.activities.list(
-                limit=5,
-                start_date=start_date.strftime("%Y-%m-%d"),
-                end_date=end_date.strftime("%Y-%m-%d"),
-            )
-        )
+        search_request = {
+            "searchFields": [
+                {
+                    "field": "Activity Date",
+                    "operator": "GREATER_AND_EQUAL",
+                    "value": start_date.strftime("%Y-%m-%d"),
+                }
+            ]
+        }
+
+        activities = list(regression_client.activities.search(search_request, limit=5))
 
         print(
             f"✓ Retrieved {len(activities)} activities with date filter (last 90 days)"
