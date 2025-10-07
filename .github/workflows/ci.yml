@@ -12,27 +12,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Conditional matrix: Full suite on main branch, reduced on PRs/development
-        ${{ if github.ref == 'refs/heads/main' }}:
-          # Full comprehensive matrix for main branch (12 jobs)
-          os: [ubuntu-latest, windows-latest, macos-latest]
-          python-version: ["3.9", "3.10", "3.11", "3.12"]
-          exclude:
-            # Exclude some combinations to reduce CI time slightly
-            - os: windows-latest
-              python-version: "3.9"
-            - os: macos-latest
-              python-version: "3.9"
-        ${{ else }}:
-          # Reduced matrix for PRs and development branches (6 jobs)
-          os: [ubuntu-latest]
-          python-version: ["3.9", "3.10", "3.11", "3.12"]
-          include:
-            # Add specific cross-platform tests for latest Python only
-            - os: windows-latest
-              python-version: "3.12"
-            - os: macos-latest
-              python-version: "3.12"
+        # Optimized matrix: Reduced from original 12 jobs to 6 for efficiency
+        os: [ubuntu-latest]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        include:
+          # Cross-platform tests with latest Python versions
+          - os: windows-latest
+            python-version: "3.12"
+          - os: macos-latest
+            python-version: "3.12"
 
     steps:
     - uses: actions/checkout@v4
