@@ -1,0 +1,258 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v1.0.0)'
+        required: true
+        type: string
+      publish_to_testpypi:
+        description: 'Publish to TestPyPI'
+        required: false
+        default: true
+        type: boolean
+      publish_to_pypi:
+        description: 'Publish to PyPI (production)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write  # For trusted publishing to PyPI
+
+jobs:
+  validate-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Validate tag format
+      run: |
+        if [[ ! "${{ github.ref_name }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "Invalid tag format. Must be vX.Y.Z"
+          exit 1
+        fi
+
+    - name: Extract version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION=${{ github.event.inputs.tag }}
+          VERSION=${VERSION#v}
+        else
+          VERSION=${GITHUB_REF_NAME#v}
+        fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Check version consistency
+      run: |
+        pip install toml
+        PYPROJECT_VERSION=$(python -c "import toml; print(toml.load('pyproject.toml')['project']['version'])")
+        TAG_VERSION="${{ steps.version.outputs.version }}"
+        if [ "$PYPROJECT_VERSION" != "$TAG_VERSION" ]; then
+          echo "Version mismatch: pyproject.toml has $PYPROJECT_VERSION but tag is $TAG_VERSION"
+          exit 1
+        fi
+
+  test:
+    runs-on: ubuntu-latest
+    needs: validate-tag
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Run full test suite
+      run: |
+        pytest tests/unit/ -v --cov=neon_crm --cov-report=term-missing
+
+    - name: Run security checks
+      run: |
+        safety check
+        bandit -r src/ -c .bandit
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, test]
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build twine
+
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Check package
+      run: |
+        twine check dist/*
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-dist
+        path: dist/
+
+  publish-testpypi:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event.inputs.publish_to_testpypi == 'true'
+    environment:
+      name: staging-pypi
+      url: https://test.pypi.org/p/neon-crm-sdk
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: release-dist
+        path: dist/
+
+    - name: Publish to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        attestations: true
+
+  test-testpypi:
+    runs-on: ubuntu-latest
+    needs: publish-testpypi
+    if: github.event.inputs.publish_to_testpypi == 'true'
+    steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Test installation from TestPyPI
+      run: |
+        # Wait a bit for package to be available
+        sleep 30
+
+        # Install from TestPyPI
+        pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ neon-crm-sdk==${{ needs.validate-tag.outputs.version }}
+
+        # Test import
+        python -c "import neon_crm; print(f'Successfully installed neon-crm-sdk v{neon_crm.__version__}')"
+
+  publish-pypi:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, test-testpypi]
+    if: github.event.inputs.publish_to_pypi == 'true'
+    environment:
+      name: production-pypi
+      url: https://pypi.org/p/neon-crm-sdk
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: release-dist
+        path: dist/
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        attestations: true
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, test-testpypi]
+    if: always() && needs.validate-tag.result == 'success' && needs.test-testpypi.result == 'success'
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: release-dist
+        path: dist/
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Generate changelog from commits since last tag
+        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+        if [ -n "$PREVIOUS_TAG" ]; then
+          CHANGELOG=$(git log --pretty=format:"- %s" $PREVIOUS_TAG..HEAD)
+        else
+          CHANGELOG=$(git log --pretty=format:"- %s")
+        fi
+
+        # Create changelog file
+        cat > RELEASE_NOTES.md << EOF
+        # Release ${{ github.ref_name }}
+
+        ## Changes
+        $CHANGELOG
+
+        ## Installation
+        \`\`\`bash
+        pip install neon-crm-sdk==${{ needs.validate-tag.outputs.version }}
+        \`\`\`
+
+        ## Verification
+        \`\`\`python
+        import neon_crm
+        print(neon_crm.__version__)  # Should print ${{ needs.validate-tag.outputs.version }}
+        \`\`\`
+        EOF
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: dist/*
+        body_path: RELEASE_NOTES.md
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: [validate-tag, create-release]
+    if: always()
+    steps:
+    - name: Notify on success
+      if: needs.create-release.result == 'success'
+      run: |
+        echo "🎉 Successfully released neon-crm-sdk v${{ needs.validate-tag.outputs.version }}"
+        echo "📦 PyPI: https://pypi.org/project/neon-crm-sdk/${{ needs.validate-tag.outputs.version }}/"
+        echo "📋 Release: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}"
+
+    - name: Notify on failure
+      if: failure()
+      run: |
+        echo "❌ Release failed for neon-crm-sdk v${{ needs.validate-tag.outputs.version }}"
+        echo "Check the workflow logs for details."

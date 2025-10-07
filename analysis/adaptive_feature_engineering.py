@@ -35,7 +35,7 @@ def engineer_adaptive_features(raw_data):
     )
 
     # === COLUMN DISCOVERY ===
-    print(f"\n🔍 Discovering available columns...")
+    print("\n🔍 Discovering available columns...")
 
     available_cols = list(accounts_df.columns)
 
@@ -68,7 +68,7 @@ def engineer_adaptive_features(raw_data):
         [r"phone", r"mobile", r"cell"], "📞 Phone Fields"
     )
 
-    address_cols = find_columns_by_pattern(
+    find_columns_by_pattern(
         [r"address", r"street", r"city", r"state", r"zip", r"postal", r"country"],
         "🏠 Address Fields",
     )
@@ -92,7 +92,7 @@ def engineer_adaptive_features(raw_data):
     )
 
     # === DATA TYPE CONVERSION ===
-    print(f"\n🔄 Converting data types...")
+    print("\n🔄 Converting data types...")
 
     # Convert Account ID to numeric
     if "Account ID" in accounts_df.columns:
@@ -106,15 +106,11 @@ def engineer_adaptive_features(raw_data):
             try:
                 accounts_df[col] = pd.to_datetime(accounts_df[col], errors="coerce")
                 print(f"   ✅ Converted date column: {col}")
-            except:
+            except Exception:
                 print(f"   ⚠️  Could not convert date column: {col}")
 
     # === TARGET VARIABLE CREATION ===
-    print(f"\n🎯 Creating target variables...")
-
-    # Find the best donation amount field
-    lifetime_donation = 0
-    donation_count = 0
+    print("\n🎯 Creating target variables...")
 
     # Use the first available donation amount field
     for col in donation_amount_cols:
@@ -126,7 +122,7 @@ def engineer_adaptive_features(raw_data):
             break
     else:
         accounts_df["lifetime_donation_amount"] = 0
-        print(f"   ⚠️  No donation amount field found, using zeros")
+        print("   ⚠️  No donation amount field found, using zeros")
 
     # Use the first available donation count field
     for col in donation_count_cols:
@@ -138,7 +134,7 @@ def engineer_adaptive_features(raw_data):
             break
     else:
         accounts_df["donation_count"] = 0
-        print(f"   ⚠️  No donation count field found, using zeros")
+        print("   ⚠️  No donation count field found, using zeros")
 
     # Target variables
     accounts_df["is_donor"] = (
@@ -158,7 +154,7 @@ def engineer_adaptive_features(raw_data):
     )
 
     # === DEMOGRAPHIC FEATURES ===
-    print(f"\n👥 Creating demographic features...")
+    print("\n👥 Creating demographic features...")
 
     # Account type
     if "Account Type" in accounts_df.columns:
@@ -219,7 +215,7 @@ def engineer_adaptive_features(raw_data):
         accounts_df["contact_completeness"] = 0
 
     # === TEMPORAL FEATURES ===
-    print(f"\n⏰ Creating temporal features...")
+    print("\n⏰ Creating temporal features...")
 
     # Account age
     create_date_col = None
@@ -237,7 +233,7 @@ def engineer_adaptive_features(raw_data):
     else:
         accounts_df["account_age_days"] = 365
         accounts_df["account_age_years"] = 1
-        print(f"   ⚠️  No creation date found, using default")
+        print("   ⚠️  No creation date found, using default")
 
     # Recent activity
     activity_date_col = None
@@ -257,10 +253,10 @@ def engineer_adaptive_features(raw_data):
     else:
         accounts_df["days_since_last_activity"] = 365
         accounts_df["has_recent_activity"] = 0
-        print(f"   ⚠️  No activity date found, using default")
+        print("   ⚠️  No activity date found, using default")
 
     # === ENGAGEMENT FEATURES ===
-    print(f"\n🚀 Creating engagement features...")
+    print("\n🚀 Creating engagement features...")
 
     # Event engagement
     event_score = 0
@@ -271,7 +267,7 @@ def engineer_adaptive_features(raw_data):
                     0
                 )
                 event_score += (event_values > 0).astype(int)
-            except:
+            except Exception:
                 pass
 
     accounts_df["event_engagement"] = (event_score > 0).astype(int)
@@ -285,7 +281,7 @@ def engineer_adaptive_features(raw_data):
                     accounts_df[col], errors="coerce"
                 ).fillna(0)
                 membership_score += (membership_values > 0).astype(int)
-            except:
+            except Exception:
                 pass
 
     accounts_df["membership_engagement"] = (membership_score > 0).astype(int)
@@ -299,13 +295,13 @@ def engineer_adaptive_features(raw_data):
                     accounts_df[col], errors="coerce"
                 ).fillna(0)
                 activity_score += (activity_values > 0).astype(int)
-            except:
+            except Exception:
                 pass
 
     accounts_df["activity_engagement"] = (activity_score > 0).astype(int)
 
     # === COMPOSITE SCORES ===
-    print(f"\n📊 Creating composite scores...")
+    print("\n📊 Creating composite scores...")
 
     # Overall engagement score
     engagement_components = [
@@ -332,7 +328,7 @@ def engineer_adaptive_features(raw_data):
     )
 
     # === WEALTH INDICATORS ===
-    print(f"\n💎 Creating wealth indicators...")
+    print("\n💎 Creating wealth indicators...")
 
     # Company indicator
     if "is_company" in accounts_df.columns:
@@ -341,7 +337,7 @@ def engineer_adaptive_features(raw_data):
         accounts_df["potential_high_capacity"] = 0
 
     # === ADDITIONAL DISCOVERED FEATURES ===
-    print(f"\n🔍 Creating features from ALL discovered numeric columns...")
+    print("\n🔍 Creating features from ALL discovered numeric columns...")
 
     # Find all numeric columns that might be predictive
     numeric_cols = accounts_df.select_dtypes(include=[np.number]).columns.tolist()
@@ -375,10 +371,10 @@ def engineer_adaptive_features(raw_data):
             accounts_df[f'has_{col.lower().replace(" ", "_").replace("/", "_")}'] = (
                 accounts_df[col] > 0
             ).astype(int)
-        except:
+        except Exception:
             pass
 
-    print(f"\n🎯 Adaptive feature engineering complete!")
+    print("\n🎯 Adaptive feature engineering complete!")
     print(
         f"📊 Final dataset: {len(accounts_df):,} records with {len(accounts_df.columns)} features"
     )

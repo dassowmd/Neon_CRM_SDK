@@ -220,7 +220,7 @@ first_100 = list(islice(client.accounts.search(search_request), 100))
 - Read the [Configuration Guide](configuration.md) for detailed setup options
 - Check out [Examples](../examples/basic.md) for more usage patterns
 - See [User Guide](../user-guide/basic-usage.md) for comprehensive documentation
-- Review the [API Reference](../api/README.md) for detailed API documentation
+- Review the [API Reference](../api/client.md) for detailed API documentation
 
 ## Getting Help
 

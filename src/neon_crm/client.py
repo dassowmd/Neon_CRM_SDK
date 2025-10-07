@@ -844,9 +844,9 @@ class AsyncNeonClient:
         if config["base_url"]:
             self.base_url = config["base_url"]
         elif self.environment == "trial":
-            self.base_url = "https://trial.neoncrm.com/v2"
+            self.base_url = "https://trial.neoncrm.com/v2/"
         else:
-            self.base_url = "https://api.neoncrm.com/v2"
+            self.base_url = "https://api.neoncrm.com/v2/"
 
         # HTTP client will be created when needed
         self._client: Optional[httpx.AsyncClient] = None

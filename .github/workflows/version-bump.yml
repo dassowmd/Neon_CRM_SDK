@@ -1,0 +1,171 @@
+name: Version Bump
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '.github/**'
+      - 'docs/**'
+      - '*.md'
+      - 'LICENSE'
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      skip_tag:
+        description: 'Skip creating git tag (useful for testing)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip version]') && !contains(github.event.head_commit.message, 'bump version')"
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
+      old_version: ${{ steps.bump.outputs.old_version }}
+      version_changed: ${{ steps.bump.outputs.version_changed }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install bump-my-version
+      run: |
+        pip install bump-my-version
+
+    - name: Configure git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Determine bump type
+      id: bump_type
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "bump_type=${{ github.event.inputs.bump_type }}" >> $GITHUB_OUTPUT
+        else
+          # Auto-bump patch on merge to main
+          echo "bump_type=patch" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Get current version
+      id: current
+      run: |
+        CURRENT_VERSION=$(python -c "import sys; sys.path.insert(0, 'src'); import neon_crm; print(neon_crm.__version__)")
+        echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Bump version
+      id: bump
+      run: |
+        OLD_VERSION="${{ steps.current.outputs.current_version }}"
+        echo "old_version=$OLD_VERSION" >> $GITHUB_OUTPUT
+
+        # Update .bumpversion.cfg with current version
+        sed -i "s/current_version = .*/current_version = \"$OLD_VERSION\"/" .bumpversion.cfg
+
+        # Perform the version bump
+        bump-my-version bump ${{ steps.bump_type.outputs.bump_type }} --verbose
+
+        # Get the new version
+        NEW_VERSION=$(python -c "import sys; sys.path.insert(0, 'src'); import neon_crm; print(neon_crm.__version__)")
+        echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+        # Check if version actually changed
+        if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+          echo "version_changed=true" >> $GITHUB_OUTPUT
+          echo "Version bumped from $OLD_VERSION to $NEW_VERSION"
+        else
+          echo "version_changed=false" >> $GITHUB_OUTPUT
+          echo "Version unchanged: $OLD_VERSION"
+        fi
+
+    - name: Create or update CHANGELOG entry
+      if: steps.bump.outputs.version_changed == 'true'
+      run: |
+        NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+        DATE=$(date '+%Y-%m-%d')
+
+        # Create changelog entry
+        if [ ! -f CHANGELOG.md ]; then
+          cat > CHANGELOG.md << EOF
+        # Changelog
+
+        All notable changes to this project will be documented in this file.
+
+        The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+        and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+        ## [Unreleased]
+
+        ## [$NEW_VERSION] - $DATE
+
+        ### Changed
+        - Version bump to $NEW_VERSION
+        EOF
+        else
+          # Insert new version entry after [Unreleased]
+          sed -i "/## \[Unreleased\]/a\\
+        \\
+        ## [$NEW_VERSION] - $DATE\\
+        \\
+        ### Changed\\
+        - Version bump to $NEW_VERSION" CHANGELOG.md
+        fi
+
+        # Commit changelog update
+        git add CHANGELOG.md
+        git commit -m "update changelog for version $NEW_VERSION [skip ci]" || echo "No changelog changes to commit"
+
+    - name: Push changes
+      if: steps.bump.outputs.version_changed == 'true'
+      run: |
+        git push origin main
+
+    - name: Create git tag
+      if: steps.bump.outputs.version_changed == 'true' && github.event.inputs.skip_tag != 'true'
+      run: |
+        NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+        git tag "v$NEW_VERSION"
+        git push origin "v$NEW_VERSION"
+        echo "Created and pushed tag v$NEW_VERSION"
+
+    - name: Create release PR for manual bumps
+      if: steps.bump.outputs.version_changed == 'true' && github.event_name == 'workflow_dispatch' && steps.bump_type.outputs.bump_type != 'patch'
+      run: |
+        NEW_VERSION="${{ steps.bump.outputs.new_version }}"
+        OLD_VERSION="${{ steps.bump.outputs.old_version }}"
+        BUMP_TYPE="${{ steps.bump_type.outputs.bump_type }}"
+
+        echo "Manual $BUMP_TYPE version bump from $OLD_VERSION to $NEW_VERSION completed."
+        echo "This will trigger the release pipeline when tag v$NEW_VERSION is created."
+
+  notify:
+    runs-on: ubuntu-latest
+    needs: version-bump
+    if: needs.version-bump.outputs.version_changed == 'true'
+    steps:
+    - name: Notify version bump
+      run: |
+        echo "🎉 Version bumped successfully!"
+        echo "Old version: ${{ needs.version-bump.outputs.old_version }}"
+        echo "New version: ${{ needs.version-bump.outputs.new_version }}"
+        echo "Tag created: v${{ needs.version-bump.outputs.new_version }}"

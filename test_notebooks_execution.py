@@ -60,7 +60,7 @@ def execute_notebook(notebook_path: Path) -> Tuple[bool, str]:
     try:
         # Use jupyter nbconvert to execute the notebook
         # Allow errors to continue execution so we can check outputs
-        result = subprocess.run(
+        subprocess.run(
             [
                 "jupyter",
                 "nbconvert",
@@ -118,7 +118,7 @@ def test_notebook(notebook_path: Path, dry_run: bool = False) -> bool:
     # First check if it's valid JSON
     try:
         with open(notebook_path) as f:
-            nb = json.load(f)
+            json.load(f)
         print("✓ Valid JSON structure")
     except Exception as e:
         print(f"✗ Invalid JSON: {e}")
@@ -176,7 +176,7 @@ def main():
     # Find all notebooks matching patterns
     notebooks = []
     patterns = [p.strip() for p in args.pattern.split(",")]
-    skip_names = set(s.strip() for s in args.skip.split(",") if s.strip())
+    skip_names = {s.strip() for s in args.skip.split(",") if s.strip()}
 
     for pattern in patterns:
         found = list(Path(".").glob(pattern))

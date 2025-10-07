@@ -4,7 +4,7 @@ This module provides high-level operations for managing custom field values,
 including multi-value field operations, validation, and batch processing.
 """
 
-from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
+from typing import Any, Dict, List, Union, TYPE_CHECKING
 from dataclasses import dataclass
 
 from .custom_field_processors import CustomFieldProcessorFactory

@@ -549,6 +549,4 @@ for account_id, updates in account_updates.items():
 ## Next Steps
 
 - Read the [User Guide](../user-guide/basic-usage.md) for comprehensive documentation
-- Check out [Jupyter Notebooks](../../examples/) for interactive examples
 - Review [Permissions Guide](../permissions.md) for access control
-- See [API Reference](../api/README.md) for detailed API documentation

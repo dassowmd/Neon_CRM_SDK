@@ -1,0 +1,13 @@
+skips:
+  - B110  # Try/Except/Pass - acceptable for defensive programming in SDK
+  - B112  # Try/Except/Continue - acceptable for defensive programming in SDK
+  - B311  # Random module - acceptable for non-cryptographic purposes (API jitter)
+
+exclude_dirs:
+  - tests
+  - venv
+  - build
+  - dist
+  - .git
+  - .pytest_cache
+  - __pycache__

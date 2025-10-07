@@ -2,6 +2,9 @@
 
 The main client classes for interacting with the Neon CRM API.
 
+!!! tip "Interactive API Explorer"
+    For a complete interactive API reference with the ability to test endpoints, see the [Interactive API Reference](interactive.md).
+
 ## NeonClient
 
 ::: neon_crm.client.NeonClient

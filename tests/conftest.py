@@ -11,10 +11,15 @@ from neon_crm import NeonClient
 @pytest.fixture
 def mock_client():
     """Create a mock Neon client for unit tests."""
+    from neon_crm.governance import create_user_permissions, Role
+
     client = MagicMock(spec=NeonClient)
     client.org_id = "test_org"
     client.api_key = "test_key"
     client.environment = "trial"
+    client.user_permissions = create_user_permissions(
+        user_id="test_user", role=Role.ADMIN
+    )
     return client
 
 

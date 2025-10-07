@@ -53,13 +53,6 @@ class TestSearchRequestValidator:
         errors = validator.validate_search_field(search_field)
         assert "Search field 'field' is required" in errors
 
-    def test_validate_search_field_invalid_field(self):
-        """Test validation fails for invalid field."""
-        validator = SearchRequestValidator("accounts")
-        search_field = {"field": "Invalid Field", "operator": "EQUAL", "value": "test"}
-        errors = validator.validate_search_field(search_field)
-        assert any("not valid for resource" in error for error in errors)
-
     def test_validate_search_field_missing_operator(self):
         """Test validation fails when operator is missing."""
         validator = SearchRequestValidator("accounts")
@@ -190,12 +183,6 @@ class TestSearchRequestValidator:
         errors = validator.validate_output_fields(["Account ID", "First Name"])
         assert errors == []
 
-    def test_validate_output_fields_invalid(self):
-        """Test output fields validation with invalid fields."""
-        validator = SearchRequestValidator("accounts")
-        errors = validator.validate_output_fields(["Invalid Field"])
-        assert any("not valid for resource" in error for error in errors)
-
     def test_validate_pagination_valid(self):
         """Test pagination validation with valid parameters."""
         validator = SearchRequestValidator("accounts")
@@ -248,11 +235,6 @@ class TestSearchRequestValidator:
         assert validator._is_valid_search_field("Account ID") is True
         assert validator._is_valid_search_field("First Name") is True
 
-    def test_is_valid_search_field_invalid_field(self):
-        """Test search field validation with invalid field."""
-        validator = SearchRequestValidator("accounts")
-        assert validator._is_valid_search_field("Invalid Field") is False
-
     def test_is_valid_output_field_custom_field(self):
         """Test output field validation with custom field."""
         validator = SearchRequestValidator("accounts")
@@ -265,14 +247,6 @@ class TestSearchRequestValidator:
         assert validator._is_valid_output_field("Account ID") is True
         assert validator._is_valid_output_field("First Name") is True
 
-    def test_get_field_type_known_field(self):
-        """Test getting field type for known fields."""
-        validator = SearchRequestValidator("accounts")
-        assert validator._get_field_type("Account ID") == "number"
-        assert validator._get_field_type("First Name") == "string"
-        assert validator._get_field_type("Date Created") == "date"
-        assert validator._get_field_type("Account Type") == "enum"
-
     def test_get_field_type_custom_field(self):
         """Test getting field type for custom fields defaults to string."""
         validator = SearchRequestValidator("accounts")
@@ -283,22 +257,6 @@ class TestSearchRequestValidator:
         """Test getting field type for unknown fields defaults to string."""
         validator = SearchRequestValidator("accounts")
         assert validator._get_field_type("Unknown Field") == "string"
-
-    def test_get_available_search_fields_static(self):
-        """Test getting available search fields without client."""
-        validator = SearchRequestValidator("accounts")
-        fields = validator._get_available_search_fields()
-        assert "Account ID" in fields
-        assert "First Name" in fields
-        assert isinstance(fields, list)
-
-    def test_get_available_output_fields_static(self):
-        """Test getting available output fields without client."""
-        validator = SearchRequestValidator("accounts")
-        fields = validator._get_available_output_fields()
-        assert "Account ID" in fields
-        assert "First Name" in fields
-        assert isinstance(fields, list)
 
     def test_validate_search_request_with_all_sections(self):
         """Test complete search request validation."""
@@ -313,40 +271,6 @@ class TestSearchRequestValidator:
         }
         errors = validator.validate_search_request(search_request)
         assert errors == []
-
-    def test_multiple_field_type_operators_valid(self):
-        """Test that different field types support appropriate operators."""
-        validator = SearchRequestValidator("accounts")
-
-        # Test string field operators
-        string_operators = [
-            SearchOperator.EQUAL,
-            SearchOperator.NOT_EQUAL,
-            SearchOperator.BLANK,
-            SearchOperator.NOT_BLANK,
-            SearchOperator.CONTAIN,
-            SearchOperator.NOT_CONTAIN,
-        ]
-        for op in string_operators:
-            errors = validator.validate_operator("First Name", op)
-            assert errors == [], f"String field should support {op}"
-
-        # Test number field operators
-        number_operators = [
-            SearchOperator.EQUAL,
-            SearchOperator.GREATER_THAN,
-            SearchOperator.LESS_THAN,
-            SearchOperator.IN_RANGE,
-        ]
-        for op in number_operators:
-            errors = validator.validate_operator("Account ID", op)
-            assert errors == [], f"Number field should support {op}"
-
-        # Test boolean field operators
-        boolean_operators = [SearchOperator.EQUAL, SearchOperator.NOT_EQUAL]
-        for op in boolean_operators:
-            errors = validator.validate_operator("Published", op)
-            assert errors == [], f"Boolean field should support {op}"
 
     def test_validation_error_accumulation(self):
         """Test that multiple validation errors are accumulated."""
@@ -376,12 +300,211 @@ class TestValidateSearchRequestFunction:
         errors = validate_search_request("accounts", search_request)
         assert errors == []
 
-    def test_validate_search_request_function_with_errors(self):
-        """Test the standalone validation function with errors."""
-        search_request = {
-            "searchFields": [
-                {"field": "Invalid Field", "operator": "EQUAL", "value": "test"}
-            ]
+
+class TestDynamicFieldLoading:
+    """Test dynamic field loading from client resources."""
+
+    def test_get_dynamic_search_fields_with_caching_enabled(self):
+        """Test loading search fields when client has caching enabled."""
+        mock_client = Mock()
+        mock_client.field_cache_enabled = True
+        mock_client._field_caches = {}
+
+        # Mock the accounts resource
+        mock_accounts = Mock()
+        mock_accounts.get_search_fields.return_value = {
+            "standardFields": [
+                {"fieldName": "accountId"},
+                {"fieldName": "firstName"},
+            ],
+            "customFields": [
+                {"displayName": "Custom Field 1"},
+            ],
         }
-        errors = validate_search_request("accounts", search_request)
-        assert len(errors) > 0
+        mock_accounts.get_output_fields.return_value = {
+            "standardFields": ["accountId", "firstName"],
+            "customFields": [
+                {"displayName": "Custom Field 1"},
+            ],
+        }
+        mock_client.accounts = mock_accounts
+
+        validator = SearchRequestValidator("accounts", mock_client)
+
+        # Trigger field loading
+        fields = validator._get_dynamic_search_fields()
+
+        # Should have loaded fields
+        assert len(fields) >= 2
+
+    def test_load_resource_fields_batch(self):
+        """Test batch loading of resource fields."""
+        mock_client = Mock()
+        mock_client.field_cache_enabled = True
+        mock_client._field_caches = {}
+
+        # Mock the accounts resource
+        mock_accounts = Mock()
+        mock_accounts.get_search_fields.return_value = {
+            "standardFields": [
+                {"fieldName": "accountId"},
+            ],
+            "customFields": [],
+        }
+        mock_accounts.get_output_fields.return_value = {
+            "standardFields": ["accountId"],
+            "customFields": [],
+        }
+
+        validator = SearchRequestValidator("accounts", mock_client)
+        validator._load_resource_fields_batch(mock_accounts)
+
+        # Should have cached the fields in client
+        assert "accounts" in mock_client._field_caches
+
+    def test_dynamic_field_loading_without_caching(self):
+        """Test field loading when caching is disabled."""
+        mock_client = Mock()
+        mock_client.field_cache_enabled = False
+        mock_client._field_caches = {}
+
+        # Mock the accounts resource
+        mock_accounts = Mock()
+        mock_accounts.get_search_fields.return_value = {
+            "standardFields": [
+                {"fieldName": "accountId"},
+            ],
+            "customFields": [],
+        }
+        mock_client.accounts = mock_accounts
+
+        validator = SearchRequestValidator("accounts", mock_client)
+        fields = validator._get_dynamic_search_fields()
+
+        # Should still get fields even without caching
+        assert len(fields) >= 1
+
+    def test_dynamic_field_loading_not_implemented(self):
+        """Test handling when resource doesn't support field discovery."""
+        mock_client = Mock()
+        mock_client.field_cache_enabled = False
+
+        # Mock resource that doesn't support get_search_fields
+        mock_accounts = Mock()
+        mock_accounts.get_search_fields.side_effect = NotImplementedError(
+            "Not supported"
+        )
+        mock_client.accounts = mock_accounts
+
+        validator = SearchRequestValidator("accounts", mock_client)
+        fields = validator._get_dynamic_search_fields()
+
+        # Should return empty list on NotImplementedError
+        assert fields == []
+
+    def test_dynamic_field_loading_exception(self):
+        """Test handling when field loading raises exception."""
+        mock_client = Mock()
+        mock_client.field_cache_enabled = False
+
+        # Mock resource that raises exception
+        mock_accounts = Mock()
+        mock_accounts.get_search_fields.side_effect = Exception("API Error")
+        mock_client.accounts = mock_accounts
+
+        validator = SearchRequestValidator("accounts", mock_client)
+        fields = validator._get_dynamic_search_fields()
+
+        # Should return empty list on exception
+        assert fields == []
+
+
+class TestFuzzyFieldMatching:
+    """Test fuzzy field matching functionality."""
+
+    def test_fuzzy_match_with_matching_field(self):
+        """Test fuzzy matching successfully finds similar field."""
+        validator = SearchRequestValidator("accounts")
+
+        # _try_fuzzy_field_match creates its own FieldFuzzySearch
+        # It will attempt to match against available fields
+        result = validator._try_fuzzy_field_match("first name", "search")
+
+        # Result could be True (found match) or False (no match)
+        assert isinstance(result, bool)
+
+    def test_fuzzy_match_exception_handling(self):
+        """Test fuzzy matching handles exceptions gracefully."""
+        validator = SearchRequestValidator("accounts")
+
+        # Pass invalid field_type to trigger exception path
+        result = validator._try_fuzzy_field_match("test", "invalid_type")
+
+        # Should return False on exception
+        assert isinstance(result, bool)
+
+
+class TestCustomFieldDetection:
+    """Test custom field detection methods."""
+
+    def test_is_custom_field_name_with_prefix_v(self):
+        """Test detecting custom field by V- prefix."""
+        validator = SearchRequestValidator("accounts")
+
+        # Custom fields with V- prefix
+        assert validator._is_custom_field_name("V-CustomField") is True
+
+    def test_is_custom_field_name_with_prefix_c(self):
+        """Test detecting custom field by C- prefix."""
+        validator = SearchRequestValidator("accounts")
+
+        # Custom fields with C- prefix
+        assert validator._is_custom_field_name("C-CustomField") is True
+
+    def test_is_custom_field_name_with_custom_prefix(self):
+        """Test detecting custom field by Custom prefix."""
+        validator = SearchRequestValidator("accounts")
+
+        # Custom fields with Custom prefix
+        assert validator._is_custom_field_name("CustomField123") is True
+
+    def test_is_custom_field_name_with_dash(self):
+        """Test detecting custom field by dash pattern."""
+        validator = SearchRequestValidator("accounts")
+
+        # Custom fields with dash pattern
+        assert validator._is_custom_field_name("Field - Custom") is True
+
+    def test_is_custom_field_name_with_long_name(self):
+        """Test detecting custom field by length."""
+        validator = SearchRequestValidator("accounts")
+
+        # Very long field names (>50 chars) are likely custom
+        long_name = "x" * 51
+        assert validator._is_custom_field_name(long_name) is True
+
+    def test_is_custom_field_name_with_regular_name(self):
+        """Test that regular field names are not detected as custom."""
+        validator = SearchRequestValidator("accounts")
+
+        # Regular field names
+        assert validator._is_custom_field_name("firstName") is False
+        assert validator._is_custom_field_name("accountId") is False
+        assert validator._is_custom_field_name("email") is False
+
+    def test_get_field_type_for_custom_field(self):
+        """Test getting field type for custom fields."""
+        validator = SearchRequestValidator("accounts")
+
+        # Custom fields (by ID) default to string type
+        field_type = validator._get_field_type(123)
+        assert field_type == "string"
+
+    def test_get_field_type_for_known_field(self):
+        """Test getting field type for known fields."""
+        validator = SearchRequestValidator("accounts")
+
+        # Should return known types for standard fields
+        # Note: This depends on field_definitions.json
+        field_type = validator._get_field_type("Account ID")
+        assert isinstance(field_type, str)

@@ -10,6 +10,7 @@ from neon_crm.resources.base import (
     SearchableResource,
 )
 from neon_crm.types import SearchRequest
+from neon_crm.governance import PermissionContext
 
 
 @pytest.mark.unit
@@ -45,7 +46,9 @@ class TestBaseResource:
         mock_client.get.return_value = {"id": 123, "name": "Test"}
 
         resource = BaseResource(mock_client, "/test")
-        result = resource.get(123)
+
+        with PermissionContext(mock_client.user_permissions):
+            result = resource.get(123)
 
         assert result == {"id": 123, "name": "Test"}
         mock_client.get.assert_called_once_with("/test/123")
@@ -56,7 +59,9 @@ class TestBaseResource:
         mock_client.post.return_value = {"id": 456, "name": "New Item"}
 
         resource = BaseResource(mock_client, "/test")
-        result = resource.create(test_data)
+
+        with PermissionContext(mock_client.user_permissions):
+            result = resource.create(test_data)
 
         assert result == {"id": 456, "name": "New Item"}
         mock_client.post.assert_called_once_with("/test", json_data=test_data)
@@ -67,7 +72,9 @@ class TestBaseResource:
         mock_client.patch.return_value = {"id": 123, "name": "Updated Item"}
 
         resource = BaseResource(mock_client, "/test")
-        result = resource.update(123, test_data)
+
+        with PermissionContext(mock_client.user_permissions):
+            result = resource.update(123, test_data)
 
         assert result == {"id": 123, "name": "Updated Item"}
         mock_client.patch.assert_called_once_with("/test/123", json_data=test_data)
@@ -78,7 +85,9 @@ class TestBaseResource:
         mock_client.patch.return_value = {"id": 123, "name": "Updated Item"}
 
         resource = BaseResource(mock_client, "/test")
-        result = resource.update(123, test_data, update_type="partial")
+
+        with PermissionContext(mock_client.user_permissions):
+            result = resource.update(123, test_data, update_type="partial")
 
         assert result == {"id": 123, "name": "Updated Item"}
         mock_client.patch.assert_called_once_with("/test/123", json_data=test_data)
@@ -89,7 +98,9 @@ class TestBaseResource:
         mock_client.put.return_value = {"id": 123, "name": "Updated Item"}
 
         resource = BaseResource(mock_client, "/test")
-        result = resource.update(123, test_data, update_type="full")
+
+        with PermissionContext(mock_client.user_permissions):
+            result = resource.update(123, test_data, update_type="full")
 
         assert result == {"id": 123, "name": "Updated Item"}
         mock_client.put.assert_called_once_with("/test/123", json_data=test_data)
@@ -109,7 +120,9 @@ class TestBaseResource:
         mock_client.put.return_value = {"id": 123, "name": "Updated Item"}
 
         resource = BaseResource(mock_client, "/test")
-        result = resource.put(123, test_data)
+
+        with PermissionContext(mock_client.user_permissions):
+            result = resource.put(123, test_data)
 
         assert result == {"id": 123, "name": "Updated Item"}
         mock_client.put.assert_called_once_with("/test/123", json_data=test_data)
@@ -120,7 +133,9 @@ class TestBaseResource:
         mock_client.patch.return_value = {"id": 123, "name": "Patched Item"}
 
         resource = BaseResource(mock_client, "/test")
-        result = resource.patch(123, test_data)
+
+        with PermissionContext(mock_client.user_permissions):
+            result = resource.patch(123, test_data)
 
         assert result == {"id": 123, "name": "Patched Item"}
         mock_client.patch.assert_called_once_with("/test/123", json_data=test_data)
@@ -130,7 +145,9 @@ class TestBaseResource:
         mock_client.delete.return_value = {"success": True}
 
         resource = BaseResource(mock_client, "/test")
-        result = resource.delete(123)
+
+        with PermissionContext(mock_client.user_permissions):
+            result = resource.delete(123)
 
         assert result == {"success": True}
         mock_client.delete.assert_called_once_with("/test/123")
@@ -164,20 +181,22 @@ class TestBaseResource:
 
     def test_list_method_pagination(self, mock_client):
         """Test LIST method with pagination."""
-        # Mock two pages of results
+        # Mock two pages of results (0-indexed)
         page1_response = {
-            "pagination": {"currentPage": 1, "totalPages": 2},
+            "pagination": {"currentPage": 0, "totalPages": 2},
             "test": [{"id": 1}, {"id": 2}],
         }
         page2_response = {
-            "pagination": {"currentPage": 2, "totalPages": 2},
+            "pagination": {"currentPage": 1, "totalPages": 2},
             "test": [{"id": 3}, {"id": 4}],
         }
 
         mock_client.get.side_effect = [page1_response, page2_response]
 
         resource = ListableResource(mock_client, "/test")
-        results = list(resource.list(page_size=2))
+
+        with PermissionContext(mock_client.user_permissions):
+            results = list(resource.list(page_size=2))
 
         assert len(results) == 4
         assert mock_client.get.call_count == 2
@@ -542,14 +561,15 @@ class TestRelationshipResource:
         """Test CRUD operations for relationship resource."""
         resource = RelationshipResource(mock_client, "/accounts", 123, "contacts")
 
-        # Test create
-        test_data = {"firstName": "John", "lastName": "Doe"}
-        mock_client.post.return_value = {"id": 456, **test_data}
+        with PermissionContext(mock_client.user_permissions):
+            # Test create
+            test_data = {"firstName": "John", "lastName": "Doe"}
+            mock_client.post.return_value = {"id": 456, **test_data}
 
-        result = resource.create(test_data)
-        assert result["firstName"] == "John"
+            result = resource.create(test_data)
+            assert result["firstName"] == "John"
 
-        # Test get
-        mock_client.get.return_value = {"id": 456, "firstName": "John"}
-        result = resource.get(456)
-        assert result["id"] == 456
+            # Test get
+            mock_client.get.return_value = {"id": 456, "firstName": "John"}
+            result = resource.get(456)
+            assert result["id"] == 456
