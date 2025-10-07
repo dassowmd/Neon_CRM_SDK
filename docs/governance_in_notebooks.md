@@ -32,7 +32,11 @@ donations = list(client.donations.search(search_request))
 Only needed for advanced permission checking:
 
 ```python
-from neon_crm.governance import Permission, ResourceType, Role
+# Import directly from the main package (preferred)
+from neon_crm import Permission, Role
+
+# Or import from governance submodule
+from neon_crm.governance import ResourceType
 ```
 
 ## Available Roles
@@ -153,7 +157,8 @@ The governance system covers all resource types:
 You can check permissions before attempting operations:
 
 ```python
-from neon_crm.governance import ResourceType, Permission
+from neon_crm import Permission
+from neon_crm.governance import ResourceType
 
 # Check if we can create donations
 if client.user_permissions.has_permission(

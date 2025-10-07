@@ -1,0 +1,22 @@
+# nbstripout configuration to prevent sensitive data in notebooks
+# This file configures what gets stripped from notebooks before commit
+
+[filter "nbstripout"]
+    clean = nbstripout
+    smudge = cat
+
+# Strip these by default
+[nbstripout]
+    drop_empty_cells = true
+    drop_tagged_cells = true
+    extra_keys =
+        cell.metadata.execution
+        cell.metadata.scrolled
+        metadata.kernelspec
+        metadata.language_info.version
+        metadata.widgets
+
+# Keep these metadata fields
+keep_keys =
+    metadata.kernelspec.display_name
+    metadata.kernelspec.name

@@ -1,0 +1,16 @@
+# Jupyter Notebooks - automatically strip output and sensitive metadata
+*.ipynb filter=nbstripout
+*.ipynb diff=ipynb
+
+# Python files
+*.py text eol=lf
+
+# YAML files
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Markdown files
+*.md text eol=lf
+
+# JSON files
+*.json text eol=lf
