@@ -246,33 +246,66 @@ publish: build
     @echo "Publishing to PyPI..."
     {{python}} -m twine upload dist/*
 
-# Documentation
-docs: docs-schemas docs-validate
-    @echo "Building documentation..."
-    @echo "✅ All documentation generated successfully!"
+# Documentation (User-facing website)
+docs-build:
+    @echo "Installing documentation dependencies..."
+    {{pip}} install -r docs/requirements.txt
+    @echo "Building MkDocs documentation..."
+    mkdocs build
+    @echo "✅ Documentation built in ./site/"
+    @echo "   Open ./site/index.html in your browser to view"
 
-docs-schemas:
+docs-serve:
+    @echo "Installing documentation dependencies..."
+    {{pip}} install -r docs/requirements.txt
+    @echo "Starting MkDocs development server..."
+    @echo "📖 Documentation will be available at: http://127.0.0.1:8000"
+    @echo "   Press Ctrl+C to stop the server"
+    @echo "   Changes to markdown files will automatically reload"
+    mkdocs serve
+
+docs-check:
+    @echo "Installing documentation dependencies..."
+    {{pip}} install -r docs/requirements.txt
+    @echo "Checking MkDocs build with strict mode..."
+    mkdocs build --strict
+    @echo "✅ Documentation build passed strict checks"
+
+# API Schemas (Machine-readable, for tooling)
+api-schemas:
     @echo "Generating machine-readable schemas..."
     {{python}} tools/generate_schemas.py
+    @echo "✅ API schemas generated successfully!"
+    @echo ""
+    @echo "Generated files:"
+    @echo "  📄 docs/api/openapi.yaml - OpenAPI 3.0 specification"
+    @echo "  📄 docs/api/capabilities.yaml - Resource capabilities matrix"
+    @echo "  📄 docs/api/field_discovery.yaml - Field discovery documentation"
+    @echo "  📄 docs/api/schemas.json - Complete SDK schemas"
+    @echo "  📄 docs/api/resource_metadata.json - Resource metadata"
+    @echo "  📄 docs/api/types.json - Type definitions"
+    @echo "  📄 docs/api/capabilities.json - JSON capabilities matrix"
 
-docs-validate:
-    @echo "Validating documentation..."
+api-validate:
+    @echo "Validating API specifications..."
     {{python}} tools/validate_openapi.py
 
-docs-clean:
-    @echo "Cleaning generated documentation..."
-    rm -f docs/api/schemas.json docs/api/resource_metadata.json docs/api/types.json docs/api/capabilities.json
-    @echo "✅ Documentation cleaned"
-
-serve-docs: docs
-    @echo "Starting documentation server on http://localhost:8080"
+api-serve: api-schemas
+    @echo "Starting API documentation server..."
+    @echo "OpenAPI spec will be available at: http://localhost:8080"
     @if command -v swagger-ui-serve >/dev/null 2>&1; then \
         swagger-ui-serve docs/api/openapi.yaml -p 8080; \
     elif command -v npx >/dev/null 2>&1; then \
         npx @apidevtools/swagger-ui-cli -f docs/api/openapi.yaml -p 8080; \
     else \
         echo "❌ No OpenAPI viewer found. Install swagger-ui-serve or npx"; \
+        echo "You can view the spec at: docs/api/openapi.yaml"; \
     fi
+
+api-clean:
+    @echo "Cleaning generated API schemas..."
+    rm -f docs/api/schemas.json docs/api/resource_metadata.json docs/api/types.json docs/api/capabilities.json
+    @echo "✅ API schemas cleaned"
 
 # Examples
 example:
