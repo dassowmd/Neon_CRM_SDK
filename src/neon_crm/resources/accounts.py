@@ -8,6 +8,7 @@ from .base import ListableResource, RelationshipResource, SearchableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
+    from ..migration_tools import AccountsMigrationManager
 
 
 class AccountsResource(ListableResource, SearchableResource):
@@ -264,6 +265,22 @@ class AccountsResource(ListableResource, SearchableResource):
             if isinstance(response["data"], list):
                 for item in response["data"]:
                     yield item
+
+    def create_migration_manager(
+        self, user_type: Union[UserType, str] = UserType.INDIVIDUAL, **kwargs: Any
+    ) -> "AccountsMigrationManager":
+        """Create a migration manager for account migrations.
+
+        Args:
+            user_type: Default user type for account operations
+            **kwargs: Additional parameters for account operations
+
+        Returns:
+            AccountsMigrationManager instance configured for this accounts resource
+        """
+        from ..migration_tools import AccountsMigrationManager
+
+        return AccountsMigrationManager(self, self._client, user_type, **kwargs)
 
 
 class AccountContactsResource(RelationshipResource):

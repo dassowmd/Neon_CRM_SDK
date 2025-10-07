@@ -7,6 +7,7 @@ from .base import ListableResource, SearchableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
+    from ..migration_tools import EventsMigrationManager
 
 
 class EventsResource(ListableResource, SearchableResource):
@@ -140,3 +141,35 @@ class EventsResource(ListableResource, SearchableResource):
             if len(registrations) < page_size:
                 break
             current_page += 1
+
+    def create_migration_manager(
+        self,
+        event_status: Optional[str] = None,
+        category_id: Optional[int] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        **kwargs: Any,
+    ) -> "EventsMigrationManager":
+        """Create a migration manager for event migrations.
+
+        Args:
+            event_status: Filter by event status
+            category_id: Filter by event category ID
+            start_date: Filter by start date (YYYY-MM-DD format)
+            end_date: Filter by end date (YYYY-MM-DD format)
+            **kwargs: Additional parameters for event operations
+
+        Returns:
+            EventsMigrationManager instance configured for this events resource
+        """
+        from ..migration_tools import EventsMigrationManager
+
+        return EventsMigrationManager(
+            self,
+            self._client,
+            event_status,
+            category_id,
+            start_date,
+            end_date,
+            **kwargs,
+        )

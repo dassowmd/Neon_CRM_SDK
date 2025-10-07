@@ -7,6 +7,7 @@ from .base import CalculationResource, ListableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
+    from ..migration_tools import MembershipsMigrationManager
 
 
 class MembershipsResource(ListableResource, CalculationResource):
@@ -57,6 +58,38 @@ class MembershipsResource(ListableResource, CalculationResource):
 
         return super().list(
             current_page=current_page, page_size=page_size, limit=limit, **params
+        )
+
+    def create_migration_manager(
+        self,
+        membership_status: Optional[str] = None,
+        membership_type_id: Optional[int] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        **kwargs: Any,
+    ) -> "MembershipsMigrationManager":
+        """Create a migration manager for membership migrations.
+
+        Args:
+            membership_status: Filter by membership status
+            membership_type_id: Filter by membership type ID
+            start_date: Filter by start date (YYYY-MM-DD format)
+            end_date: Filter by end date (YYYY-MM-DD format)
+            **kwargs: Additional parameters for membership operations
+
+        Returns:
+            MembershipsMigrationManager instance configured for this memberships resource
+        """
+        from ..migration_tools import MembershipsMigrationManager
+
+        return MembershipsMigrationManager(
+            self,
+            self._client,
+            membership_status,
+            membership_type_id,
+            start_date,
+            end_date,
+            **kwargs,
         )
 
     def calculate_dates(self, calculation_data: Dict[str, Any]) -> Dict[str, Any]:

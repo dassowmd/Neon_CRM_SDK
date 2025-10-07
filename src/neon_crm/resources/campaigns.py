@@ -7,6 +7,7 @@ from .base import ListableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
+    from ..migration_tools import CampaignsMigrationManager
 
 
 class CampaignsResource(ListableResource):
@@ -50,3 +51,16 @@ class CampaignsResource(ListableResource):
         return super().list(
             current_page=current_page, page_size=page_size, limit=limit, **params
         )
+
+    def create_migration_manager(self, **kwargs: Any) -> "CampaignsMigrationManager":
+        """Create a migration manager for campaign migrations.
+
+        Args:
+            **kwargs: Additional parameters for campaign operations
+
+        Returns:
+            CampaignsMigrationManager instance configured for this campaigns resource
+        """
+        from ..migration_tools import CampaignsMigrationManager
+
+        return CampaignsMigrationManager(self, self._client, **kwargs)
