@@ -12,15 +12,27 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Reduced matrix to prevent rate limiting: 4 total jobs instead of 12
-        os: [ubuntu-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12"]
-        include:
-          # Add specific cross-platform tests for latest Python only
-          - os: windows-latest
-            python-version: "3.12"
-          - os: macos-latest
-            python-version: "3.12"
+        # Conditional matrix: Full suite on main branch, reduced on PRs/development
+        ${{ if github.ref == 'refs/heads/main' }}:
+          # Full comprehensive matrix for main branch (12 jobs)
+          os: [ubuntu-latest, windows-latest, macos-latest]
+          python-version: ["3.9", "3.10", "3.11", "3.12"]
+          exclude:
+            # Exclude some combinations to reduce CI time slightly
+            - os: windows-latest
+              python-version: "3.9"
+            - os: macos-latest
+              python-version: "3.9"
+        ${{ else }}:
+          # Reduced matrix for PRs and development branches (6 jobs)
+          os: [ubuntu-latest]
+          python-version: ["3.9", "3.10", "3.11", "3.12"]
+          include:
+            # Add specific cross-platform tests for latest Python only
+            - os: windows-latest
+              python-version: "3.12"
+            - os: macos-latest
+              python-version: "3.12"
 
     steps:
     - uses: actions/checkout@v4
@@ -67,8 +79,7 @@ jobs:
 
   security:
     runs-on: ubuntu-latest
-    # Only run security scan on main branch and PRs to main to reduce load
-    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+    # Run security scans on main branch and PRs to main
     steps:
     - uses: actions/checkout@v4
 
@@ -212,3 +223,59 @@ jobs:
         NEON_ORG_ID: ${{ secrets.NEON_ORG_ID }}
         NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         NEON_ENVIRONMENT: trial
+
+  comprehensive-test:
+    name: Comprehensive Test Suite (Main Branch Only)
+    runs-on: ubuntu-latest
+    needs: [integration-test]
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Run comprehensive test suite
+      run: |
+        echo "🧪 Running comprehensive test suite for main branch merge..."
+
+        # Run all tests with extra coverage
+        pytest tests/ -v --cov=neon_crm --cov-report=xml --cov-report=html --cov-report=term-missing
+
+        # Run performance tests if they exist
+        if [ -d "tests/performance" ]; then
+          echo "🚀 Running performance tests..."
+          pytest tests/performance/ -v
+        fi
+
+        # Run additional regression tests
+        if [ -d "tests/regression" ]; then
+          echo "🔄 Running regression tests..."
+          pytest tests/regression/ -v
+        fi
+
+    - name: Upload comprehensive coverage
+      uses: codecov/codecov-action@v5
+      if: always()
+      with:
+        file: ./coverage.xml
+        flags: comprehensive
+        name: comprehensive-coverage
+        fail_ci_if_error: false
+
+    - name: Upload comprehensive test artifacts
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: comprehensive-test-results
+        path: |
+          htmlcov/
+          coverage.xml
+          pytest-results.xml
