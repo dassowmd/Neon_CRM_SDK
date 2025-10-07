@@ -49,11 +49,15 @@ help:
     @echo "  just publish       Publish to PyPI"
     @echo ""
     @echo "Documentation:"
-    @echo "  just docs          Generate all machine-readable documentation"
-    @echo "  just docs-schemas  Generate JSON schemas from SDK code"
-    @echo "  just docs-validate Validate OpenAPI spec and documentation"
-    @echo "  just docs-clean    Clean generated documentation files"
-    @echo "  just serve-docs    Generate docs and serve OpenAPI spec locally"
+    @echo "  just docs-build    Build user documentation website (MkDocs)"
+    @echo "  just docs-serve    Serve documentation locally with live reload"
+    @echo "  just docs-check    Check documentation build with strict warnings"
+    @echo ""
+    @echo "API Schemas (for tooling):"
+    @echo "  just api-schemas   Generate machine-readable API schemas (OpenAPI, JSON)"
+    @echo "  just api-validate  Validate OpenAPI specification"
+    @echo "  just api-serve     Serve OpenAPI spec in Swagger UI"
+    @echo "  just api-clean     Clean generated API schema files"
     @echo ""
     @echo "Examples:"
     @echo "  just example       Run the basic usage example"
@@ -182,15 +186,29 @@ list-regression-resources:
     @echo "===================================="
     @echo "  accounts            - Account management tests"
     @echo "  activities          - Activity tracking tests"
+    @echo "  base_resource       - Base resource functionality tests"
     @echo "  campaigns           - Campaign management tests"
     @echo "  custom_fields       - Custom field configuration tests"
+    @echo "  custom_objects      - Custom object tests"
     @echo "  donations           - Donation processing tests"
     @echo "  events              - Event management tests"
+    @echo "  grants              - Grant tracking tests"
+    @echo "  households          - Household management tests"
     @echo "  memberships         - Membership management tests"
+    @echo "  online_store        - Online store tests"
+    @echo "  orders              - Order processing tests"
+    @echo "  payments            - Payment processing tests"
+    @echo "  pledges             - Pledge management tests"
+    @echo "  properties          - Property management tests"
+    @echo "  recurring_donations - Recurring donation tests"
+    @echo "  soft_credits        - Soft credit tests"
     @echo "  volunteers          - Volunteer management tests"
     @echo "  webhooks            - Webhook configuration tests"
     @echo ""
-    @echo "Usage: just test-resource <name>"
+    @echo "Usage examples:"
+    @echo "  just test-resource accounts"
+    @echo "  just test-resource-readonly donations"
+    @echo "  just test-resource-writeops webhooks"
 
 test-resource resource:
     #!/usr/bin/env bash
@@ -224,7 +242,7 @@ test-resource-writeops resource:
     {{python}} -m pytest tests/regression/resources/test_{{resource}}.py -m "regression and writeops" -v -s
 
 # Build and distribution
-clean: docs-clean
+clean: api-clean
     @echo "Cleaning build artifacts..."
     rm -rf build/ dist/ *.egg-info/ .pytest_cache/ htmlcov/ .coverage
     find . -type d -name __pycache__ -exec rm -rf {} +
@@ -242,33 +260,66 @@ publish: build
     @echo "Publishing to PyPI..."
     {{python}} -m twine upload dist/*
 
-# Documentation
-docs: docs-schemas docs-validate
-    @echo "Building documentation..."
-    @echo "✅ All documentation generated successfully!"
+# Documentation (User-facing website)
+docs-build:
+    @echo "Installing documentation dependencies..."
+    {{pip}} install -r docs/requirements.txt
+    @echo "Building MkDocs documentation..."
+    mkdocs build
+    @echo "✅ Documentation built in ./site/"
+    @echo "   Open ./site/index.html in your browser to view"
 
-docs-schemas:
+docs-serve:
+    @echo "Installing documentation dependencies..."
+    {{pip}} install -r docs/requirements.txt
+    @echo "Starting MkDocs development server..."
+    @echo "📖 Documentation will be available at: http://127.0.0.1:8000"
+    @echo "   Press Ctrl+C to stop the server"
+    @echo "   Changes to markdown files will automatically reload"
+    mkdocs serve
+
+docs-check:
+    @echo "Installing documentation dependencies..."
+    {{pip}} install -r docs/requirements.txt
+    @echo "Checking MkDocs build with strict mode..."
+    mkdocs build --strict
+    @echo "✅ Documentation build passed strict checks"
+
+# API Schemas (Machine-readable, for tooling)
+api-schemas:
     @echo "Generating machine-readable schemas..."
     {{python}} tools/generate_schemas.py
+    @echo "✅ API schemas generated successfully!"
+    @echo ""
+    @echo "Generated files:"
+    @echo "  📄 docs/api/openapi.yaml - OpenAPI 3.0 specification"
+    @echo "  📄 docs/api/capabilities.yaml - Resource capabilities matrix"
+    @echo "  📄 docs/api/field_discovery.yaml - Field discovery documentation"
+    @echo "  📄 docs/api/schemas.json - Complete SDK schemas"
+    @echo "  📄 docs/api/resource_metadata.json - Resource metadata"
+    @echo "  📄 docs/api/types.json - Type definitions"
+    @echo "  📄 docs/api/capabilities.json - JSON capabilities matrix"
 
-docs-validate:
-    @echo "Validating documentation..."
+api-validate:
+    @echo "Validating API specifications..."
     {{python}} tools/validate_openapi.py
 
-docs-clean:
-    @echo "Cleaning generated documentation..."
-    rm -f docs/api/schemas.json docs/api/resource_metadata.json docs/api/types.json docs/api/capabilities.json
-    @echo "✅ Documentation cleaned"
-
-serve-docs: docs
-    @echo "Starting documentation server on http://localhost:8080"
+api-serve: api-schemas
+    @echo "Starting API documentation server..."
+    @echo "OpenAPI spec will be available at: http://localhost:8080"
     @if command -v swagger-ui-serve >/dev/null 2>&1; then \
         swagger-ui-serve docs/api/openapi.yaml -p 8080; \
     elif command -v npx >/dev/null 2>&1; then \
         npx @apidevtools/swagger-ui-cli -f docs/api/openapi.yaml -p 8080; \
     else \
         echo "❌ No OpenAPI viewer found. Install swagger-ui-serve or npx"; \
+        echo "You can view the spec at: docs/api/openapi.yaml"; \
     fi
+
+api-clean:
+    @echo "Cleaning generated API schemas..."
+    rm -f docs/api/schemas.json docs/api/resource_metadata.json docs/api/types.json docs/api/capabilities.json
+    @echo "✅ API schemas cleaned"
 
 # Examples
 example:
@@ -330,3 +381,15 @@ release-check: clean format lint type-check test build
     @echo "✅ Release checks completed successfully!"
     @echo "Package is ready for release."
     @echo "Run 'just publish-test' to publish to TestPyPI first."
+
+# Migration helper for Make users
+make +args:
+    @echo "⚠️  This project has migrated from Make to Just!"
+    @echo "Instead of 'make {{args}}', use: just {{args}}"
+    @echo ""
+    @echo "To see all available commands, run: just --list"
+    @echo ""
+    @echo "Install Just with:"
+    @echo "  cargo install just  # If you have Rust/Cargo"
+    @echo "  brew install just   # If you have Homebrew"
+    @echo "  # Or see: https://github.com/casey/just#installation"
