@@ -9,14 +9,16 @@ on:
   pull_request:
     branches: [ main ]
 
-permissions:
-  security-events: write
-  contents: read
+# Removed global permissions to comply with OSSF Scorecard requirements
+# Individual jobs now define their own specific permissions
 
 jobs:
   codeql:
     name: CodeQL Analysis
     runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
     strategy:
       matrix:
         language: [ 'python' ]
@@ -37,6 +39,8 @@ jobs:
   dependency-scan:
     name: Dependency Vulnerability Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v4
 
@@ -74,6 +78,8 @@ jobs:
   secret-scan:
     name: Secret Detection
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v4
       with:
@@ -98,6 +104,8 @@ jobs:
   license-check:
     name: License Compliance
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v4
 
@@ -130,6 +138,9 @@ jobs:
     name: Container Security Scan
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      security-events: write
+      contents: read
     steps:
     - uses: actions/checkout@v4
 
@@ -159,6 +170,8 @@ jobs:
   sbom-generation:
     name: Generate SBOM
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
     - uses: actions/checkout@v4
 
@@ -193,6 +206,7 @@ jobs:
     permissions:
       security-events: write
       id-token: write
+      contents: read
     steps:
     - uses: actions/checkout@v4
       with:
