@@ -63,10 +63,13 @@ help:
     @echo "  just example       Run the basic usage example"
     @echo ""
     @echo "Utilities:"
-    @echo "  just check-all      Run all checks (format, lint, type-check, test)"
-    @echo "  just clean-notebooks Clear all output from Jupyter notebooks"
-    @echo "  just info           Show package information"
-    @echo "  just check-env      Check environment setup"
+    @echo "  just check-all           Run all checks (format, lint, type-check, test)"
+    @echo "  just clean-notebooks     Clear all output from Jupyter notebooks"
+    @echo "  just scan-secrets        Scan for secrets and sensitive data"
+    @echo "  just check-notebooks     Run comprehensive notebook security checks"
+    @echo "  just setup-notebook-security  Install and configure notebook security tools"
+    @echo "  just info                Show package information"
+    @echo "  just check-env           Check environment setup"
 
 # Development environment setup
 setup-dev:
@@ -349,7 +352,7 @@ check-env:
     @if [ -d "src/neon_crm" ]; then echo "✓ Source directory found"; fi
     @if [ -d "tests" ]; then echo "✓ Tests directory found"; fi
 
-# Notebook utilities
+# Notebook utilities and security
 clean-notebooks:
     @echo "🧹 Clearing output from all Jupyter notebooks..."
     @if command -v nbstripout >/dev/null 2>&1; then \
@@ -367,6 +370,37 @@ clean-notebooks:
         done; \
         echo "✅ All notebooks processed"; \
     fi
+
+scan-secrets:
+    @echo "🔍 Scanning for secrets and sensitive data..."
+    @if command -v detect-secrets >/dev/null 2>&1; then \
+        detect-secrets scan --baseline .secrets.baseline; \
+        echo "✅ Secret scan completed"; \
+    else \
+        echo "❌ detect-secrets not installed. Run: pip install detect-secrets"; \
+    fi
+
+check-notebooks:
+    @echo "🔒 Running comprehensive notebook security checks..."
+    @echo "1. Cleaning notebook outputs..."
+    @just clean-notebooks
+    @echo "2. Scanning for secrets..."
+    @just scan-secrets
+    @echo "3. Running pre-commit hooks on notebooks..."
+    @if command -v pre-commit >/dev/null 2>&1; then \
+        pre-commit run nbstripout --all-files || echo "⚠️  Some notebooks had outputs that were stripped"; \
+        pre-commit run detect-secrets --all-files || echo "⚠️  Potential secrets detected - review output"; \
+        pre-commit run nbqa-ruff --all-files || echo "⚠️  Code quality issues in notebooks"; \
+    else \
+        echo "❌ pre-commit not installed. Run: pip install pre-commit"; \
+    fi
+    @echo "✅ Notebook security check completed"
+
+setup-notebook-security:
+    @echo "🔧 Setting up notebook security..."
+    {{pip}} install nbstripout detect-secrets nbqa
+    nbstripout --install --attributes .gitattributes
+    @echo "✅ Notebook security configured"
 
 # Quick commands
 quick-test:

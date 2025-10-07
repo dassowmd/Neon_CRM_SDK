@@ -10,6 +10,27 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
 
+  # Jupyter notebook security and cleanup
+  - repo: https://github.com/nbQA-dev/nbQA
+    rev: 1.8.7
+    hooks:
+      - id: nbqa-ruff
+        args: [--fix]
+
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.8.0
+    hooks:
+      - id: nbstripout
+        args: [--drop-empty-cells, --drop-tagged-cells]
+
+  # Detect secrets and sensitive data
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package.lock.json
+
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.5
     hooks:
