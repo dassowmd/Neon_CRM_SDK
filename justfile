@@ -228,7 +228,7 @@ test-resource-writeops resource:
     {{python}} -m pytest tests/regression/resources/test_{{resource}}.py -m "regression and writeops" -v -s
 
 # Build and distribution
-clean: docs-clean
+clean: api-clean
     @echo "Cleaning build artifacts..."
     rm -rf build/ dist/ *.egg-info/ .pytest_cache/ htmlcov/ .coverage
     find . -type d -name __pycache__ -exec rm -rf {} +
