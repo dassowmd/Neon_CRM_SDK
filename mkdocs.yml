@@ -83,6 +83,7 @@ nav:
     - Basic Usage: user-guide/basic-usage.md
     - Advanced Usage: user-guide/advanced-usage.md
     - Custom Fields: user-guide/custom-fields.md
+    - Field Migrations: user-guide/migrations.md
     - Search & Filtering: user-guide/search.md
     - Error Handling: user-guide/error-handling.md
     - Caching: user-guide/caching.md
@@ -102,6 +103,7 @@ nav:
     - Overview: examples.md
     - Basic Examples: examples/basic.md
     - Custom Fields Examples: examples/custom-fields.md
+    - Migration Examples: examples/migrations.md
   - Governance:
     - Permissions: permissions.md
     - Notebook Usage: governance_in_notebooks.md
