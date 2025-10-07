@@ -96,7 +96,8 @@ client = NeonClient(
 Customize permissions for specific resources:
 
 ```python
-from neon_crm.governance import ResourceType, Permission
+from neon_crm import Permission
+from neon_crm.governance import ResourceType
 
 client = NeonClient(
     default_role="viewer",
@@ -281,7 +282,8 @@ client.set_user_by_id("admin_1")
 You can check permissions before attempting operations:
 
 ```python
-from neon_crm.governance import ResourceType, Permission
+from neon_crm import Permission
+from neon_crm.governance import ResourceType
 
 # Check if client has permission
 if client.user_permissions and client.user_permissions.has_permission(
@@ -440,7 +442,8 @@ write_client.donations.create({...})       # Write operations
 For applications where permissions change at runtime:
 
 ```python
-from neon_crm.governance import create_user_permissions, Role
+from neon_crm import Role
+from neon_crm.governance import create_user_permissions
 
 client = NeonClient(default_role="viewer")
 
