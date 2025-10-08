@@ -72,6 +72,11 @@ class AccountsMigrationManager(BaseMigrationManager):
         """
         resource_filter = config.get("resource_filter")
 
+        # Only fetch essential fields for migration - Account ID plus any source/target fields
+        required_fields = ["Account ID"]
+        if "required_fields" in config:
+            required_fields.extend(config["required_fields"])
+
         # Prepare list parameters with required user_type
         list_params = {
             "user_type": self._user_type,
@@ -86,11 +91,12 @@ class AccountsMigrationManager(BaseMigrationManager):
                     {"field": key, "operator": "EQUAL", "value": value}
                     for key, value in resource_filter.items()
                 ],
-                "outputFields": ["*"],
+                "outputFields": required_fields,
             }
             yield from self._resource.search(search_request)
         else:
-            # Get all accounts with required user_type parameter
+            # Get all accounts with required user_type parameter and only required fields
+            list_params["output_fields"] = required_fields
             yield from self._resource.list(**list_params)
 
     def get_resource_id_field(self) -> str:
@@ -102,7 +108,10 @@ class AccountsMigrationManager(BaseMigrationManager):
         return "Account ID"
 
     def _find_resources_with_source_data(
-        self, source_field: str, resource_filter: Optional[Dict[str, Any]] = None
+        self,
+        source_field: str,
+        resource_filter: Optional[Dict[str, Any]] = None,
+        required_fields: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """Find accounts that have data in the specified source field.
 
@@ -124,8 +133,13 @@ class AccountsMigrationManager(BaseMigrationManager):
 
             for value in common_values:
                 try:
+                    # Use required_fields to limit the fields fetched for better performance
+                    search_params = {"limit": 1000}
+                    if required_fields:
+                        search_params["output_fields"] = required_fields
+
                     for account in self._resource.search_by_custom_field_value(
-                        source_field, value, limit=1000
+                        source_field, value, **search_params
                     ):
                         account_id = account.get("Account ID")
                         if account_id and account_id not in found_accounts:
@@ -157,7 +171,7 @@ class AccountsMigrationManager(BaseMigrationManager):
                 f"No accounts found with common values, falling back to list approach"
             )
             return self._fallback_find_resources_with_data(
-                source_field, resource_filter
+                source_field, resource_filter, required_fields
             )
 
         except Exception as e:
@@ -166,16 +180,21 @@ class AccountsMigrationManager(BaseMigrationManager):
             self._logger.info("Falling back to list approach")
 
             return self._fallback_find_resources_with_data(
-                source_field, resource_filter
+                source_field, resource_filter, required_fields
             )
 
     def _fallback_find_resources_with_data(
-        self, source_field: str, resource_filter: Optional[Dict[str, Any]] = None
+        self,
+        source_field: str,
+        resource_filter: Optional[Dict[str, Any]] = None,
+        required_fields: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """Fallback method using list + filter approach."""
         accounts_with_data = []
 
         config = {"resource_filter": resource_filter}
+        if required_fields:
+            config["required_fields"] = required_fields
         for account in self.get_resources_for_migration(config):
             account_id = account.get("Account ID")
             if not account_id:

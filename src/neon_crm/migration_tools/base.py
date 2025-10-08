@@ -52,6 +52,11 @@ class MigrationPlan:
     resource_filter: Optional[Dict[str, Any]] = (
         None  # Filter which resources to migrate
     )
+    resource_ids: Optional[List[Union[str, int]]] = (
+        None  # Specific resource IDs to migrate (overrides resource_filter)
+    )
+    cleanup_only: bool = False  # If True, only clear source fields without migrating
+    smart_migration: bool = False  # If True, check target state before migrating
     batch_size: int = 100
     max_workers: int = 5
     dry_run: bool = True
@@ -131,8 +136,13 @@ class BaseMigrationManager:
             f"Starting migration plan execution (dry_run={migration_plan.dry_run})"
         )
 
-        # New approach: iterate through mappings first, then find relevant resources
-        execution_stats = self._execute_mapping_first_migration(migration_plan)
+        # Choose execution approach based on migration type
+        if migration_plan.resource_ids:
+            # Optimized approach for targeted migrations
+            execution_stats = self._execute_targeted_migration(migration_plan)
+        else:
+            # Mapping-first approach for discovery-based migrations
+            execution_stats = self._execute_mapping_first_migration(migration_plan)
         detailed_results = self._create_detailed_results(
             migration_plan, execution_stats
         )
@@ -161,15 +171,36 @@ class BaseMigrationManager:
         errors = []
         warnings = []
 
+        # Collect all unique fields needed for this migration
+        required_fields = set()
+        for mapping in migration_plan.mappings:
+            required_fields.add(mapping.source_field)
+            required_fields.add(mapping.target_field)
+
+        self._logger.info(
+            f"Migration requires {len(required_fields)} fields: {sorted(required_fields)}"
+        )
+
         for mapping in migration_plan.mappings:
             self._logger.info(
                 f"Processing mapping: {mapping.source_field} -> {mapping.target_field}"
             )
 
             # Find resources that have data in the source field
-            resources_with_data = self._find_resources_with_source_data(
-                mapping.source_field, migration_plan.resource_filter
-            )
+            if migration_plan.resource_ids:
+                # Use specific resource IDs
+                resources_with_data = self._get_resources_by_ids(
+                    migration_plan.resource_ids,
+                    mapping.source_field,
+                    list(required_fields),
+                )
+            else:
+                # Use search approach
+                resources_with_data = self._find_resources_with_source_data(
+                    mapping.source_field,
+                    migration_plan.resource_filter,
+                    list(required_fields),
+                )
 
             mapping_stats = self._execute_mapping_on_resources(
                 mapping, resources_with_data, migration_plan.dry_run
@@ -192,6 +223,199 @@ class BaseMigrationManager:
             "successful": successful,
             "failed": failed,
             "skipped": skipped,
+            "errors": errors,
+            "warnings": warnings,
+        }
+
+    def _execute_targeted_migration(
+        self, migration_plan: MigrationPlan
+    ) -> Dict[str, Any]:
+        """Execute migration for specific resource IDs - optimized approach.
+
+        This method fetches each resource once and processes all mappings in memory.
+        Much more efficient than the mapping-first approach for targeted migrations.
+        """
+        total_successful = 0
+        total_failed = 0
+        total_skipped = 0
+        errors = []
+        warnings = []
+
+        # Collect all required fields from all mappings
+        required_fields = set()
+        for mapping in migration_plan.mappings:
+            required_fields.add(mapping.source_field)
+            required_fields.add(mapping.target_field)
+
+        self._logger.info(
+            f"Targeted migration: {len(migration_plan.resource_ids)} resources, {len(migration_plan.mappings)} mappings"
+        )
+        self._logger.info(f"Required fields: {sorted(required_fields)}")
+
+        # Process each resource with all its mappings
+        for resource_id in migration_plan.resource_ids:
+            try:
+                # Verify resource exists (we'll get fresh field data during processing)
+                if not self._resource_exists(resource_id):
+                    total_skipped += 1
+                    continue
+
+                # Process all mappings for this resource
+                resource_successful = 0
+                resource_failed = 0
+
+                # PERFORMANCE OPTIMIZATION: Cache field metadata (doesn't change during migration)
+                field_metadata_cache = {}
+                for mapping in migration_plan.mappings:
+                    if mapping.source_field not in field_metadata_cache:
+                        try:
+                            field_metadata_cache[mapping.source_field] = (
+                                self._resource.find_custom_field_by_name(
+                                    mapping.source_field
+                                )
+                            )
+                        except Exception as e:
+                            self._logger.debug(
+                                f"Failed to get metadata for {mapping.source_field}: {e}"
+                            )
+                            field_metadata_cache[mapping.source_field] = None
+
+                for mapping in migration_plan.mappings:
+                    try:
+                        # Get source value fresh each time (don't cache field values)
+                        source_value = self._value_manager.get_custom_field_value(
+                            resource_id, mapping.source_field
+                        )
+
+                        # Skip if no source data
+                        if source_value is None or not str(source_value).strip():
+                            continue
+
+                        if migration_plan.cleanup_only:
+                            # Cleanup-only mode: just clear source fields without migrating
+                            if not mapping.preserve_source:
+                                if not migration_plan.dry_run:
+                                    clear_success = self._clear_source_field(
+                                        resource_id,
+                                        mapping.source_field,
+                                        migration_plan.dry_run,
+                                    )
+                                    if clear_success:
+                                        resource_successful += 1
+                                    else:
+                                        resource_failed += 1
+                                else:
+                                    self._logger.info(
+                                        f"[DRY RUN] Would clear source field '{mapping.source_field}' for resource {resource_id}"
+                                    )
+                                    resource_successful += 1
+                            else:
+                                # Skip fields marked to preserve
+                                continue
+                        else:
+                            # Normal migration mode
+                            # Apply transformation
+                            if mapping.strategy == MigrationStrategy.ADD_OPTION:
+                                transformed_value = self._apply_transformation(
+                                    source_value, mapping
+                                )
+                                if transformed_value is None:
+                                    continue  # Skip if transform says to skip
+                            else:
+                                transformed_value = self._apply_transformation(
+                                    source_value, mapping
+                                )
+
+                            # Validate
+                            if not self._validate_transformed_value(
+                                transformed_value, mapping
+                            ):
+                                resource_failed += 1
+                                continue
+
+                            # Smart migration: check if target already has expected value
+                            migration_needed = True
+                            if migration_plan.smart_migration:
+                                target_already_correct = (
+                                    self._target_already_has_expected_value(
+                                        resource_id, mapping, transformed_value
+                                    )
+                                )
+                                if target_already_correct:
+                                    migration_needed = False
+                                    self._logger.info(
+                                        f"Target field '{mapping.target_field}' already has expected value for resource {resource_id} - skipping migration"
+                                    )
+
+                            # Execute migration only if needed
+                            if not migration_plan.dry_run:
+                                if migration_needed:
+                                    success = self._execute_migration_strategy(
+                                        resource_id, mapping, transformed_value
+                                    )
+                                else:
+                                    success = True  # Consider it successful since target already correct
+
+                                if success:
+                                    resource_successful += 1
+
+                                    # Clear source field if migration was successful (or skipped due to target being correct) and preserve_source is False
+                                    if not mapping.preserve_source:
+                                        self._clear_source_field(
+                                            resource_id,
+                                            mapping.source_field,
+                                            migration_plan.dry_run,
+                                        )
+                                else:
+                                    resource_failed += 1
+                            else:
+                                resource_successful += 1
+
+                                # For dry run, also simulate source field clearing
+                                if not mapping.preserve_source:
+                                    if migration_plan.smart_migration:
+                                        target_already_correct = (
+                                            self._target_already_has_expected_value(
+                                                resource_id, mapping, transformed_value
+                                            )
+                                        )
+                                        if target_already_correct:
+                                            self._logger.info(
+                                                f"[DRY RUN] Target already correct, would clear source field '{mapping.source_field}' for resource {resource_id}"
+                                            )
+                                        else:
+                                            self._logger.info(
+                                                f"[DRY RUN] Would migrate and clear source field '{mapping.source_field}' for resource {resource_id}"
+                                            )
+                                    else:
+                                        self._logger.info(
+                                            f"[DRY RUN] Would clear source field '{mapping.source_field}' for resource {resource_id}"
+                                        )
+
+                    except Exception as e:
+                        resource_failed += 1
+                        errors.append(
+                            f"Error processing {mapping.source_field} -> {mapping.target_field} for resource {resource_id}: {str(e)}"
+                        )
+
+                total_successful += resource_successful
+                total_failed += resource_failed
+
+                self._logger.info(
+                    f"Resource {resource_id}: {resource_successful} successful, {resource_failed} failed"
+                )
+
+            except Exception as e:
+                total_failed += len(
+                    migration_plan.mappings
+                )  # Count all mappings as failed for this resource
+                errors.append(f"Error processing resource {resource_id}: {str(e)}")
+
+        return {
+            "total_resources": len(migration_plan.resource_ids),
+            "successful": total_successful,
+            "failed": total_failed,
+            "skipped": total_skipped,
             "errors": errors,
             "warnings": warnings,
         }
@@ -249,6 +473,129 @@ class BaseMigrationManager:
                 )
 
         return MigrationPlan(mappings=mappings, dry_run=True)
+
+    def create_migration_plan_for_resources(
+        self,
+        field_mapping: Dict[str, Any],
+        resource_ids: List[Union[str, int]],
+        dry_run: bool = True,
+        clear_source_fields: bool = False,
+    ) -> MigrationPlan:
+        """Create a migration plan for specific resource IDs.
+
+        Args:
+            field_mapping: Dictionary mapping source fields to target field configurations
+            resource_ids: List of specific resource IDs to migrate
+            dry_run: Whether this is a dry run
+            clear_source_fields: Whether to clear source fields after successful migration
+
+        Returns:
+            MigrationPlan object configured for specific resources
+        """
+        plan = self.create_migration_plan_from_mapping(field_mapping)
+        plan.resource_ids = resource_ids
+        plan.dry_run = dry_run
+
+        # Update all mappings to clear source fields if requested
+        if clear_source_fields:
+            for mapping in plan.mappings:
+                mapping.preserve_source = False
+
+        return plan
+
+    def create_migration_plan_with_cleanup(
+        self,
+        field_mapping: Dict[str, Any],
+        resource_ids: Optional[List[Union[str, int]]] = None,
+        dry_run: bool = True,
+    ) -> MigrationPlan:
+        """Create a migration plan that clears source fields after migration.
+
+        This is a convenience method for migrations where you want to clean up
+        the source fields after successful migration.
+
+        Args:
+            field_mapping: Dictionary mapping source fields to target field configurations
+            resource_ids: Optional list of specific resource IDs (None for all resources)
+            dry_run: Whether this is a dry run
+
+        Returns:
+            MigrationPlan object configured to clear source fields
+        """
+        if resource_ids:
+            return self.create_migration_plan_for_resources(
+                field_mapping, resource_ids, dry_run, clear_source_fields=True
+            )
+        else:
+            plan = self.create_migration_plan_from_mapping(field_mapping)
+            plan.dry_run = dry_run
+            # Clear source fields for all mappings
+            for mapping in plan.mappings:
+                mapping.preserve_source = False
+            return plan
+
+    def create_cleanup_only_plan(
+        self,
+        field_mapping: Dict[str, Any],
+        resource_ids: List[Union[str, int]],
+        dry_run: bool = True,
+    ) -> MigrationPlan:
+        """Create a plan that ONLY clears source fields without doing any migration.
+
+        This is perfect for cleaning up source fields after migration has already been done.
+
+        Args:
+            field_mapping: Dictionary mapping source fields (only source field names matter)
+            resource_ids: List of specific resource IDs to clean up
+            dry_run: Whether this is a dry run
+
+        Returns:
+            MigrationPlan object configured for cleanup only
+        """
+        plan = self.create_migration_plan_from_mapping(field_mapping)
+        plan.resource_ids = resource_ids
+        plan.dry_run = dry_run
+        plan.cleanup_only = True  # Only clear, don't migrate
+
+        # Make sure all mappings will clear source fields
+        for mapping in plan.mappings:
+            mapping.preserve_source = False
+
+        return plan
+
+    def create_smart_migration_plan(
+        self,
+        field_mapping: Dict[str, Any],
+        resource_ids: List[Union[str, int]],
+        dry_run: bool = True,
+        clear_source_fields: bool = False,
+    ) -> MigrationPlan:
+        """Create a smart migration plan that checks target status before migrating.
+
+        This is perfect for post-migration scenarios where you want to:
+        1. Only migrate if target doesn't already have the expected value
+        2. Clear source fields regardless of whether migration was needed
+
+        Args:
+            field_mapping: Dictionary mapping source fields to target field configurations
+            resource_ids: List of specific resource IDs to migrate
+            dry_run: Whether this is a dry run
+            clear_source_fields: Whether to clear source fields after successful migration
+
+        Returns:
+            MigrationPlan object configured for smart migration
+        """
+        plan = self.create_migration_plan_from_mapping(field_mapping)
+        plan.resource_ids = resource_ids
+        plan.dry_run = dry_run
+        plan.smart_migration = True  # Enable smart migration checking
+
+        # Update all mappings to clear source fields if requested
+        if clear_source_fields:
+            for mapping in plan.mappings:
+                mapping.preserve_source = False
+
+        return plan
 
     def create_migration_plan_from_notebook_mapping(
         self, notebook_mapping: Dict[str, Any]
@@ -341,16 +688,96 @@ class BaseMigrationManager:
         raise NotImplementedError("Subclasses must implement get_resource_id_field")
 
     def _find_resources_with_source_data(
-        self, source_field: str, resource_filter: Optional[Dict[str, Any]] = None
+        self,
+        source_field: str,
+        resource_filter: Optional[Dict[str, Any]] = None,
+        required_fields: Optional[List[str]] = None,
     ) -> List[Dict[str, Any]]:
         """Find resources that have data in the specified source field.
 
         This method should be implemented by each resource-specific manager
         to efficiently search for resources with data in specific fields.
+
+        Args:
+            source_field: Field to search for data
+            resource_filter: Optional filter criteria
+            required_fields: List of fields to fetch (for performance optimization)
         """
         raise NotImplementedError(
             "Subclasses must implement _find_resources_with_source_data"
         )
+
+    def _get_resources_by_ids(
+        self,
+        resource_ids: List[Union[str, int]],
+        source_field: str,
+        required_fields: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Get specific resources by their IDs, filtering for those with data in source_field.
+
+        Args:
+            resource_ids: List of resource IDs to fetch
+            source_field: Field to check for data
+            required_fields: List of fields to fetch (for performance optimization)
+
+        Returns:
+            List of resource dictionaries that have data in source_field
+        """
+        resources_with_data = []
+
+        for resource_id in resource_ids:
+            try:
+                # Check if this resource has data in the source field
+                source_value = self._value_manager.get_custom_field_value(
+                    resource_id, source_field
+                )
+                if source_value is not None and str(source_value).strip():
+                    # Fetch the resource with only required fields
+                    if required_fields:
+                        # Get minimal resource data with only required fields
+                        resource_data = {self.get_resource_id_field(): resource_id}
+                        # Add source and target field values
+                        for field in required_fields:
+                            if field != self.get_resource_id_field():
+                                field_value = (
+                                    self._value_manager.get_custom_field_value(
+                                        resource_id, field
+                                    )
+                                )
+                                resource_data[field] = field_value
+                        resources_with_data.append(resource_data)
+                    else:
+                        # Fallback: get full resource (less efficient)
+                        resource_data = self._resource.get(resource_id)
+                        if resource_data:
+                            resources_with_data.append(resource_data)
+            except Exception as e:
+                self._logger.warning(f"Failed to process resource {resource_id}: {e}")
+                continue
+
+        self._logger.info(
+            f"Found {len(resources_with_data)} resources with data in '{source_field}' from {len(resource_ids)} specified IDs"
+        )
+        return resources_with_data
+
+    def _resource_exists(self, resource_id: Union[str, int]) -> bool:
+        """Quick check if a resource exists without fetching full data.
+
+        Args:
+            resource_id: ID of the resource to check
+
+        Returns:
+            True if resource exists, False otherwise
+        """
+        try:
+            # Try to get the resource's basic info
+            resource_data = self._resource.get(resource_id)
+            return resource_data is not None
+        except Exception as e:
+            self._logger.warning(
+                f"Resource {resource_id} does not exist or is not accessible: {e}"
+            )
+            return False
 
     def _execute_mapping_on_resources(
         self, mapping: MigrationMapping, resources: List[Dict[str, Any]], dry_run: bool
@@ -706,6 +1133,112 @@ class BaseMigrationManager:
             )
 
         return False
+
+    def _target_already_has_expected_value(
+        self,
+        resource_id: Union[int, str],
+        mapping: MigrationMapping,
+        transformed_value: Any,
+    ) -> bool:
+        """Check if the target field already has the expected value from migration.
+
+        Args:
+            resource_id: ID of the resource to check
+            mapping: Migration mapping configuration
+            transformed_value: The value that would be added/set
+
+        Returns:
+            True if target already has the expected value, False otherwise
+        """
+        try:
+            # Always fetch fresh value (don't cache field values)
+            current_target_value = self._value_manager.get_custom_field_value(
+                resource_id, mapping.target_field
+            )
+
+            if mapping.strategy == MigrationStrategy.ADD_OPTION:
+                # For ADD_OPTION, check if the option is already in the target field
+                if isinstance(current_target_value, list):
+                    return transformed_value in current_target_value
+                elif isinstance(current_target_value, str):
+                    return current_target_value == transformed_value
+                else:
+                    return False
+
+            elif mapping.strategy == MigrationStrategy.REPLACE:
+                # For REPLACE, check if target already has the exact value
+                return current_target_value == transformed_value
+
+            elif mapping.strategy == MigrationStrategy.COPY_IF_EMPTY:
+                # For COPY_IF_EMPTY, if target has any value, consider it "already done"
+                return (
+                    current_target_value is not None
+                    and str(current_target_value).strip() != ""
+                )
+
+            elif mapping.strategy == MigrationStrategy.MERGE:
+                # For MERGE, check if the transformed value is already part of the target
+                if isinstance(current_target_value, str) and isinstance(
+                    transformed_value, str
+                ):
+                    return transformed_value in current_target_value
+                else:
+                    return current_target_value == transformed_value
+
+            else:
+                # Unknown strategy, assume not done
+                return False
+
+        except Exception as e:
+            self._logger.debug(
+                f"Error checking target value for {mapping.target_field}: {e}"
+            )
+            return False
+
+    def _clear_source_field(
+        self, resource_id: Union[int, str], source_field: str, dry_run: bool = False
+    ) -> bool:
+        """Clear the source field after successful migration.
+
+        Uses the improved clearing logic that handles checkbox/multi-select fields
+        by removing them entirely from the resource (like the UI does).
+
+        Args:
+            resource_id: ID of the resource to clear field for
+            source_field: Name of the source field to clear
+            dry_run: If True, only log what would be cleared
+
+        Returns:
+            True if clearing was successful or simulated, False otherwise
+        """
+        if dry_run:
+            self._logger.info(
+                f"[DRY RUN] Would clear source field '{source_field}' for resource {resource_id}"
+            )
+            return True
+
+        try:
+            # Use the improved custom field clearing logic
+            success = self._value_manager.clear_custom_field_value(
+                resource_id, source_field
+            )
+
+            if success:
+                self._logger.info(
+                    f"Successfully cleared source field '{source_field}' for resource {resource_id}"
+                )
+                return True
+            else:
+                self._logger.warning(
+                    f"Failed to clear source field '{source_field}' for resource {resource_id}"
+                )
+                return False
+
+        except Exception as e:
+            self._logger.error(
+                f"Error clearing source field '{source_field}' for resource {resource_id}: {e}"
+            )
+            return False
 
     def _execute_replace_strategy(
         self, resource_id: Union[int, str], target_field: str, value: Any
