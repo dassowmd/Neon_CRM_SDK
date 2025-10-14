@@ -315,6 +315,9 @@ class CustomFieldValueManager:
     ) -> bool:
         """Clear a custom field value.
 
+        For checkbox/multi-select fields: removes the field entirely from the resource.
+        For text/numeric fields: sets the field to an empty value.
+
         Args:
             resource_id: ID of the resource
             field_name: Name of the custom field
@@ -322,9 +325,92 @@ class CustomFieldValueManager:
         Returns:
             True if successful, False otherwise
         """
-        return self.set_custom_field_value(
-            resource_id, field_name, None, validate=False
-        )
+        try:
+            # Get field metadata to determine the clearing approach
+            field_metadata = self._resource.find_custom_field_by_name(field_name)
+            if not field_metadata:
+                # If we can't get field metadata due to server errors, fall back to text field approach
+                return self.set_custom_field_value(
+                    resource_id, field_name, "", validate=False
+                )
+
+            # For checkbox/multi-select fields, we need to remove them entirely
+            if CustomFieldTypeMapper.requires_option_values(field_metadata):
+                return self._clear_option_field(resource_id, field_name)
+            else:
+                # For text/numeric fields, set to empty value
+                return self.set_custom_field_value(
+                    resource_id, field_name, "", validate=False
+                )
+
+        except Exception as e:
+            # Log the specific error for debugging
+            import logging
+
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"Error in clear_custom_field_value for field '{field_name}': {e}"
+            )
+
+            # Fall back to simple text field clearing approach
+            try:
+                return self.set_custom_field_value(
+                    resource_id, field_name, "", validate=False
+                )
+            except Exception:
+                return False
+
+    def _clear_option_field(
+        self, resource_id: Union[int, str], field_name: str
+    ) -> bool:
+        """Clear a checkbox/multi-select field by removing it entirely from the resource.
+
+        This method gets the full resource, removes the specified field from
+        accountCustomFields, and puts the entire resource back - which is how
+        the Neon CRM UI clears these fields.
+
+        Args:
+            resource_id: ID of the resource
+            field_name: Name of the field to clear
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get fresh resource data (avoid concurrency issues)
+            resource_data = self._resource.get(resource_id)
+            if not resource_data:
+                return False
+
+            # Handle both individual and company accounts
+            account_key = None
+            if (
+                "individualAccount" in resource_data
+                and resource_data["individualAccount"]
+            ):
+                account_key = "individualAccount"
+            elif "companyAccount" in resource_data and resource_data["companyAccount"]:
+                account_key = "companyAccount"
+            else:
+                return False
+
+            # Remove the target field from accountCustomFields
+            if "accountCustomFields" in resource_data[account_key]:
+                original_fields = resource_data[account_key]["accountCustomFields"]
+                filtered_fields = [
+                    field
+                    for field in original_fields
+                    if field.get("name") != field_name
+                ]
+                resource_data[account_key]["accountCustomFields"] = filtered_fields
+
+            # PUT the entire resource back (without the cleared field)
+            # Use update_type="full" to force PUT instead of PATCH for complete replacement
+            self._resource.update(resource_id, resource_data, update_type="full")
+            return True
+
+        except Exception:
+            return False
 
     def set_multiple_custom_field_values(
         self,

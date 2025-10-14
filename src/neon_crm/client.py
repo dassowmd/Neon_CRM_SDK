@@ -614,7 +614,7 @@ class NeonClient:
 
                     # Retry on server error with exponential backoff
                     delay = self._calculate_retry_delay(attempt)
-                    self._logger.warning(
+                    self._logger.debug(
                         f"Server error {e.status_code}, retrying in {delay:.2f}s (attempt {attempt + 1}/{self.max_retries + 1}): {url}"
                     )
                     time.sleep(delay)
