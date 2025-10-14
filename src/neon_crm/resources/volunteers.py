@@ -7,6 +7,7 @@ from .base import ListableResource
 
 if TYPE_CHECKING:
     from ..client import NeonClient
+    from ..migration_tools import VolunteersMigrationManager
 
 
 class VolunteersResource(ListableResource):
@@ -54,3 +55,16 @@ class VolunteersResource(ListableResource):
         return super().list(
             current_page=current_page, page_size=page_size, limit=limit, **params
         )
+
+    def create_migration_manager(self, **kwargs: Any) -> "VolunteersMigrationManager":
+        """Create a migration manager for volunteer migrations.
+
+        Args:
+            **kwargs: Additional parameters for volunteer operations
+
+        Returns:
+            VolunteersMigrationManager instance configured for this volunteers resource
+        """
+        from ..migration_tools import VolunteersMigrationManager
+
+        return VolunteersMigrationManager(self, self._client, **kwargs)

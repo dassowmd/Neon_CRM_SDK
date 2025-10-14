@@ -173,6 +173,19 @@ class CustomFieldTypeMapper:
         return python_type is str
 
     @classmethod
+    def requires_option_values(cls, custom_field: Dict[str, Any]) -> bool:
+        """Check if a custom field requires optionValues (checkbox/multi-select/dropdown fields).
+
+        Args:
+            custom_field: Custom field metadata
+
+        Returns:
+            True if the field uses optionValues (checkbox/multi-select/dropdown), False otherwise
+        """
+        display_type = custom_field.get("displayType", "")
+        return display_type in ("Checkbox", "MultiSelect", "Dropdown")
+
+    @classmethod
     def get_field_info(cls, custom_field: Dict[str, Any]) -> Dict[str, Any]:
         """Get comprehensive information about a custom field.
 
