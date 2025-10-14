@@ -115,14 +115,14 @@ MigrationStrategy.COPY_IF_EMPTY: Only migrate if target empty
 ```python
 # New methods available on all resources (accounts, donations, etc.)
 client.accounts.get_custom_field_value(123, "V-Volunteer Skills")
-client.accounts.set_custom_field_value(123, "V-Skills", ["Python", "JavaScript"])
-client.accounts.add_to_multivalue_field(123, "V-Skills", "Technology")
-client.accounts.remove_from_multivalue_field(123, "V-Skills", "Data Entry")
+client.accounts.set_custom_field_value(123, "V-Volunteer Skills", ["Technology", "Communication"])
+client.accounts.add_to_multivalue_field(123, "V-Volunteer Skills", "Technology")
+client.accounts.remove_from_multivalue_field(123, "V-Volunteer Skills", "Data Entry")
 client.accounts.append_to_text_field(123, "V-Notes", "Additional info")
 client.accounts.clear_custom_field_value(123, "V-Temp Field")
 client.accounts.set_multiple_custom_field_values(123, field_dict)
 client.accounts.validate_custom_field_value("V-Email", "user@example.com")
-client.accounts.search_by_custom_field_value("V-Skills", "Technology")
+client.accounts.search_by_custom_field_value("V-Volunteer Skills", "Technology")
 ```
 
 ## Real-World Usage Patterns

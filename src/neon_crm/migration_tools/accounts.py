@@ -7,12 +7,13 @@ handling account-specific requirements like user_type parameters.
 from typing import Any, Dict, List, Optional, Iterator, Union, TYPE_CHECKING
 from ..types import UserType
 from .base import BaseMigrationManager
+from .bulk_migration import BulkMigrationManager
 
 if TYPE_CHECKING:
     from ..client import NeonClient
 
 
-class AccountsMigrationManager(BaseMigrationManager):
+class AccountsMigrationManager(BulkMigrationManager):
     """Migration manager specifically for accounts resource."""
 
     def __init__(

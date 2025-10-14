@@ -17,9 +17,18 @@ from ..custom_field_manager import (
 )
 from ..custom_field_validation import CustomFieldValidator, ValidationResult
 from ..custom_field_types import CustomFieldTypeMapper
+from .universal_field_manager import (
+    UniversalFieldManager,
+    FieldType,
+    FieldMetadata,
+    UniversalFieldValue,
+)
+from .mapping_validator import MappingDictionaryValidator, MappingValidationResult
+from typing import Tuple
 
 if TYPE_CHECKING:
     from ..client import NeonClient
+    from .fast_discovery import DiscoveryReport
 
 
 class MigrationStrategy(Enum):
@@ -100,6 +109,8 @@ class BaseMigrationManager:
         self._client = client
         self._resource_type = resource_type
         self._value_manager = CustomFieldValueManager(client, resource_type)
+        self._universal_manager = UniversalFieldManager(resource, client, resource_type)
+        self._mapping_validator = MappingDictionaryValidator(self)
         self._logger = logging.getLogger(f"migration.{resource_type}")
 
     def analyze_migration_conflicts(
@@ -1320,3 +1331,608 @@ class BaseMigrationManager:
             "execution_time": time.time(),
             "dry_run": migration_plan.dry_run,
         }
+
+    def export_migration_plan(
+        self,
+        migration_plan: MigrationPlan,
+        output_path: str,
+        format: str = "yaml",
+        include_conflicts: bool = True,
+    ) -> str:
+        """Export a migration plan to a file for human review.
+
+        Args:
+            migration_plan: The migration plan to export
+            output_path: Path where to save the exported plan
+            format: Export format ('yaml', 'json', or 'csv')
+            include_conflicts: Whether to include conflict analysis
+
+        Returns:
+            Path to the exported file
+        """
+        from .plan_serializer import MigrationPlanSerializer, ExportOptions
+
+        serializer = MigrationPlanSerializer(self)
+        options = ExportOptions(
+            format=format,
+            include_conflicts=include_conflicts,
+            include_validation=True,
+            human_readable=True,
+            include_comments=True,
+        )
+
+        conflicts = None
+        if include_conflicts:
+            conflicts = self.analyze_migration_conflicts(migration_plan)
+
+        return str(
+            serializer.export_plan(migration_plan, output_path, options, conflicts)
+        )
+
+    def import_migration_plan(
+        self, file_path: str, validate: bool = True
+    ) -> MigrationPlan:
+        """Import a migration plan from a file.
+
+        Args:
+            file_path: Path to the exported migration plan file
+            validate: Whether to validate the imported plan
+
+        Returns:
+            Reconstructed MigrationPlan object
+        """
+        from .plan_serializer import MigrationPlanSerializer
+
+        serializer = MigrationPlanSerializer(self)
+        migration_plan = serializer.import_plan(file_path)
+
+        if validate:
+            validation_results = serializer.validate_imported_plan(migration_plan)
+            if not validation_results["valid"]:
+                self._logger.warning("Imported migration plan has validation errors:")
+                for error in validation_results["errors"]:
+                    self._logger.warning(f"  - {error}")
+
+        return migration_plan
+
+    def fast_discover_migration_opportunities(
+        self, field_patterns: Optional[List[str]] = None, sample_size: int = 100
+    ) -> "DiscoveryReport":
+        """Quickly discover migration opportunities using optimized search.
+
+        Args:
+            field_patterns: Optional patterns to search for (e.g., ['V-*', 'Custom-*'])
+            sample_size: Maximum number of sample values per field
+
+        Returns:
+            DiscoveryReport with analysis results
+        """
+        from .fast_discovery import FastDiscoveryManager
+
+        discovery_manager = FastDiscoveryManager(
+            self._resource, self._client, self._resource_type
+        )
+
+        # If no patterns specified, discover all custom fields
+        if not field_patterns:
+            # Get all custom fields for this resource
+            try:
+                all_custom_fields = list(self._resource.list_custom_fields())
+                field_names = [
+                    field.get("name", "")
+                    for field in all_custom_fields
+                    if field.get("name")
+                ]
+            except Exception as e:
+                self._logger.warning(f"Could not list custom fields: {e}")
+                field_names = []
+        else:
+            # Discover fields matching patterns
+            discovered_fields = discovery_manager.bulk_resource_discovery(
+                field_patterns
+            )
+            field_names = []
+            for pattern_fields in discovered_fields.values():
+                field_names.extend(pattern_fields)
+
+        if not field_names:
+            self._logger.warning("No fields found for discovery")
+            return None
+
+        self._logger.info(f"Starting fast discovery for {len(field_names)} fields")
+        return discovery_manager.fast_field_discovery(field_names, sample_size)
+
+    def create_optimized_migration_plan(
+        self,
+        discovery_report: "DiscoveryReport",
+        target_field_mapping: Optional[Dict[str, str]] = None,
+        resource_filter: Optional[Dict[str, Any]] = None,
+    ) -> MigrationPlan:
+        """Create an optimized migration plan from fast discovery results.
+
+        Args:
+            discovery_report: Results from fast_discover_migration_opportunities
+            target_field_mapping: Optional mapping of source -> target fields
+            resource_filter: Optional filter for which resources to migrate
+
+        Returns:
+            Optimized MigrationPlan
+        """
+        from .fast_discovery import FastDiscoveryManager
+
+        discovery_manager = FastDiscoveryManager(
+            self._resource, self._client, self._resource_type
+        )
+        return discovery_manager.generate_migration_plan_from_discovery(
+            discovery_report, target_field_mapping, resource_filter
+        )
+
+    # Universal Field Management Methods
+
+    def get_universal_field_value(
+        self, resource_id: Union[str, int], field_name: str
+    ) -> Optional["UniversalFieldValue"]:
+        """Get a field value regardless of whether it's standard or custom.
+
+        Args:
+            resource_id: ID of the resource
+            field_name: Name of the field
+
+        Returns:
+            UniversalFieldValue object or None if field doesn't exist
+        """
+        return self._universal_manager.get_field_value(resource_id, field_name)
+
+    def set_universal_field_value(
+        self,
+        resource_id: Union[str, int],
+        field_name: str,
+        value: Any,
+        validate: bool = True,
+    ) -> bool:
+        """Set a field value regardless of whether it's standard or custom.
+
+        Args:
+            resource_id: ID of the resource
+            field_name: Name of the field
+            value: Value to set
+            validate: Whether to validate the value
+
+        Returns:
+            True if successful, False otherwise
+        """
+        return self._universal_manager.set_field_value(
+            resource_id, field_name, value, validate
+        )
+
+    def clear_universal_field_value(
+        self, resource_id: Union[str, int], field_name: str
+    ) -> bool:
+        """Clear a field value regardless of whether it's standard or custom.
+
+        Args:
+            resource_id: ID of the resource
+            field_name: Name of the field
+
+        Returns:
+            True if successful, False otherwise
+        """
+        return self._universal_manager.clear_field_value(resource_id, field_name)
+
+    def get_universal_field_metadata(self, field_name: str) -> Optional[FieldMetadata]:
+        """Get metadata for a field regardless of type.
+
+        Args:
+            field_name: Name of the field
+
+        Returns:
+            FieldMetadata object or None if field doesn't exist
+        """
+        return self._universal_manager.get_field_metadata(field_name)
+
+    def list_all_universal_fields(self) -> List[FieldMetadata]:
+        """List all available fields (both standard and custom).
+
+        Returns:
+            List of FieldMetadata objects for all available fields
+        """
+        return self._universal_manager.list_all_fields()
+
+    def find_universal_fields_by_pattern(self, pattern: str) -> List[FieldMetadata]:
+        """Find fields matching a pattern.
+
+        Args:
+            pattern: Pattern to match (supports * wildcard)
+
+        Returns:
+            List of matching FieldMetadata objects
+        """
+        return self._universal_manager.find_fields_by_pattern(pattern)
+
+    def execute_universal_migration_mapping(
+        self, resource_id: Union[str, int], mapping: MigrationMapping
+    ) -> bool:
+        """Execute a single migration mapping using universal field operations.
+
+        This method supports migrating between any combination of standard and custom fields.
+
+        Args:
+            resource_id: ID of the resource to migrate
+            mapping: Migration mapping configuration
+
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get source field value
+            source_value = self.get_universal_field_value(
+                resource_id, mapping.source_field
+            )
+            if not source_value or source_value.value is None:
+                self._logger.debug(
+                    f"No value found for source field {mapping.source_field}"
+                )
+                return True  # Nothing to migrate
+
+            # Get target field metadata to understand its type
+            target_metadata = self.get_universal_field_metadata(mapping.target_field)
+            if not target_metadata:
+                self._logger.error(f"Target field {mapping.target_field} not found")
+                return False
+
+            # Apply migration strategy
+            if mapping.strategy == MigrationStrategy.REPLACE:
+                return self._execute_universal_replace_strategy(
+                    resource_id, mapping, source_value, target_metadata
+                )
+            elif mapping.strategy == MigrationStrategy.MERGE:
+                return self._execute_universal_merge_strategy(
+                    resource_id, mapping, source_value, target_metadata
+                )
+            elif mapping.strategy == MigrationStrategy.ADD_OPTION:
+                return self._execute_universal_add_option_strategy(
+                    resource_id, mapping, source_value, target_metadata
+                )
+            elif mapping.strategy == MigrationStrategy.COPY_IF_EMPTY:
+                return self._execute_universal_copy_if_empty_strategy(
+                    resource_id, mapping, source_value, target_metadata
+                )
+            elif mapping.strategy == MigrationStrategy.TRANSFORM:
+                return self._execute_universal_transform_strategy(
+                    resource_id, mapping, source_value, target_metadata
+                )
+            else:
+                self._logger.error(f"Unknown migration strategy: {mapping.strategy}")
+                return False
+
+        except Exception as e:
+            self._logger.error(f"Error executing universal migration mapping: {e}")
+            return False
+
+    def _execute_universal_replace_strategy(
+        self,
+        resource_id: Union[str, int],
+        mapping: MigrationMapping,
+        source_value: "UniversalFieldValue",
+        target_metadata: FieldMetadata,
+    ) -> bool:
+        """Execute REPLACE strategy with universal field support."""
+        return self.set_universal_field_value(
+            resource_id,
+            mapping.target_field,
+            source_value.value,
+            mapping.validation_required,
+        )
+
+    def _execute_universal_merge_strategy(
+        self,
+        resource_id: Union[str, int],
+        mapping: MigrationMapping,
+        source_value: "UniversalFieldValue",
+        target_metadata: FieldMetadata,
+    ) -> bool:
+        """Execute MERGE strategy with universal field support."""
+        # Get current target value
+        current_target = self.get_universal_field_value(
+            resource_id, mapping.target_field
+        )
+
+        if not current_target or current_target.value is None:
+            # Target is empty, just set source value
+            return self.set_universal_field_value(
+                resource_id,
+                mapping.target_field,
+                source_value.value,
+                mapping.validation_required,
+            )
+
+        # Merge based on field types
+        if target_metadata.is_multi_value:
+            # For multi-value fields, combine the values
+            merged_value = self._merge_universal_multivalue_fields(
+                current_target.value, source_value.value
+            )
+        else:
+            # For single-value fields, use string concatenation or numeric addition
+            merged_value = self._merge_universal_single_value_fields(
+                current_target.value, source_value.value, target_metadata.data_type
+            )
+
+        return self.set_universal_field_value(
+            resource_id, mapping.target_field, merged_value, mapping.validation_required
+        )
+
+    def _execute_universal_add_option_strategy(
+        self,
+        resource_id: Union[str, int],
+        mapping: MigrationMapping,
+        source_value: "UniversalFieldValue",
+        target_metadata: FieldMetadata,
+    ) -> bool:
+        """Execute ADD_OPTION strategy with universal field support."""
+        if not target_metadata.is_multi_value:
+            self._logger.warning(
+                f"ADD_OPTION strategy used on single-value field {mapping.target_field}"
+            )
+            # Fall back to REPLACE strategy
+            return self._execute_universal_replace_strategy(
+                resource_id, mapping, source_value, target_metadata
+            )
+
+        # For multi-value fields, add the source value as a new option
+        if target_metadata.field_type == FieldType.CUSTOM:
+            # Use custom field manager's add method
+            return self._value_manager.add_to_multivalue_field(
+                resource_id, mapping.target_field, str(source_value.value)
+            )
+        else:
+            # For standard multi-value fields, use merge strategy
+            return self._execute_universal_merge_strategy(
+                resource_id, mapping, source_value, target_metadata
+            )
+
+    def _execute_universal_copy_if_empty_strategy(
+        self,
+        resource_id: Union[str, int],
+        mapping: MigrationMapping,
+        source_value: "UniversalFieldValue",
+        target_metadata: FieldMetadata,
+    ) -> bool:
+        """Execute COPY_IF_EMPTY strategy with universal field support."""
+        # Check if target field is empty
+        current_target = self.get_universal_field_value(
+            resource_id, mapping.target_field
+        )
+
+        if (
+            current_target
+            and current_target.value is not None
+            and current_target.value != ""
+        ):
+            # Target has value, skip migration
+            self._logger.debug(
+                f"Target field {mapping.target_field} not empty, skipping"
+            )
+            return True
+
+        # Target is empty, copy source value
+        return self.set_universal_field_value(
+            resource_id,
+            mapping.target_field,
+            source_value.value,
+            mapping.validation_required,
+        )
+
+    def _execute_universal_transform_strategy(
+        self,
+        resource_id: Union[str, int],
+        mapping: MigrationMapping,
+        source_value: "UniversalFieldValue",
+        target_metadata: FieldMetadata,
+    ) -> bool:
+        """Execute TRANSFORM strategy with universal field support."""
+        if not mapping.transform_function:
+            self._logger.error(f"TRANSFORM strategy requires transform_function")
+            return False
+
+        try:
+            # Apply transformation function
+            transformed_value = mapping.transform_function(source_value.value)
+
+            return self.set_universal_field_value(
+                resource_id,
+                mapping.target_field,
+                transformed_value,
+                mapping.validation_required,
+            )
+        except Exception as e:
+            self._logger.error(f"Error applying transform function: {e}")
+            return False
+
+    def _merge_universal_multivalue_fields(
+        self, current_value: Any, new_value: Any
+    ) -> List[str]:
+        """Merge two multi-value field values."""
+        # Convert both values to lists
+        current_options = []
+        new_options = []
+
+        if isinstance(current_value, list):
+            current_options = [str(v) for v in current_value]
+        elif current_value:
+            current_options = [str(current_value)]
+
+        if isinstance(new_value, list):
+            new_options = [str(v) for v in new_value]
+        elif new_value:
+            new_options = [str(new_value)]
+
+        # Combine and deduplicate
+        all_options = list(set(current_options + new_options))
+        return all_options
+
+    def _merge_universal_single_value_fields(
+        self, current_value: Any, new_value: Any, data_type: str
+    ) -> Any:
+        """Merge two single-value field values based on data type."""
+        if data_type in ["number", "currency"]:
+            # For numeric fields, try to add values
+            try:
+                return float(current_value or 0) + float(new_value or 0)
+            except (ValueError, TypeError):
+                # Fall back to string concatenation
+                return f"{current_value or ''} {new_value or ''}".strip()
+        else:
+            # For text fields, concatenate with space
+            return f"{current_value or ''} {new_value or ''}".strip()
+
+    # Mapping Validation Methods
+
+    def validate_mapping_dictionary(
+        self,
+        mapping_dict: Dict[str, str],
+        default_strategy: MigrationStrategy = MigrationStrategy.REPLACE,
+        comprehensive: bool = True,
+    ) -> MappingValidationResult:
+        """Validate a mapping dictionary comprehensively.
+
+        Args:
+            mapping_dict: Dictionary mapping source fields to target fields
+            default_strategy: Default migration strategy to use
+            comprehensive: Whether to perform comprehensive validation
+
+        Returns:
+            MappingValidationResult with validation results
+        """
+        return self._mapping_validator.validate_mapping_dictionary(
+            mapping_dict,
+            default_strategy,
+            validate_field_existence=comprehensive,
+            validate_type_compatibility=comprehensive,
+            validate_business_logic=comprehensive,
+        )
+
+    def validate_migration_mappings(
+        self, mappings: List[MigrationMapping], comprehensive: bool = True
+    ) -> MappingValidationResult:
+        """Validate a list of migration mappings.
+
+        Args:
+            mappings: List of migration mappings to validate
+            comprehensive: Whether to perform comprehensive validation
+
+        Returns:
+            MappingValidationResult with validation results
+        """
+        return self._mapping_validator.validate_migration_mappings(
+            mappings,
+            validate_field_existence=comprehensive,
+            validate_type_compatibility=comprehensive,
+            validate_business_logic=comprehensive,
+        )
+
+    def suggest_field_mappings(
+        self, source_fields: List[str], target_pattern: Optional[str] = None
+    ) -> Dict[str, List[str]]:
+        """Suggest target fields for source fields based on similarity.
+
+        Args:
+            source_fields: List of source field names
+            target_pattern: Optional pattern to filter target fields
+
+        Returns:
+            Dictionary mapping source fields to suggested target fields
+        """
+        return self._mapping_validator.suggest_field_mappings(
+            source_fields, target_pattern
+        )
+
+    def create_validated_migration_plan(
+        self,
+        mapping_dict: Dict[str, str],
+        strategy: MigrationStrategy = MigrationStrategy.REPLACE,
+        validate_mappings: bool = True,
+        auto_fix_issues: bool = False,
+    ) -> Tuple[MigrationPlan, MappingValidationResult]:
+        """Create a migration plan with validation.
+
+        Args:
+            mapping_dict: Dictionary mapping source fields to target fields
+            strategy: Migration strategy to use
+            validate_mappings: Whether to validate mappings before creating plan
+            auto_fix_issues: Whether to attempt automatic issue resolution
+
+        Returns:
+            Tuple of (MigrationPlan, MappingValidationResult)
+        """
+        validation_result = None
+
+        if validate_mappings:
+            # Validate the mapping dictionary
+            validation_result = self.validate_mapping_dictionary(mapping_dict, strategy)
+
+            if validation_result.has_errors() and not auto_fix_issues:
+                # Return empty plan if validation fails
+                empty_plan = MigrationPlan(
+                    mappings=[],
+                    resource_ids=[],
+                    batch_size=100,
+                    max_workers=5,
+                    dry_run=True,
+                )
+                return empty_plan, validation_result
+
+            if auto_fix_issues:
+                # Attempt to fix issues automatically
+                mapping_dict = self._auto_fix_mapping_issues(
+                    mapping_dict, validation_result
+                )
+                # Re-validate after fixes
+                validation_result = self.validate_mapping_dictionary(
+                    mapping_dict, strategy
+                )
+
+        # Create migration mappings
+        mappings = [
+            MigrationMapping(
+                source_field=source, target_field=target, strategy=strategy
+            )
+            for source, target in mapping_dict.items()
+        ]
+
+        # Create migration plan
+        migration_plan = MigrationPlan(
+            mappings=mappings,
+            resource_ids=[],  # Will be populated during execution
+            batch_size=100,
+            max_workers=5,
+            dry_run=True,  # Default to dry run for safety
+        )
+
+        return migration_plan, validation_result
+
+    def _auto_fix_mapping_issues(
+        self, mapping_dict: Dict[str, str], validation_result: MappingValidationResult
+    ) -> Dict[str, str]:
+        """Attempt to automatically fix mapping issues.
+
+        Args:
+            mapping_dict: Original mapping dictionary
+            validation_result: Validation result with issues
+
+        Returns:
+            Fixed mapping dictionary
+        """
+        fixed_mapping = mapping_dict.copy()
+
+        for issue in validation_result.issues:
+            if issue.issue_type == "field_not_found" and issue.suggestion:
+                # Try to use suggestion for missing fields
+                if "create custom field" in issue.suggestion.lower():
+                    self._logger.info(
+                        f"Auto-fix: Would create custom field '{issue.field_name}'"
+                    )
+                    # In a real implementation, this could create the field
+                    # For now, just log the intention
+
+        return fixed_mapping
